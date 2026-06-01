@@ -83,10 +83,7 @@ Request đến
                                                     └─> Reverse Proxy
 ```
 
-<<<<<<< HEAD
 ### Giải thích thiết kế
-=======
->>>>>>> 789368084f57e5c8e78bdea2659a6fdf565d6269
 
 Chuỗi middleware được tổ chức theo mẫu kiến trúc **Pipe and Filter** (Buschmann et al., *Pattern-Oriented Software Architecture*, 1996) kết hợp với **Chain of Responsibility** (GoF, *Design Patterns*, 1994): mỗi middleware là một "bộ lọc" độc lập, nhận request → xử lý → chuyển tiếp, không biết gì về các tầng còn lại.
 
@@ -106,11 +103,6 @@ Chuỗi middleware được tổ chức theo mẫu kiến trúc **Pipe and Filte
 
 > **Tham khảo:** OWASP API Security Top 10 (2023) khuyến nghị áp dụng **layered security** (Broken Object Level Authorization — API1, Broken Authentication — API2) đúng thứ tự như trên. Cơ chế JWT được chuẩn hóa tại [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519).
 
-<<<<<<< HEAD
-=======
----
-
->>>>>>> 789368084f57e5c8e78bdea2659a6fdf565d6269
 ---
 
 ## Chạy Dự Án
