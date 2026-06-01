@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"net"
 	"net/http"
 	"sync"
 	"time"
@@ -64,10 +63,8 @@ func getVisitor(ip string, maxReqPerMin int) *rate.Limiter {
 func RateLimitMiddlewareProvider(maxReqPerMin int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ip, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				ip = r.RemoteAddr
-			}
+			// Dùng RealIP để lấy đúng IP client ngay cả khi chạy sau Nginx/proxy
+			ip := RealIP(r)
 
 			if !getVisitor(ip, maxReqPerMin).Allow() {
 				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)

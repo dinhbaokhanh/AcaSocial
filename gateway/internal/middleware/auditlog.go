@@ -3,7 +3,6 @@ package middleware
 import (
 	"encoding/json"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"time"
@@ -72,11 +71,8 @@ func (rw *responseWriter) WriteHeader(code int) {
 // AuditLoggerMiddleware bọc toàn bộ chuỗi middleware, ghi lại kết quả cuối cùng của mỗi request.
 func AuditLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Lấy IP thực của client
-		ip, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			ip = r.RemoteAddr
-		}
+		// Lấy IP thực của client (hỗ trợ X-Forwarded-For khi chạy sau proxy)
+		ip := RealIP(r)
 
 		// Bọc ResponseWriter để theo dõi status code được ghi ra
 		wrapped := newResponseWriter(w)

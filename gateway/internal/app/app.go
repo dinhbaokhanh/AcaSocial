@@ -23,7 +23,8 @@ func New(cfg *config.GatewayConfig) (*App, error) {
 		return nil, err
 	}
 
-	// RequestValidation -> AuditLogger -> Recoverer -> RequestLogger -> CORS -> Router
+	// RequestID -> RequestValidation -> AuditLogger -> Recoverer -> RequestLogger -> CORS -> Router
+	// RequestID phải ở ngoài cùng để X-Request-ID có mặt xuyên suốt toàn bộ chuỗi xử lý
 	handler := middleware.Chain(
 		router,
 		middleware.CORSProvider(cfg.CORS),
@@ -31,6 +32,7 @@ func New(cfg *config.GatewayConfig) (*App, error) {
 		middleware.Recoverer,
 		middleware.AuditLoggerMiddleware,
 		middleware.RequestValidationMiddleware,
+		middleware.RequestIDMiddleware,
 	)
 
 	return &App{

@@ -1,9 +1,12 @@
 package routing
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
 	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/middleware"
@@ -14,10 +17,31 @@ import (
 func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 	mux := http.NewServeMux()
 
-	// Route kiểm tra trạng thái Gateway
+	// Route kiểm tra trạng thái Gateway + Redis
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
+		status := "ok"
+		redisStatus := "ok"
+		httpStatus := http.StatusOK
+
+		// Kiểm tra kết nối Redis thực sự bằng Ping với timeout ngắn
+		if middleware.RedisClient != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			if err := middleware.RedisClient.Ping(ctx).Err(); err != nil {
+				redisStatus = "unreachable"
+				status = "degraded"
+				httpStatus = http.StatusServiceUnavailable
+			}
+		} else {
+			redisStatus = "not_configured"
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(httpStatus)
+		_ = json.NewEncoder(w).Encode(map[string]string{
+			"status": status,
+			"redis":  redisStatus,
+		})
 	})
 
 	// Các route khác sẽ được load từ file config
@@ -54,15 +78,24 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		}
 		fmt.Printf("[Router] %-35s -> %s\n", pattern, strings.Join(targetHosts, ", "))
 
-		// reverseProxy -> (JWT Auth nếu cần) -> Xóa header giả mạo -> RateLimit
+		// reverseProxy -> sanitize backend response headers -> (JWT Auth + Cache nếu cần) -> Xóa header giả mạo -> RateLimit
 		var handler http.Handler = reverseProxy
 
-		// Xác thực JWT + RBAC Check
+		// 1. Xóa header nhạy cảm từ backend trước khi trả về cho client
+		handler = sanitizeBackendResponseHeaders(handler)
+
+		// 2. Xác thực JWT + RBAC Check
 		if endpoint.AuthRequired {
 			handler = middleware.AuthMiddlewareProvider(cfg.JWT, endpoint.RequiredRoles)(handler)
 		}
 
-		// Xóa header định danh người dùng do client tự chèn vào
+		// 3. Caching Redis (phải nằm SAU Auth để cache key luôn gắn với từng user,
+		//    tránh trường hợp anonymous đọc được cached response của user đã login)
+		if endpoint.CacheTTLSeconds > 0 {
+			handler = middleware.CacheMiddleware(endpoint.CacheTTLSeconds)(handler)
+		}
+
+		// 4. Xóa header định danh người dùng do client tự chèn vào (phải ở trước Auth)
 		inner := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Header.Del("X-User-ID")
@@ -70,12 +103,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			inner.ServeHTTP(w, r)
 		})
 
-		// Caching Redis (Chỉ áp dụng các Endpoint khai báo CacheTTL, sau khi đã chặn Authentication)
-		if endpoint.CacheTTLSeconds > 0 {
-			handler = middleware.CacheMiddleware(endpoint.CacheTTLSeconds)(handler)
-		}
-
-		// Rate limiting theo IP từ cấu hình gateway.json
+		// 5. Rate limiting theo IP từ cấu hình gateway.json (luôn ở ngoài cùng)
 		handler = middleware.RateLimitMiddlewareProvider(cfg.MaxRequestsPerMinute)(handler)
 
 		mux.Handle(pattern, handler)
