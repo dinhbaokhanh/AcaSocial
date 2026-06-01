@@ -1,16 +1,17 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './users/user.entity';
+import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
+import { OtpModule } from './otp/otp.module';
 import { RefreshToken } from './users/refresh-token.entity';
+import { User } from './users/user.entity';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true, // Không cần import lại ConfigModule ở các module khác
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
 
-    // Kết nối PostgreSQL qua TypeORM
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -22,13 +23,15 @@ import { RefreshToken } from './users/refresh-token.entity';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         entities: [User, RefreshToken],
-        // Chỉ dùng synchronize: true khi dev — tắt khi production, dùng migration thay thế
         synchronize: true,
         logging: false,
       }),
     }),
 
-    // AuthModule, UsersModule, ProfileModule, OtpModule...
+    AuthModule,
+    UsersModule,
+    MailModule,
+    OtpModule,
   ],
 })
 export class AppModule {}

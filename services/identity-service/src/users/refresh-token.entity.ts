@@ -13,7 +13,6 @@ export class RefreshToken {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Lưu SHA-256 hash của refresh token, không lưu token thật để bảo mật
   @Column({ name: 'token_hash', unique: true })
   tokenHash: string;
 
