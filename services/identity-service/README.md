@@ -126,65 +126,50 @@ Service chạy tại `http://localhost:8081`.
 
 ---
 
-## Luồng hoạt động chính
+## RBAC
 
-### Đăng ký
+Identity Service quản lý role gắn với tài khoản, không phụ thuộc context.
 
-1. Client gửi `POST /auth/register` với họ tên, ngày sinh, email, password.
-2. Service kiểm tra email chưa tồn tại, hash password, lưu user với `isVerified = false`.
-3. Sinh OTP 6 số, lưu vào Redis với TTL 5 phút, gửi về email.
-4. Client gửi `POST /auth/verify-otp` với email và OTP.
-5. Service xác thực OTP, cập nhật `isVerified = true`.
-6. Client chuyển về màn hình đăng nhập.
+| Role | Mô tả |
+|------|-------|
+| `student` | Mặc định khi đăng ký. Tham gia nhóm, đăng bài thảo luận |
+| `teacher` | Được admin cấp. Tạo nhóm học, đăng tài liệu, tạo khóa học |
+| `moderator` | Kiểm duyệt nội dung toàn platform. Do admin bổ nhiệm |
+| `admin` | Toàn quyền quản trị hệ thống |
 
-### Đăng nhập
+Role được lưu trong bảng `users` và nhúng vào JWT payload khi đăng nhập:
 
-1. Client gửi `POST /auth/login` với email và password.
-2. Service kiểm tra email tồn tại, tài khoản đã xác thực, so sánh password với bcrypt.
-3. Sinh access token (JWT, 15 phút) và refresh token (UUID ngẫu nhiên, 7 ngày).
-4. Refresh token được hash bằng SHA256 rồi lưu vào bảng `refresh_tokens`.
-5. Trả về cả hai token cho client.
+```json
+{
+  "sub": "uuid",
+  "email": "user@example.com",
+  "role": "teacher",
+  "jti": "uuid",
+  "iat": 1234567890,
+  "exp": 1234568790
+}
+```
 
-### Refresh token
+Gateway đọc `role` từ JWT và forward vào header `X-User-Role` cho các service phía sau.
 
-1. Client gửi `POST /auth/refresh` với refresh token hiện tại.
-2. Service hash token bằng SHA256, tìm trong DB, kiểm tra chưa bị revoke và chưa hết hạn.
-3. Revoke token cũ, sinh cặp token mới và trả về.
+### Ranh giới trách nhiệm
 
-### Đăng xuất
+**Identity Service / JWT `role` dùng để:**
+- Xác định `teacher` có quyền tạo nhóm, tạo khóa học
+- Xác định `moderator` có quyền kiểm duyệt nội dung platform
+- Gateway kiểm tra `required_roles` trước khi cho phép gọi endpoint
 
-1. Client gửi `POST /auth/logout` với access token trong header.
-2. Service revoke toàn bộ refresh token của user trong DB.
-3. Đẩy `jti` (JWT ID) của access token vào Redis blacklist với TTL bằng thời gian còn lại của token.
-4. Mọi request tiếp theo dùng access token đó sẽ bị từ chối tại `JwtStrategy`.
+**JWT `role` KHÔNG dùng để:**
+- Phân quyền bên trong một nhóm cụ thể (owner, admin nhóm)
+- Thay thế logic nghiệp vụ của từng service
 
-### Quên mật khẩu
+**Community Service tự quản lý quyền trong nhóm** thông qua bảng riêng:
+```
+group_members(user_id, group_id, role)
+-- role: 'owner' | 'admin' | 'member'
+```
 
-1. Client gửi `POST /auth/forgot-password` với email.
-2. Service kiểm tra email tồn tại, gửi OTP về email với TTL 10 phút.
-3. Client gửi `POST /auth/reset-password` với email, OTP và mật khẩu mới.
-4. Service xác thực OTP, hash mật khẩu mới, revoke toàn bộ refresh token.
-
-### Đổi mật khẩu (đã đăng nhập)
-
-1. Client gửi `PATCH /users/me/change-password` với mật khẩu hiện tại, mật khẩu mới, xác nhận mật khẩu mới.
-2. Service kiểm tra mật khẩu hiện tại đúng, hai trường mật khẩu mới khớp nhau.
-3. Lưu mật khẩu mới, revoke toàn bộ refresh token, blacklist access token hiện tại.
-4. User bị đăng xuất khỏi tất cả thiết bị.
-
----
-
-## Thiết kế bảo mật
-
-**Password** được hash bằng bcrypt với cost factor 10 trước khi lưu vào DB. Không bao giờ lưu plain text.
-
-**Refresh token** là UUID ngẫu nhiên. Khi lưu vào DB, token được hash bằng SHA256. Khi client gửi lên, service hash lại rồi tìm trong DB — nếu DB bị lộ, attacker không có token gốc.
-
-Lý do dùng SHA256 thay bcrypt cho refresh token: bcrypt dùng salt ngẫu nhiên nên cùng một input cho ra output khác nhau mỗi lần, không thể dùng để tìm kiếm trong DB. SHA256 là deterministic nên tìm được. Refresh token là UUID ngẫu nhiên đủ entropy nên không cần bcrypt.
-
-**Access token** là JWT stateless. Khi đăng xuất hoặc đổi mật khẩu, token được blacklist trong Redis bằng `jti` (một UUID duy nhất được nhúng vào payload khi tạo token). TTL của key Redis bằng thời gian còn lại của token để tự dọn dẹp.
-
-**OTP** được lưu trong Redis với TTL, tự xóa sau khi hết hạn. Sau khi dùng một lần, OTP bị xóa ngay lập tức để không dùng lại được.
+Ví dụ: một `teacher` tạo nhóm sẽ có `role = 'owner'` trong `group_members`. Khi vào nhóm của người khác, họ chỉ là `member` — JWT role không ảnh hưởng đến quyền bên trong nhóm đó.
 
 ---
 
