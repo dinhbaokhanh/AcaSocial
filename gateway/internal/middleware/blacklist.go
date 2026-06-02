@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -10,9 +11,13 @@ import (
 
 var RedisClient *redis.Client
 
-// InitRedis khởi tạo kết nối Redis.
+// InitRedis khởi tạo kết nối Redis, hỗ trợ password qua biến môi trường REDIS_PASSWORD.
+// addr có định dạng "host:port"
 func InitRedis(addr string) {
-	RedisClient = redis.NewClient(&redis.Options{Addr: addr})
+	RedisClient = redis.NewClient(&redis.Options{
+		Addr:     addr,
+		Password: os.Getenv("REDIS_PASSWORD"), // Rỗng = không cần auth (local dev)
+	})
 
 	_, err := RedisClient.Ping(context.Background()).Result()
 	if err != nil {

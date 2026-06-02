@@ -73,10 +73,6 @@ func AuthMiddlewareProvider(jwtCfg config.JWTConfig, requiredRoles []string) fun
 				return
 			}
 
-			// Xóa header giả mạo do client tự đặt
-			r.Header.Del("X-User-ID")
-			r.Header.Del("X-User-Role")
-
 			// Lấy UserID (tránh lỗi trống / float64)
 			var userIDStr string
 			if userID, ok := claims["id"].(string); ok {

@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -15,54 +16,64 @@ var allowedContentTypes = []string{
 	"multipart/form-data",
 }
 
-// RequestValidationMiddleware kiểm tra kích thước và định dạng của request đến.
+// RequestValidationMiddleware kiểm tra Content-Type và giới hạn kích thước body.
 func RequestValidationMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Nhận diện request có mang payload: ContentLength > 0 hoặc dùng Chunked Encoding
 		hasBody := r.ContentLength > 0 || len(r.TransferEncoding) > 0
 
-		// Bọc body bằng MaxBytesReader để tự động từ chối nếu vượt giới hạn (áp dụng cả với chunked)
 		if hasBody {
-			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 			ct := r.Header.Get("Content-Type")
 
 			if ct == "" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnsupportedMediaType)
-				_ = json.NewEncoder(w).Encode(map[string]string{
-					"error": "missing_content_type",
-				})
+				writeJSON(w, http.StatusUnsupportedMediaType, "missing_content_type")
 				return
 			}
 
 			mediaType := strings.ToLower(strings.TrimSpace(strings.Split(ct, ";")[0]))
 			if !isAllowedContentType(mediaType) {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusUnsupportedMediaType)
-				_ = json.NewEncoder(w).Encode(map[string]string{
-					"error": "unsupported_media_type",
-				})
+				writeJSON(w, http.StatusUnsupportedMediaType, "unsupported_media_type")
 				return
 			}
+
+			// Bọc body để Go tự reject khi đọc quá giới hạn.
+			// Lỗi sẽ được bắt bởi handler hoặc ErrorHandler của ReverseProxy —
+			// nhưng ta cần báo 413 trước khi forward sang backend.
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 		}
 
-		// Bắt lỗi vượt kích thước sau khi middleware tiếp theo đọc body
-		next.ServeHTTP(w, r)
+		// Dùng responseRecorder nhỏ để bắt trường hợp proxy trả 413 do body quá lớn
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
 
-		// Kiểm tra xem lỗi 413 có bị trigger bởi MaxBytesReader không
-		if r.Body != nil {
-			buf := make([]byte, 1)
-			_, readErr := r.Body.Read(buf)
-			if readErr != nil && readErr.Error() == "http: request body too large" {
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusRequestEntityTooLarge)
-				_ = json.NewEncoder(w).Encode(map[string]string{
-					"error": "payload_too_large",
-				})
-				return
+		// MaxBytesReader khiến ReverseProxy gặp lỗi khi đọc body và trả về 502 BadGateway.
+		// Ta đổi lại thành 413 để client hiểu đúng.
+		if rec.status == http.StatusBadGateway {
+			// Kiểm tra xem lỗi có phải do body too large không
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(rec.bodyErr, &maxBytesErr) {
+				writeJSON(w, http.StatusRequestEntityTooLarge, "payload_too_large")
 			}
 		}
 	})
+}
+
+// statusRecorder ghi lại status code để kiểm tra sau khi handler chạy xong
+type statusRecorder struct {
+	http.ResponseWriter
+	status  int
+	bodyErr error
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func writeJSON(w http.ResponseWriter, status int, errCode string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": errCode})
 }
 
 // isAllowedContentType kiểm tra xem media type có nằm trong danh sách cho phép không

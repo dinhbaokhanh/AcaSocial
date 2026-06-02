@@ -56,6 +56,8 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 	proxies := make([]*httputil.ReverseProxy, 0, len(targets))
 
 	for _, target := range targets {
+		target := target // tạo bản copy local để closure capture đúng giá trị
+
 		targetURL, err := url.Parse(target.Host)
 		if err != nil {
 			return nil, err
@@ -66,12 +68,11 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 		// Mỗi target có một Circuit Breaker độc lập (bảo vệ Host đó)
 		cb := gobreaker.NewCircuitBreaker[*http.Response](gobreaker.Settings{
 			Name:        "CB-" + targetURL.Host,
-			MaxRequests: 5,                  // Số request cho phép thử qua khi Half-Open
-			Interval:    10 * time.Second,   // Thời gian đếm lỗi để reset counter vòng lặp
-			Timeout:     15 * time.Second,   // Thời gian Open (15s sẽ chuyển về Half-Open)
+			MaxRequests: 5,
+			Interval:    10 * time.Second,
+			Timeout:     15 * time.Second,
 			ReadyToTrip: func(counts gobreaker.Counts) bool {
 				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-				// Cầu dao sập nếu lượng request >= 10 và tỉ lệ rớt >= 50%
 				return counts.Requests >= 10 && failureRatio >= 0.5
 			},
 		})
@@ -87,11 +88,15 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 		}
 
 		// Ghi đè Director để sửa Host header và rewrite path theo url_pattern.
+		// Cần capture targetURL, endpointPattern, backendPattern theo giá trị (đã làm ở trên)
+		capturedEndpoint := endpointPattern
+		capturedBackend := backendPattern
+		capturedHost := targetURL
 		originalDirector := p.Director
 		p.Director = func(req *http.Request) {
 			originalDirector(req)
-			req.Host = targetURL.Host
-			req.URL.Path = rewritePath(req.URL.Path, endpointPattern, backendPattern)
+			req.Host = capturedHost.Host
+			req.URL.Path = rewritePath(req.URL.Path, capturedEndpoint, capturedBackend)
 			req.URL.RawPath = req.URL.EscapedPath()
 		}
 

@@ -70,6 +70,7 @@ services:
       - ./gateway/.env
     environment:
       REDIS_URL: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
       IDENTITY_SERVICE_URL: http://identity-service:8081
     ports:
       - "8080:8080"
