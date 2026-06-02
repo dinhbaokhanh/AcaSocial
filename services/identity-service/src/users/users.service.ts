@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -11,6 +12,8 @@ import * as bcrypt from 'bcrypt';
 import { v2 as cloudinary } from 'cloudinary';
 import Redis from 'ioredis';
 import { Repository } from 'typeorm';
+import { REDIS_CLIENT } from '../common/redis.provider';
+import { parseTtl } from '../common/parse-ttl.util';
 import { MailService } from '../mail/mail.service';
 import { OtpService } from '../otp/otp.service';
 import { RefreshToken } from './refresh-token.entity';
@@ -27,20 +30,14 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
  */
 @Injectable()
 export class UsersService {
-  private redis: Redis;
-
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(RefreshToken) private refreshTokenRepo: Repository<RefreshToken>,
+    @Inject(REDIS_CLIENT) private redis: Redis,
     private config: ConfigService,
     private mailService: MailService,
     private otpService: OtpService,
   ) {
-    this.redis = new Redis({
-      host: config.get<string>('REDIS_HOST'),
-      port: config.get<number>('REDIS_PORT'),
-    });
-
     // Khởi tạo Cloudinary SDK với credentials từ biến môi trường
     cloudinary.config({
       cloud_name: config.get<string>('CLOUDINARY_CLOUD_NAME'),
@@ -106,7 +103,7 @@ export class UsersService {
 
     await this.refreshTokenRepo.update({ userId: user.id }, { revoked: true });
 
-    const ttl = this.parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
+    const ttl = parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
     await this.redis.set(`blacklist:${jti}`, '1', 'EX', ttl);
 
     return { message: 'Password changed successfully. Please login again.' };
@@ -160,7 +157,7 @@ export class UsersService {
 
     await this.refreshTokenRepo.update({ userId: user.id }, { revoked: true });
 
-    const ttl = this.parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
+    const ttl = parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
     await this.redis.set(`blacklist:${jti}`, '1', 'EX', ttl);
 
     // softDelete chỉ ghi deletedAt, không xóa bản ghi khỏi DB
@@ -170,19 +167,4 @@ export class UsersService {
     return { message: 'Account deleted successfully' };
   }
 
-  /**
-   * Chuyển đổi chuỗi thời hạn JWT (vd: "15m", "2h", "7d") thành số giây.
-   * Dùng để đặt TTL khi blacklist token trong Redis.
-   *
-   * TODO: parseTtl bị trùng ở AuthService và UsersService.
-   *       Nên extract ra một utility function dùng chung.
-   */
-  private parseTtl(expires: string): number {
-    const unit = expires.slice(-1);
-    const value = parseInt(expires.slice(0, -1));
-    if (unit === 'm') return value * 60;
-    if (unit === 'h') return value * 3600;
-    if (unit === 'd') return value * 86400;
-    return 900; // fallback: 15 phút
-  }
 }

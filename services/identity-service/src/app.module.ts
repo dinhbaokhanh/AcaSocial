@@ -2,20 +2,15 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { RedisModule } from './common/redis.module';
 import { MailModule } from './mail/mail.module';
 import { OtpModule } from './otp/otp.module';
 import { RefreshToken } from './users/refresh-token.entity';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
 
-/**
- * AppModule là module gốc của toàn bộ ứng dụng.
- * NestJS đọc file này đầu tiên khi khởi động để biết cần load những gì.
- */
 @Module({
   imports: [
-    // ConfigModule.forRoot() đọc file .env và inject vào toàn bộ ứng dụng qua ConfigService.
-    // isGlobal: true giúp không cần import lại ở từng module con.
     ConfigModule.forRoot({ isGlobal: true }),
 
     // Kết nối PostgreSQL, cấu hình được đọc từ biến môi trường thông qua ConfigService.
@@ -36,6 +31,9 @@ import { UsersModule } from './users/users.module';
         logging: false,
       }),
     }),
+
+    // Global module — cung cấp REDIS_CLIENT cho toàn bộ ứng dụng, không cần import lại
+    RedisModule,
 
     AuthModule,   // Đăng ký, đăng nhập, OTP, JWT
     UsersModule,  // Quản lý thông tin cá nhân người dùng

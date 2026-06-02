@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -13,6 +14,8 @@ import { createHash, randomUUID } from 'crypto';
 import Redis from 'ioredis';
 import { Repository } from 'typeorm';
 import type { StringValue } from 'ms';
+import { REDIS_CLIENT } from '../common/redis.provider';
+import { parseTtl } from '../common/parse-ttl.util';
 import { MailService } from '../mail/mail.service';
 import { OtpService } from '../otp/otp.service';
 import { RefreshToken } from '../users/refresh-token.entity';
@@ -30,22 +33,15 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
  */
 @Injectable()
 export class AuthService {
-  private redis: Redis;
-
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
-    @InjectRepository(RefreshToken)
-    private refreshTokenRepo: Repository<RefreshToken>,
+    @InjectRepository(RefreshToken) private refreshTokenRepo: Repository<RefreshToken>,
+    @Inject(REDIS_CLIENT) private redis: Redis,
     private jwtService: JwtService,
     private config: ConfigService,
     private mailService: MailService,
     private otpService: OtpService,
-  ) {
-    this.redis = new Redis({
-      host: config.get<string>('REDIS_HOST'),
-      port: config.get<number>('REDIS_PORT'),
-    });
-  }
+  ) {}
 
   /**
    * Đăng ký tài khoản mới.
@@ -164,8 +160,7 @@ export class AuthService {
 
     // Blacklist jti trong Redis để Gateway từ chối access token này ngay lập tức,
     // dù token vẫn chưa hết hạn về mặt thời gian
-    const accessExpires = this.config.get<string>('JWT_ACCESS_EXPIRES_IN');
-    const ttl = this.parseTtl(accessExpires);
+    const ttl = parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
     await this.redis.set(`blacklist:${jti}`, '1', 'EX', ttl);
 
     return { message: 'Logged out successfully' };
@@ -223,8 +218,10 @@ export class AuthService {
     // Refresh token là UUID thô gửi về client, DB chỉ lưu hash của nó
     const refreshTokenRaw = randomUUID();
     const tokenHash = createHash('sha256').update(refreshTokenRaw).digest('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Hết hạn sau 7 ngày
+
+    // Tính expiresAt từ JWT_REFRESH_EXPIRES_IN thay vì hardcode 7 ngày
+    const refreshExpires = this.config.get<string>('JWT_REFRESH_EXPIRES_IN');
+    const expiresAt = new Date(Date.now() + parseTtl(refreshExpires) * 1000);
 
     await this.refreshTokenRepo.save(
       this.refreshTokenRepo.create({ tokenHash, expiresAt, userId: user.id }),
@@ -233,26 +230,5 @@ export class AuthService {
     return { accessToken, refreshToken: refreshTokenRaw };
   }
 
-  // Phương thức này hiện không được gọi (để lại từ lần refactor trước)
-  private async findValidRefreshToken(raw: string, tokens: RefreshToken[]) {
-    for (const token of tokens) {
-      const match = await bcrypt.compare(raw, token.tokenHash);
-      if (match) return token;
-    }
-    return null;
-  }
 
-  /**
-   * Chuyển đổi chuỗi thời hạn JWT (vd: "15m", "2h", "7d") thành số giây.
-   * Dùng để đặt TTL cho key blacklist trong Redis.
-   * Mặc định 900 giây (15 phút) nếu không parse được.
-   */
-  private parseTtl(expires: string): number {
-    const unit = expires.slice(-1);
-    const value = parseInt(expires.slice(0, -1));
-    if (unit === 'm') return value * 60;
-    if (unit === 'h') return value * 3600;
-    if (unit === 'd') return value * 86400;
-    return 900;
-  }
 }

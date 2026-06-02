@@ -43,5 +43,7 @@ func isBlacklisted(jti string) bool {
 		log.Printf("[LỖI BẢO MẬT] Redis blacklist lookup failed for jti %s: %v. Báo cáo failed-closed.", jti, err)
 		return true
 	}
-	return val == "revoked"
+	// identity-service lưu value "1" khi revoke token (logout, đổi mật khẩu, xóa tài khoản)
+	// Kiểm tra key tồn tại là đủ — không cần so sánh value cụ thể
+	return val != ""
 }

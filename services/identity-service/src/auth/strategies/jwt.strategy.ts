@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +6,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Repository } from 'typeorm';
 import { User } from '../../users/user.entity';
 import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../../common/redis.provider';
 
 /**
  * JwtStrategy là nơi Passport xác minh JWT mỗi khi có request đến endpoint được bảo vệ.
@@ -19,23 +20,15 @@ import Redis from 'ioredis';
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  private redis: Redis;
-
   constructor(
     config: ConfigService,
     @InjectRepository(User) private userRepo: Repository<User>,
+    @Inject(REDIS_CLIENT) private redis: Redis,
   ) {
     super({
-      // Tự động đọc token từ header Authorization: Bearer <token>
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: config.get<string>('JWT_SECRET'),
-      // passReqToCallback: true cho phép validate() nhận thêm req — dùng nếu cần đọc header/body
       passReqToCallback: true,
-    });
-
-    this.redis = new Redis({
-      host: config.get<string>('REDIS_HOST'),
-      port: config.get<number>('REDIS_PORT'),
     });
   }
 
