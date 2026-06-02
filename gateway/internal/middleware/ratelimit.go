@@ -11,33 +11,49 @@ import (
 type visitor struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
+	mu       sync.Mutex // bảo vệ lastSeen khỏi data race khi nhiều goroutine cập nhật đồng thời
 }
 
-var visitors sync.Map
+var (
+	visitors    sync.Map
+	stopCleanup = make(chan struct{}) // dùng để dừng goroutine cleanup khi shutdown
+)
 
-func InitRateLimiter() {
+// InitRateLimiter khởi động goroutine dọn dẹp visitor stale.
+// Gọi hàm trả về để dừng goroutine khi shutdown.
+func InitRateLimiter() func() {
 	go cleanupVisitors()
+	return func() { close(stopCleanup) }
 }
 
-// cleanupVisitors xóa các IP không còn gửi request trong vòng 10 phút
+// cleanupVisitors xóa các IP không còn gửi request trong vòng 10 phút.
+// Dừng lại khi nhận tín hiệu từ channel stopCleanup.
 func cleanupVisitors() {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
 	for {
-		time.Sleep(5 * time.Minute)
-
-		visitors.Range(func(key, value interface{}) bool {
-			v := value.(*visitor)
-			if time.Since(v.lastSeen) > 10*time.Minute {
-				visitors.Delete(key)
-			}
-			return true
-		})
+		select {
+		case <-ticker.C:
+			visitors.Range(func(key, value any) bool {
+				v := value.(*visitor)
+				v.mu.Lock()
+				idle := time.Since(v.lastSeen) > 10*time.Minute
+				v.mu.Unlock()
+				if idle {
+					visitors.Delete(key)
+				}
+				return true
+			})
+		case <-stopCleanup:
+			return
+		}
 	}
 }
 
-// Trả về rate limiter của một IP
+// getVisitor trả về rate limiter của một IP, tạo mới nếu chưa có.
 func getVisitor(ip string, maxReqPerMin int) *rate.Limiter {
 	if maxReqPerMin <= 0 {
-		maxReqPerMin = 100 // Fallback mặc định
+		maxReqPerMin = 100
 	}
 	rps := rate.Limit(float64(maxReqPerMin) / 60.0)
 	burst := maxReqPerMin / 5
@@ -45,32 +61,32 @@ func getVisitor(ip string, maxReqPerMin int) *rate.Limiter {
 		burst = 5
 	}
 
-	// Lấy hoặc khởi tạo Limiter mới
-	vInfo, loaded := visitors.LoadOrStore(ip, &visitor{
+	v := &visitor{
 		limiter:  rate.NewLimiter(rps, burst),
 		lastSeen: time.Now(),
-	})
-
-	v := vInfo.(*visitor)
-	if loaded {
-		v.lastSeen = time.Now()
 	}
 
-	return v.limiter
+	// LoadOrStore: nếu đã tồn tại trả về cái cũ, nếu chưa lưu cái mới
+	actual, _ := visitors.LoadOrStore(ip, v)
+	existing := actual.(*visitor)
+
+	// Cập nhật lastSeen an toàn với lock
+	existing.mu.Lock()
+	existing.lastSeen = time.Now()
+	existing.mu.Unlock()
+
+	return existing.limiter
 }
 
-// RateLimitMiddlewareProvider định tuyến hàm middleware chặn request spam với giới hạn động
+// RateLimitMiddlewareProvider tạo middleware giới hạn request theo IP.
 func RateLimitMiddlewareProvider(maxReqPerMin int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Dùng RealIP để lấy đúng IP client ngay cả khi chạy sau Nginx/proxy
 			ip := RealIP(r)
-
 			if !getVisitor(ip, maxReqPerMin).Allow() {
 				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 		})
 	}

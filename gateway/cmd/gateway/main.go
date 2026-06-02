@@ -34,8 +34,8 @@ func main() {
 	// Nạp JWT_SECRET vào bộ nhớ — crash nếu thiếu để đảm bảo an toàn
 	middleware.InitJWT()
 
-	// Khởi động goroutine dọn dẹp rate limiter để tránh memory leak
-	middleware.InitRateLimiter()
+	// Khởi động goroutine dọn dẹp rate limiter, lưu hàm stop để gọi khi shutdown
+	stopRateLimiter := middleware.InitRateLimiter()
 
 	// Khởi tạo Gateway
 	gateway, err := app.New(cfg)
@@ -67,5 +67,6 @@ func main() {
 		log.Fatalf("Dừng Gateway không thành công: %v", err)
 	}
 
+	stopRateLimiter()
 	log.Println("Gateway đã dừng hoàn toàn.")
 }

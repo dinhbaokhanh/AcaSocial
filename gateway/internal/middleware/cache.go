@@ -11,28 +11,39 @@ import (
 	"time"
 )
 
-// cacheRes dùng để lưu trữ dữ liệu trả về vào trong Redis
+// cacheRes lưu trữ response đầy đủ để replay về client khi cache hit
 type cacheRes struct {
 	Status int         `json:"status"`
 	Header http.Header `json:"header"`
 	Body   []byte      `json:"body"`
 }
 
-// responseRecorder chặn việc ghi thẳng ra client, lưu lại để cache trước
-// KHÔNG embed ResponseWriter trực tiếp để tránh double-write body ra client
+// responseRecorder chặn hoàn toàn việc ghi ra client để có thể cache trước.
+// Header backend được lưu riêng trong backendHeader, không lẫn với header của w gốc.
 type responseRecorder struct {
 	http.ResponseWriter
-	status int
-	body   *bytes.Buffer
-	wrote  bool
+	status        int
+	body          *bytes.Buffer
+	backendHeader http.Header // header do backend ghi vào — tách biệt với w.Header()
+}
+
+func newResponseRecorder(w http.ResponseWriter) *responseRecorder {
+	return &responseRecorder{
+		ResponseWriter: w,
+		status:         http.StatusOK,
+		body:           bytes.NewBuffer(nil),
+		backendHeader:  make(http.Header),
+	}
+}
+
+// Header trả về backendHeader để backend ghi vào đây thay vì w.Header() gốc
+func (rw *responseRecorder) Header() http.Header {
+	return rw.backendHeader
 }
 
 func (rw *responseRecorder) WriteHeader(status int) {
-	if !rw.wrote {
-		rw.status = status
-		// Không gọi rw.ResponseWriter.WriteHeader ở đây —
-		// sẽ flush cùng lúc với Write() bên dưới
-	}
+	rw.status = status
+	// Không flush ra client — chỉ ghi nhớ status
 }
 
 func (rw *responseRecorder) Write(b []byte) (int, error) {
@@ -40,77 +51,64 @@ func (rw *responseRecorder) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// CacheMiddleware bọc Request GET và lưu trả về vào Redis theo X-User-ID
+// CacheMiddleware cache response GET theo (URL + X-User-ID) trong Redis.
+// Phải đặt sau AuthMiddleware để X-User-ID đã được inject trước khi tính cache key.
 func CacheMiddleware(ttlSeconds int) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Chỉ Cache GET request và khi cấu hình Redis đã sẵn sàng
+			// Chỉ cache GET request khi Redis sẵn sàng
 			if r.Method != http.MethodGet || RedisClient == nil {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			// Nhận diện dữ liệu động phụ thuộc User (Private Cache)
+			// Cache key gắn với user — tránh user A đọc cache của user B
 			userID := r.Header.Get("X-User-ID")
-			
-			// Xây dựng Cache Key băm MD5 để giảm kích thước key trên Redis
 			rawKey := fmt.Sprintf("%s:%s", r.URL.RequestURI(), userID)
 			hash := md5.Sum([]byte(rawKey))
 			cacheKey := "cache:GET:" + hex.EncodeToString(hash[:])
 
 			ctx := context.Background()
-			
-			// 1. Thử đọc Cache
-			cachedData, err := RedisClient.Get(ctx, cacheKey).Result()
-			if err == nil && cachedData != "" {
+
+			// 1. Cache HIT — replay response đã lưu
+			if cached, err := RedisClient.Get(ctx, cacheKey).Result(); err == nil {
 				var res cacheRes
-				if err := json.Unmarshal([]byte(cachedData), &res); err == nil {
-					// Đổ Header gốc đã lưu
-					for k, v := range res.Header {
-						w.Header().Del(k) // Clear default
-						for _, vv := range v {
-							w.Header().Add(k, vv)
+				if json.Unmarshal([]byte(cached), &res) == nil {
+					for k, vals := range res.Header {
+						for _, v := range vals {
+							w.Header().Add(k, v)
 						}
 					}
-					
-					// CACHE HIT - Set sau cùng để không bị đè
 					w.Header().Set("X-Cache", "HIT")
-					
 					w.WriteHeader(res.Status)
 					_, _ = w.Write(res.Body)
 					return
 				}
 			}
 
-			// 2. CACHE MISS - Thực thi Handler tiếp theo (gọi vào Backend)
-			// rec chặn response, không cho ghi thẳng ra client
-			rec := &responseRecorder{
-				ResponseWriter: w,
-				status:         http.StatusOK,
-				body:           bytes.NewBuffer(nil),
-			}
-
+			// 2. Cache MISS — chạy handler thực, thu thập response vào recorder
+			rec := newResponseRecorder(w)
 			next.ServeHTTP(rec, r)
 
-			// 3. Flush response thực sự ra client
-			// Copy header từ backend (rec không ghi header ra w)
-			for k, v := range rec.Header() {
-				w.Header()[k] = v
+			// 3. Flush response thực ra client
+			for k, vals := range rec.backendHeader {
+				for _, v := range vals {
+					w.Header().Add(k, v)
+				}
 			}
 			w.Header().Set("X-Cache", "MISS")
 			w.WriteHeader(rec.status)
 			_, _ = w.Write(rec.body.Bytes())
 
-			// 4. Lưu vào Redis nếu backend trả về 2xx
+			// 4. Lưu vào Redis chỉ khi backend trả 2xx
 			if rec.status >= 200 && rec.status < 300 {
 				res := cacheRes{
 					Status: rec.status,
-					Header: rec.Header(),
+					Header: rec.backendHeader,
 					Body:   rec.body.Bytes(),
 				}
-				resBytes, err := json.Marshal(res)
-				if err == nil {
-					RedisClient.Set(ctx, cacheKey, string(resBytes), time.Duration(ttlSeconds)*time.Second)
+				if b, err := json.Marshal(res); err == nil {
+					RedisClient.Set(ctx, cacheKey, string(b), time.Duration(ttlSeconds)*time.Second)
 				}
 			}
 		})

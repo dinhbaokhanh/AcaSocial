@@ -168,12 +168,19 @@ type breakerTransport struct {
 }
 
 func (b *breakerTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Execute chạy code HTTP call và theo dõi kết quả trả về
 	resp, err := b.cb.Execute(func() (*http.Response, error) {
-		return b.transport.RoundTrip(req)
+		r, err := b.transport.RoundTrip(req)
+		if err != nil {
+			return nil, err
+		}
+		// Coi HTTP 5xx là failure để circuit breaker đếm đúng
+		// (network thành công nhưng backend đang có vấn đề)
+		if r.StatusCode >= 500 {
+			return nil, fmt.Errorf("backend trả về %d", r.StatusCode)
+		}
+		return r, nil
 	})
 	if err != nil {
-		// Nếu CB Open, err sẽ tự văng ra, ReverseProxy nhận được err và đẩy vào ErrorHandler
 		return nil, err
 	}
 	return resp, nil
