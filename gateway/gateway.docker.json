@@ -17,43 +17,43 @@
 
       "endpoint": "/api/auth/register",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/register" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/register" }]
     },
     {
       "endpoint": "/api/auth/verify-otp",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/verify-otp" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/verify-otp" }]
     },
     {
       "endpoint": "/api/auth/resend-otp",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/resend-otp" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/resend-otp" }]
     },
     {
       "endpoint": "/api/auth/login",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/login" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/login" }]
     },
     {
       "endpoint": "/api/auth/refresh",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/refresh" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/refresh" }]
     },
     {
       "endpoint": "/api/auth/logout",
       "method": "POST",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/logout" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/logout" }]
     },
     {
       "endpoint": "/api/auth/forgot-password",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/forgot-password" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/forgot-password" }]
     },
     {
       "endpoint": "/api/auth/reset-password",
       "method": "POST",
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/auth/reset-password" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/auth/reset-password" }]
     },
 
     {
@@ -63,55 +63,55 @@
       "method": "GET",
       "auth_required": true,
       "cache_ttl_seconds": 30,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me" }]
     },
     {
       "endpoint": "/api/users/me/profile",
       "method": "PATCH",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/profile" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/profile" }]
     },
     {
       "endpoint": "/api/users/me/avatar",
       "method": "PATCH",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/avatar" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/avatar" }]
     },
     {
       "endpoint": "/api/users/me/change-password",
       "method": "PATCH",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/change-password" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/change-password" }]
     },
     {
       "endpoint": "/api/users/me/change-email/request",
       "method": "POST",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/change-email/request" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/change-email/request" }]
     },
     {
       "endpoint": "/api/users/me/change-email/resend",
       "method": "POST",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/change-email/resend" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/change-email/resend" }]
     },
     {
       "endpoint": "/api/users/me/change-email/confirm",
       "method": "POST",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/change-email/confirm" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/change-email/confirm" }]
     },
     {
       "endpoint": "/api/users/me/privacy",
       "method": "PATCH",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me/privacy" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me/privacy" }]
     },
     {
       "endpoint": "/api/users/me",
       "method": "DELETE",
       "auth_required": true,
-      "backend": [{ "host": ["http://localhost:8081"], "url_pattern": "/users/me" }]
+      "backend": [{ "host": ["http://identity-service:8081"], "url_pattern": "/users/me" }]
     }
   ]
 }
