@@ -32,12 +32,11 @@ func AuthMiddlewareProvider(jwtCfg config.JWTConfig, requiredRoles []string) fun
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 			jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 
-			// Khởi tạo Parser với các cấu hình validation và tùy chọn giữ nguyên số lớn (JSONNumber)
+			// Parser chỉ verify chữ ký và thời hạn — không check issuer/audience
+			// vì identity-service không set các claim này khi ký token
 			parser := jwt.NewParser(
 				jwt.WithValidMethods([]string{"HS256"}),
 				jwt.WithExpirationRequired(),
-				jwt.WithIssuer(jwtCfg.Issuer),
-				jwt.WithAudience(jwtCfg.Audience),
 				jwt.WithJSONNumber(),
 			)
 
