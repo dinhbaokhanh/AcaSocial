@@ -70,9 +70,7 @@ services:
       - ./gateway/.env
     environment:
       REDIS_URL: redis:6379
-    volumes:
-      # Override gateway.json bằng bản dành cho Docker (dùng hostname service thay localhost)
-      - ./gateway/gateway.docker.json:/app/gateway.json:ro
+      IDENTITY_SERVICE_URL: http://identity-service:8081
     ports:
       - "8080:8080"
     networks:

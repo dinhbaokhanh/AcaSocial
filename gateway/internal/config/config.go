@@ -22,7 +22,7 @@ type CORSConfig struct {
 // GatewayConfig là cấu trúc gốc chứa toàn bộ cài đặt của Gateway (đọc từ file JSON)
 type GatewayConfig struct {
 	Port                 int              `json:"port"`
-	TimeoutSeconds        int              `json:"timeout_seconds"`
+	TimeoutSeconds       int              `json:"timeout_seconds"`
 	MaxRequestsPerMinute int              `json:"max_requests_per_minute"`
 	JWT                  JWTConfig        `json:"jwt"`
 	CORS                 CORSConfig       `json:"cors"`
@@ -31,8 +31,8 @@ type GatewayConfig struct {
 
 // EndpointConfig định nghĩa một API Route mà Gateway sẽ mở ra để Frontend gọi
 type EndpointConfig struct {
-	Endpoint      string          `json:"endpoint"`
-	Method        string          `json:"method"`
+	Endpoint        string          `json:"endpoint"`
+	Method          string          `json:"method"`
 	AuthRequired    bool            `json:"auth_required"`
 	RequiredRoles   []string        `json:"required_roles"`
 	CacheTTLSeconds int             `json:"cache_ttl_seconds"`
@@ -45,20 +45,27 @@ type BackendConfig struct {
 	URLPattern string   `json:"url_pattern"`
 }
 
-// Load đọc và giải mã file cấu hình JSON của Gateway
+// Load đọc và giải mã file cấu hình JSON của Gateway.
+// Các giá trị dạng ${VAR_NAME} trong host sẽ được tự động thay thế bằng biến môi trường,
+// giúp dùng chung một file gateway.json cho cả local lẫn Docker.
 func Load(configPath string) (*GatewayConfig, error) {
-	file, err := os.Open(configPath)
+	raw, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("không thể mở file cấu hình: %w", err)
 	}
-	defer file.Close()
 
-	var config GatewayConfig
-	decoder := json.NewDecoder(file)
-	
-	if err := decoder.Decode(&config); err != nil {
+	// Expand ${VAR} → giá trị từ môi trường, giữ nguyên nếu biến không tồn tại
+	expanded := os.Expand(string(raw), func(key string) string {
+		if val, ok := os.LookupEnv(key); ok {
+			return val
+		}
+		return "${" + key + "}" // giữ nguyên placeholder nếu chưa set
+	})
+
+	var cfg GatewayConfig
+	if err := json.Unmarshal([]byte(expanded), &cfg); err != nil {
 		return nil, fmt.Errorf("gặp lỗi cú pháp khi parse cấu hình JSON: %w", err)
 	}
 
-	return &config, nil
+	return &cfg, nil
 }
