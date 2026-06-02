@@ -23,6 +23,7 @@ import { ConfirmChangeEmailDto, RequestChangeEmailDto } from './dto/change-email
 import { DeleteAccountDto } from './dto/delete-account.dto';
 import { UpdatePrivacyDto } from './dto/update-privacy.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UserProfileDto } from './dto/user-profile.dto';
 
 /**
  * UsersService xử lý các nghiệp vụ liên quan đến quản lý hồ sơ người dùng.
@@ -47,18 +48,27 @@ export class UsersService {
   }
 
   /**
-   * Trả về thông tin hồ sơ, loại bỏ passwordHash trước khi gửi về client.
-   * Destructuring `{ passwordHash, ...profile }` là cách gọn nhất để làm điều này.
+   * Trả về thông tin hồ sơ qua UserProfileDto — chỉ expose đúng field frontend cần.
+   * Lọc bỏ: passwordHash, jti, updatedAt, deletedAt, refreshTokens.
    */
-  getProfile(user: User) {
-    const { passwordHash, ...profile } = user;
-    return profile;
+  getProfile(user: User): UserProfileDto {
+    return {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      dateOfBirth: user.dateOfBirth ?? null,
+      avatarUrl: user.avatarUrl ?? null,
+      privacy: user.privacy,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+    };
   }
 
-  async updateProfile(user: User, dto: UpdateProfileDto): Promise<User> {
+  async updateProfile(user: User, dto: UpdateProfileDto): Promise<UserProfileDto> {
     user.fullName = dto.fullName;
     if (dto.dateOfBirth) user.dateOfBirth = new Date(dto.dateOfBirth);
-    return this.userRepo.save(user);
+    const saved = await this.userRepo.save(user);
+    return this.getProfile(saved);
   }
 
   /**

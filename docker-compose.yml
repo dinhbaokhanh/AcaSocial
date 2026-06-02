@@ -12,6 +12,8 @@ services:
       POSTGRES_DB: ${DB_NAME}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # Expose để DBeaver / TablePlus kết nối được khi dev
     networks:
       - internal
     healthcheck:
