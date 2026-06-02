@@ -18,21 +18,26 @@ type cacheRes struct {
 	Body   []byte      `json:"body"`
 }
 
-// responseRecorder ghi đè ResponseWriter để thu thập Body và Status trước khi gửi về Client
+// responseRecorder chặn việc ghi thẳng ra client, lưu lại để cache trước
+// KHÔNG embed ResponseWriter trực tiếp để tránh double-write body ra client
 type responseRecorder struct {
 	http.ResponseWriter
 	status int
 	body   *bytes.Buffer
+	wrote  bool
 }
 
 func (rw *responseRecorder) WriteHeader(status int) {
-	rw.status = status
-	rw.ResponseWriter.WriteHeader(status)
+	if !rw.wrote {
+		rw.status = status
+		// Không gọi rw.ResponseWriter.WriteHeader ở đây —
+		// sẽ flush cùng lúc với Write() bên dưới
+	}
 }
 
 func (rw *responseRecorder) Write(b []byte) (int, error) {
-	rw.body.Write(b) // Lưu bản sao vào vùng tạm
-	return rw.ResponseWriter.Write(b) // Vẫn trả cho client thực tế như bình thường
+	rw.body.Write(b) // Chỉ lưu vào buffer, KHÔNG ghi ra client
+	return len(b), nil
 }
 
 // CacheMiddleware bọc Request GET và lưu trả về vào Redis theo X-User-ID
@@ -78,23 +83,31 @@ func CacheMiddleware(ttlSeconds int) func(http.Handler) http.Handler {
 			}
 
 			// 2. CACHE MISS - Thực thi Handler tiếp theo (gọi vào Backend)
+			// rec chặn response, không cho ghi thẳng ra client
 			rec := &responseRecorder{
 				ResponseWriter: w,
-				status:         http.StatusOK, // Mặc định nếu backend không gọi explicit WriteHeader
+				status:         http.StatusOK,
 				body:           bytes.NewBuffer(nil),
 			}
 
-			w.Header().Set("X-Cache", "MISS")
 			next.ServeHTTP(rec, r)
 
-			// 3. Sau khi backend trả về, tiến hành ghi lại vào Redis nếu gọi thành công
+			// 3. Flush response thực sự ra client
+			// Copy header từ backend (rec không ghi header ra w)
+			for k, v := range rec.Header() {
+				w.Header()[k] = v
+			}
+			w.Header().Set("X-Cache", "MISS")
+			w.WriteHeader(rec.status)
+			_, _ = w.Write(rec.body.Bytes())
+
+			// 4. Lưu vào Redis nếu backend trả về 2xx
 			if rec.status >= 200 && rec.status < 300 {
 				res := cacheRes{
 					Status: rec.status,
-					Header: w.Header(),
+					Header: rec.Header(),
 					Body:   rec.body.Bytes(),
 				}
-				
 				resBytes, err := json.Marshal(res)
 				if err == nil {
 					RedisClient.Set(ctx, cacheKey, string(resBytes), time.Duration(ttlSeconds)*time.Second)

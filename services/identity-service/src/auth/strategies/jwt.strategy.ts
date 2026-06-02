@@ -38,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * 1. jti (JWT ID) chưa bị revoke trong Redis blacklist
    * 2. User vẫn còn tồn tại trong DB (tránh trường hợp user bị xóa nhưng token vẫn còn hạn)
    */
-  async validate(req: any, payload: { sub: string; jti: string; email: string }) {
+  async validate(_req: any, payload: { sub: string; jti: string; email: string }) {
     // Kiểm tra token có nằm trong blacklist không (user đã logout hoặc đổi mật khẩu)
     const isBlacklisted = await this.redis.get(`blacklist:${payload.jti}`);
     if (isBlacklisted) throw new UnauthorizedException('Token has been revoked');

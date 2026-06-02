@@ -166,5 +166,4 @@ export class UsersService {
 
     return { message: 'Account deleted successfully' };
   }
-
 }

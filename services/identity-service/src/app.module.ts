@@ -3,8 +3,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './common/redis.module';
-import { MailModule } from './mail/mail.module';
-import { OtpModule } from './otp/otp.module';
 import { RefreshToken } from './users/refresh-token.entity';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
@@ -37,8 +35,6 @@ import { UsersModule } from './users/users.module';
 
     AuthModule,   // Đăng ký, đăng nhập, OTP, JWT
     UsersModule,  // Quản lý thông tin cá nhân người dùng
-    MailModule,   // Gửi email (OTP, thông báo)
-    OtpModule,    // Tạo và xác minh mã OTP qua Redis
   ],
 })
 export class AppModule {}

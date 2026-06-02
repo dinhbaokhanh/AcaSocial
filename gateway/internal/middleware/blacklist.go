@@ -21,7 +21,8 @@ func InitRedis(addr string) {
 	log.Printf("[OK] Đã kết nối Redis tại %s\n", addr)
 }
 
-// Redis tự dọn dẹp sau khi token hết hạn.
+// RevokeToken blacklist một jti với TTL đến khi token hết hạn tự nhiên.
+// Dùng chung value "1" với identity-service để isBlacklisted() hoạt động đúng.
 func RevokeToken(jti string, expireAt time.Time) error {
 	if RedisClient == nil {
 		return nil
@@ -29,7 +30,7 @@ func RevokeToken(jti string, expireAt time.Time) error {
 	if expireAt.Before(time.Now()) {
 		return nil // Token đã hết hạn, không cần revoke
 	}
-	return RedisClient.Set(context.Background(), "blacklist:"+jti, "revoked", time.Until(expireAt)).Err()
+	return RedisClient.Set(context.Background(), "blacklist:"+jti, "1", time.Until(expireAt)).Err()
 }
 
 func isBlacklisted(jti string) bool {
