@@ -211,7 +211,9 @@ export class AuthService {
     // jti (JWT ID) là định danh duy nhất của token này, dùng để blacklist khi logout
     const jti = randomUUID();
     const accessToken = this.jwtService.sign(
-      { sub: user.id, email: user.email, jti },
+      // role được đưa vào payload để Gateway đọc và forward qua X-User-Role header
+      // các service phía sau dùng header này để kiểm tra quyền, không cần verify JWT lại
+      { sub: user.id, email: user.email, role: user.role, jti },
       { expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') as StringValue },
     );
 

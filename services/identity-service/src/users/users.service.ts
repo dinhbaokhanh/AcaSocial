@@ -59,6 +59,7 @@ export class UsersService {
       dateOfBirth: user.dateOfBirth ?? null,
       avatarUrl: user.avatarUrl ?? null,
       privacy: user.privacy,
+      role: user.role,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
     };

@@ -20,6 +20,20 @@ export enum Privacy {
 }
 
 /**
+ * Role của user trong hệ thống (platform-wide, không phụ thuộc context).
+ * - student   : người dùng thông thường, mặc định khi đăng ký
+ * - teacher   : giảng viên, có thể tạo khóa học và đăng tài liệu
+ * - moderator : kiểm duyệt nội dung toàn hệ thống, do admin bổ nhiệm
+ * - admin     : toàn quyền quản trị
+ */
+export enum Role {
+  STUDENT = 'student',
+  TEACHER = 'teacher',
+  MODERATOR = 'moderator',
+  ADMIN = 'admin',
+}
+
+/**
  * User là entity chính, ánh xạ tới bảng "users" trong PostgreSQL.
  * Mỗi thuộc tính có decorator @Column() tương ứng với một cột trong bảng.
  */
@@ -52,6 +66,10 @@ export class User {
   // Tài khoản chỉ được dùng sau khi xác minh email bằng OTP
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
+
+  // Role mặc định là student khi đăng ký, admin có thể thay đổi sau
+  @Column({ type: 'enum', enum: Role, default: Role.STUDENT })
+  role: Role;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
