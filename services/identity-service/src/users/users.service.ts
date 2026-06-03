@@ -70,7 +70,7 @@ export class UsersService {
   /**
    * Đổi mật khẩu.
    * Sau khi đổi thành công:
-   * - Revoke toàn bộ refresh token (đăng xuất tất cả thiết bị)
+   * - Đăng xuất tất cả thiết bị
    * - Blacklist jti của access token hiện tại trong Redis
    */
   async changePassword(user: User, dto: ChangePasswordDto, jti: string): Promise<{ message: string }> {

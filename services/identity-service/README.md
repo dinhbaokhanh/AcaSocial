@@ -12,7 +12,6 @@ Service xác thực và quản lý thông tin người dùng
 - **Passport + JWT** — xác thực người dùng qua Bearer token
 - **bcrypt** — hash password
 - **nodemailer** — gửi email OTP qua Gmail SMTP
-- **Cloudinary** — lưu trữ ảnh đại diện
 
 ---
 
@@ -77,12 +76,6 @@ MAIL_USER=your_email@gmail.com
 MAIL_PASS=your_app_password
 MAIL_FROM="App Name <your_email@gmail.com>"
 
-# Cloudinary
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
 ---
 
 ## Cài đặt và chạy
@@ -116,7 +109,6 @@ Service chạy tại `http://localhost:8081`.
 | POST | /auth/logout | Đăng xuất |
 | GET | /users/me | Xem thông tin cá nhân |
 | PATCH | /users/me/profile | Cập nhật họ tên, ngày sinh |
-| PATCH | /users/me/avatar | Upload ảnh đại diện |
 | PATCH | /users/me/change-password | Đổi mật khẩu |
 | POST | /users/me/change-email/request | Yêu cầu đổi email (gửi OTP về email mới) |
 | POST | /users/me/change-email/resend | Gửi lại OTP đổi email |
@@ -152,7 +144,7 @@ Role được lưu trong bảng `users` và nhúng vào JWT payload khi đăng n
 
 Gateway đọc `role` từ JWT và forward vào header `X-User-Role` cho các service phía sau.
 
-### Ranh giới trách nhiệm
+### Role
 
 **Identity Service / JWT `role` dùng để:**
 - Xác định `teacher` có quyền tạo nhóm, tạo khóa học

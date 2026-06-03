@@ -9,18 +9,13 @@ import {
 } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
 
-/**
- * Enum kiểm soát mức độ hiển thị hồ sơ người dùng với người khác.
- * PUBLIC  — ai cũng xem được thông tin cá nhân
- * PRIVATE — chỉ bản thân mới xem được
- */
 export enum Privacy {
   PUBLIC = 'public',
   PRIVATE = 'private',
 }
 
 /**
- * Role của user trong hệ thống (platform-wide, không phụ thuộc context).
+ * Role của user trong hệ thống.
  * - student   : người dùng thông thường, mặc định khi đăng ký
  * - teacher   : giảng viên, có thể tạo khóa học và đăng tài liệu
  * - moderator : kiểm duyệt nội dung toàn hệ thống, do admin bổ nhiệm
@@ -42,7 +37,6 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Username là định danh công khai, dùng để mention (@username) và tìm kiếm
   @Column({ unique: true, length: 20 })
   username: string;
 
@@ -67,7 +61,6 @@ export class User {
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
 
-  // Role mặc định là student khi đăng ký, admin có thể thay đổi sau
   @Column({ type: 'enum', enum: Role, default: Role.STUDENT })
   role: Role;
 
