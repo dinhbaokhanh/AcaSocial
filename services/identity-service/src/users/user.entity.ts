@@ -35,13 +35,16 @@ export enum Role {
 
 /**
  * User là entity chính, ánh xạ tới bảng "users" trong PostgreSQL.
- * Mỗi thuộc tính có decorator @Column() tương ứng với một cột trong bảng.
  */
 @Entity('users')
 export class User {
-  // UUID tự sinh — dùng chuỗi thay vì số nguyên để tránh lộ số lượng user
+  // UUID tự sinh — dùng chuỗi
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  // Username là định danh công khai, dùng để mention (@username) và tìm kiếm
+  @Column({ unique: true, length: 30 })
+  username: string;
 
   @Column({ name: 'full_name', length: 100 })
   fullName: string;
@@ -49,11 +52,9 @@ export class User {
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: Date;
 
-  // Email là định danh duy nhất để đăng nhập
   @Column({ unique: true, length: 255 })
   email: string;
 
-  // Lưu hash của mật khẩu (bcrypt), không bao giờ lưu plain text
   @Column({ name: 'password_hash' })
   passwordHash: string;
 
@@ -63,7 +64,6 @@ export class User {
   @Column({ type: 'enum', enum: Privacy, default: Privacy.PUBLIC })
   privacy: Privacy;
 
-  // Tài khoản chỉ được dùng sau khi xác minh email bằng OTP
   @Column({ name: 'is_verified', default: false })
   isVerified: boolean;
 
@@ -78,7 +78,6 @@ export class User {
   updatedAt: Date;
 
   // Soft delete: không xóa bản ghi khỏi DB, chỉ ghi thời điểm xóa.
-  // Các query thông thường sẽ tự lọc bỏ những bản ghi có deletedAt != null.
   @DeleteDateColumn({ name: 'deleted_at', nullable: true })
   deletedAt: Date;
 

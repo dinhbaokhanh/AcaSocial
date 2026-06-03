@@ -54,6 +54,7 @@ export class UsersService {
   getProfile(user: User): UserProfileDto {
     return {
       id: user.id,
+      username: user.username,
       fullName: user.fullName,
       email: user.email,
       dateOfBirth: user.dateOfBirth ?? null,

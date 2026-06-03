@@ -49,15 +49,18 @@ export class AuthService {
    * withDeleted: true đảm bảo email đã soft-delete cũng không được đăng ký lại.
    */
   async register(dto: RegisterDto): Promise<{ message: string }> {
-    const existing = await this.userRepo.findOne({
-      where: { email: dto.email },
-      withDeleted: true, // Kiểm tra cả tài khoản đã xóa mềm
-    });
-    if (existing) throw new ConflictException('Email already registered');
+    // Kiểm tra email và username chưa tồn tại (kể cả tài khoản đã xóa mềm)
+    const [existingEmail, existingUsername] = await Promise.all([
+      this.userRepo.findOne({ where: { email: dto.email }, withDeleted: true }),
+      this.userRepo.findOne({ where: { username: dto.username }, withDeleted: true }),
+    ]);
+    if (existingEmail) throw new ConflictException('Email already registered');
+    if (existingUsername) throw new ConflictException('Username already taken');
 
     // bcrypt với salt rounds = 10 — đủ an toàn, không quá chậm
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({
+      username: dto.username,
       fullName: dto.fullName,
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
       email: dto.email,
@@ -113,9 +116,13 @@ export class AuthService {
    * - refreshToken cho phép lấy accessToken mới mà không cần đăng nhập lại
    */
   async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
-    const user = await this.userRepo.findOne({ where: { email: dto.email } });
-    // Trả về cùng một lỗi cho cả 2 trường hợp (sai email / sai password)
-    // để tránh kẻ tấn công biết email nào tồn tại trong hệ thống
+    // Phân biệt đăng nhập bằng email hay username dựa vào ký tự '@'
+    const isEmail = dto.identifier.includes('@');
+    const user = isEmail
+      ? await this.userRepo.findOne({ where: { email: dto.identifier } })
+      : await this.userRepo.findOne({ where: { username: dto.identifier } });
+
+    // Trả về cùng một lỗi cho mọi trường hợp sai để tránh lộ thông tin
     if (!user) throw new UnauthorizedException('Invalid credentials');
     if (!user.isVerified) throw new UnauthorizedException('Account not verified');
 
@@ -213,7 +220,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(
       // role được đưa vào payload để Gateway đọc và forward qua X-User-Role header
       // các service phía sau dùng header này để kiểm tra quyền, không cần verify JWT lại
-      { sub: user.id, email: user.email, role: user.role, jti },
+      { sub: user.id, username: user.username, email: user.email, role: user.role, jti },
       { expiresIn: this.config.get<string>('JWT_ACCESS_EXPIRES_IN') as StringValue },
     );
 
