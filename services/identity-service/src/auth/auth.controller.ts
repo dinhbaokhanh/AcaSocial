@@ -63,7 +63,6 @@ export class AuthController {
   }
 
   // Đăng xuất: blacklist jti của access token hiện tại và revoke toàn bộ refresh token
-  // Cần JWT hợp lệ để biết jti cần blacklist
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@Request() req) {

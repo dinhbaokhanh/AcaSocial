@@ -57,7 +57,6 @@ export class AuthService {
     if (existingEmail) throw new ConflictException('Email already registered');
     if (existingUsername) throw new ConflictException('Username already taken');
 
-    // bcrypt với salt rounds = 10 — đủ an toàn, không quá chậm
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({
       username: dto.username,
@@ -108,12 +107,7 @@ export class AuthService {
   }
 
   /**
-   * Đăng nhập bằng email + password.
-   * Trả về cặp accessToken (ngắn hạn) và refreshToken (dài hạn).
-   *
-   * Lý do dùng 2 token:
-   * - accessToken hết hạn nhanh (15 phút) giảm thiểu thiệt hại khi bị lộ
-   * - refreshToken cho phép lấy accessToken mới mà không cần đăng nhập lại
+   * Đăng nhập bằng email/username + password.
    */
   async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
     // Phân biệt đăng nhập bằng email hay username dựa vào ký tự '@'
@@ -134,11 +128,8 @@ export class AuthService {
 
   /**
    * Cấp lại cặp token mới từ refreshToken còn hiệu lực.
-   * Áp dụng cơ chế Token Rotation: mỗi lần dùng refreshToken thì revoke token cũ
-   * và cấp token mới — phát hiện được nếu token bị đánh cắp và dùng 2 lần.
    */
   async refreshToken(dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
-    // So sánh hash thay vì token gốc — DB không bao giờ lưu token thô
     const tokenHash = createHash('sha256').update(dto.refreshToken).digest('hex');
 
     const stored = await this.refreshTokenRepo.findOne({
@@ -150,7 +141,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Revoke token cũ ngay lập tức trước khi cấp token mới (Token Rotation)
+    // Revoke token cũ ngay lập tức trước khi cấp token mới
     stored.revoked = true;
     await this.refreshTokenRepo.save(stored);
 
@@ -165,8 +156,7 @@ export class AuthService {
     // Revoke toàn bộ refresh token — đăng xuất khỏi tất cả thiết bị
     await this.refreshTokenRepo.update({ userId, revoked: false }, { revoked: true });
 
-    // Blacklist jti trong Redis để Gateway từ chối access token này ngay lập tức,
-    // dù token vẫn chưa hết hạn về mặt thời gian
+    // Blacklist jti trong Redis để Gateway từ chối access token
     const ttl = parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
     await this.redis.set(`blacklist:${jti}`, '1', 'EX', ttl);
 

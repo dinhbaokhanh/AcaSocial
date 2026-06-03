@@ -1,10 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 
-/**
- * REDIS_CLIENT là token dùng để inject Redis connection vào bất kỳ service nào.
- * Toàn bộ ứng dụng dùng chung 1 connection pool thay vì mỗi service tự tạo riêng.
- */
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 
 export const RedisProvider = {
