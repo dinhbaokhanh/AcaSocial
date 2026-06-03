@@ -3,13 +3,11 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
-import { v2 as cloudinary } from 'cloudinary';
 import Redis from 'ioredis';
 import { Repository } from 'typeorm';
 import { REDIS_CLIENT } from '../common/redis.provider';
@@ -28,6 +26,9 @@ import { UserProfileDto } from './dto/user-profile.dto';
 /**
  * UsersService xử lý các nghiệp vụ liên quan đến quản lý hồ sơ người dùng.
  * Tách biệt với AuthService để giữ đúng nguyên tắc Single Responsibility.
+ *
+ * Lưu ý: upload avatar đã được tách sang media-service.
+ * Field avatarUrl vẫn tồn tại trong entity — media-service sẽ gọi về để update sau.
  */
 @Injectable()
 export class UsersService {
@@ -38,14 +39,7 @@ export class UsersService {
     private config: ConfigService,
     private mailService: MailService,
     private otpService: OtpService,
-  ) {
-    // Khởi tạo Cloudinary SDK với credentials từ biến môi trường
-    cloudinary.config({
-      cloud_name: config.get<string>('CLOUDINARY_CLOUD_NAME'),
-      api_key: config.get<string>('CLOUDINARY_API_KEY'),
-      api_secret: config.get<string>('CLOUDINARY_API_SECRET'),
-    });
-  }
+  ) {}
 
   /**
    * Trả về thông tin hồ sơ qua UserProfileDto — chỉ expose đúng field frontend cần.
@@ -71,29 +65,6 @@ export class UsersService {
     if (dto.dateOfBirth) user.dateOfBirth = new Date(dto.dateOfBirth);
     const saved = await this.userRepo.save(user);
     return this.getProfile(saved);
-  }
-
-  /**
-   * Upload ảnh đại diện lên Cloudinary và lưu URL trả về vào DB.
-   * Dùng upload_stream thay vì upload vì file đến dưới dạng Buffer (multer memory storage),
-   * không phải đường dẫn file trên disk.
-   */
-  async uploadAvatar(user: User, file: Express.Multer.File): Promise<{ avatarUrl: string }> {
-    const result = await new Promise<any>((resolve, reject) => {
-      cloudinary.uploader
-        .upload_stream(
-          { folder: 'avatars', resource_type: 'image' },
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          },
-        )
-        .end(file.buffer);
-    });
-
-    user.avatarUrl = result.secure_url;
-    await this.userRepo.save(user);
-    return { avatarUrl: result.secure_url };
   }
 
   /**
@@ -172,8 +143,6 @@ export class UsersService {
     const ttl = parseTtl(this.config.get<string>('JWT_ACCESS_EXPIRES_IN'));
     await this.redis.set(`blacklist:${jti}`, '1', 'EX', ttl);
 
-    // softDelete chỉ ghi deletedAt, không xóa bản ghi khỏi DB
-    // Cho phép khôi phục tài khoản sau này nếu cần
     await this.userRepo.softDelete(user.id);
 
     return { message: 'Account deleted successfully' };

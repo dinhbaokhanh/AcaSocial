@@ -9,13 +9,11 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  // Username: 3-30 ký tự, chỉ chữ thường, số và dấu gạch dưới
-  // Dùng để mention (@username) và hiển thị trên profile URL
   @IsNotEmpty()
-  @MinLength(3)
-  @MaxLength(30)
+  @MinLength(5, { message: 'Nice name but Username should have 5-20 characters' })
+  @MaxLength(20, { message: 'Nice name but Username should have 5-20 characters' })
   @Matches(/^[a-z0-9_]+$/, {
-    message: 'Username chỉ được chứa chữ thường, số và dấu gạch dưới (_)',
+    message: 'Username should contain letters, numbers and "_".',
   })
   username: string;
 

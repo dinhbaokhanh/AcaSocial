@@ -43,7 +43,7 @@ export class User {
   id: string;
 
   // Username là định danh công khai, dùng để mention (@username) và tìm kiếm
-  @Column({ unique: true, length: 30 })
+  @Column({ unique: true, length: 20 })
   username: string;
 
   @Column({ name: 'full_name', length: 100 })
