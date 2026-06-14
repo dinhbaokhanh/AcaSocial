@@ -8,9 +8,7 @@ import { MediaModule } from './media/media.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // Kết nối PostgreSQL — cùng DB instance với identity-service,
-    // nhưng tách schema bảng (media_assets) để dễ migrate độc lập.
-    // synchronize: true chỉ dùng khi development, production dùng migration.
+    // synchronize: true tự tạo bảng khi dev, production nên dùng migration
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

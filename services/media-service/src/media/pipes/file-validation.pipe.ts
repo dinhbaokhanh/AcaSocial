@@ -6,20 +6,11 @@ import {
 import * as path from 'path';
 import { MediaCategory } from '../media.entity';
 
-/**
- * FileValidationPipe — validate file theo 2 lớp độc lập:
+/*
+ * Validate file theo 2 lớp: extension whitelist → MIME type whitelist.
  *
- * Lớp 1: Extension whitelist
- *   Kiểm tra phần mở rộng file (từ filename gốc của client).
- *
- * Lớp 2: MIME type whitelist
- *   Kiểm tra MIME type do browser/OS gửi trong Content-Type của multipart.
- *
- * NGOẠI LỆ CODE files:
- *   Browser và OS gán MIME type tùy tiện cho source code:
- *   - .py → 'text/plain' (Windows) hoặc 'text/x-python' (Linux/Mac)
- *   - .ts → 'video/mp2t' (nhầm với MPEG-2 Transport Stream)
- *   - .go → 'text/plain' hoặc 'application/octet-stream'
+ * Ngoại lệ category CODE: bỏ qua MIME check vì browser/OS gán MIME
+ * không nhất quán cho source code (.ts → 'video/mp2t', .py → 'text/plain'...).
  */
 
 const ALLOWED_EXTENSIONS: Record<MediaCategory, string[]> = {
@@ -51,12 +42,10 @@ const ALLOWED_MIMETYPES: Record<MediaCategory, string[]> = {
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   ],
-  // CODE: bỏ qua MIME check — xem JSDoc bên trên
-  [MediaCategory.CODE]: [],
+  [MediaCategory.CODE]: [], // không check MIME cho code file
 };
 
-/** File size giới hạn: 10MB */
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
 
 @Injectable()
 export class FileValidationPipe implements PipeTransform {
@@ -67,17 +56,17 @@ export class FileValidationPipe implements PipeTransform {
       throw new BadRequestException('Không có file nào được gửi lên');
     }
 
-    // --- Lớp 1: Extension ---
+    // Lớp 1: extension
     const ext = path.extname(file.originalname).toLowerCase();
     const allowedExt = ALLOWED_EXTENSIONS[this.category];
     if (!allowedExt.includes(ext)) {
       throw new BadRequestException(
-        `Extension "${ext}" không được phép cho category "${this.category}". ` +
+        `Extension "${ext}" không hợp lệ cho category "${this.category}". ` +
         `Chỉ chấp nhận: ${allowedExt.join(', ')}`,
       );
     }
 
-    // --- Lớp 2: MIME type (bỏ qua cho CODE — xem lý do trong JSDoc) ---
+    // Lớp 2: MIME type (bỏ qua cho CODE)
     if (this.category !== MediaCategory.CODE) {
       const allowedMime = ALLOWED_MIMETYPES[this.category];
       if (!allowedMime.includes(file.mimetype)) {
