@@ -39,8 +39,8 @@ API Gateway :8080          ← Điểm duy nhất frontend được gọi
       │
       ├── /api/auth/*   ──►  identity-service:8081
       ├── /api/users/*  ──►  identity-service:8081
-      ├── /api/posts/*  ──►  community-service:8082   (sắp có)
-      └── /api/media/*  ──►  media-service:8083        (sắp có)
+      ├── /api/posts/*  ──►  community-service:8082   
+      └── /api/media/*  ──►  media-service:8083        
 ```
 
 > Các service **không** expose port ra ngoài. Chỉ Gateway mới được gọi từ frontend.  
