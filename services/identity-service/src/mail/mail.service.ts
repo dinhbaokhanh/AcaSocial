@@ -23,10 +23,9 @@ export class MailService {
   }
 
   /**
-   * Gửi email chứa mã OTP đến người dùng.
    * @param to      Địa chỉ email nhận
    * @param otp     Mã OTP 6 chữ số
-   * @param subject Tiêu đề email (thay đổi theo từng mục đích)
+   * @param subject 
    */
   async sendOtp(to: string, otp: string, subject: string): Promise<void> {
     await this.transporter.sendMail({

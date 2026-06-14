@@ -74,12 +74,31 @@ services:
       REDIS_URL: redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       IDENTITY_SERVICE_URL: http://identity-service:8081
+      MEDIA_SERVICE_URL: http://media-service:8082
     ports:
       - "8080:8080"
     networks:
       - internal
     depends_on:
       - identity-service
+      - media-service
+
+  media-service:
+    build:
+      context: ./services/media-service
+      dockerfile: Dockerfile
+    container_name: acasocial-media
+    restart: unless-stopped
+    env_file:
+      - ./services/media-service/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 # ===== Volumes =====
 volumes:

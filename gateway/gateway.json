@@ -9,7 +9,7 @@
   "cors": {
     "allowed_origins": ["http://localhost:3000", "http://localhost:5173"],
     "allowed_methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    "allowed_headers": ["Content-Type", "Authorization"]
+    "allowed_headers": ["Content-Type", "Authorization", "X-User-ID", "X-User-Role"]
   },
   "endpoints": [
     { "endpoint": "/api/auth/register",       "method": "POST", "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/register" }] },
@@ -29,6 +29,10 @@
     { "endpoint": "/api/users/me/privacy",              "method": "PATCH", "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/privacy" }] },
     { "endpoint": "/api/users/me/change-email/request", "method": "POST",  "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/request" }] },
     { "endpoint": "/api/users/me/change-email/resend",  "method": "POST",  "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/resend" }] },
-    { "endpoint": "/api/users/me/change-email/confirm", "method": "POST",  "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/confirm" }] }
+    { "endpoint": "/api/users/me/change-email/confirm", "method": "POST",  "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/confirm" }] },
+
+    { "endpoint": "/api/media/upload",   "method": "POST",   "auth_required": true,  "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/upload" }] },
+    { "endpoint": "/api/media/{id}",      "method": "GET",    "auth_required": false, "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }] },
+    { "endpoint": "/api/media/{id}",      "method": "DELETE", "auth_required": true,  "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }] }
   ]
 }
