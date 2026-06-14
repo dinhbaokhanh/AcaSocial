@@ -74,6 +74,12 @@ export class UsersService {
     return this.getProfile(saved);
   }
 
+  async updateAvatar(user: User, avatarUrl: string): Promise<UserProfileDto> {
+    user.avatarUrl = avatarUrl;
+    const saved = await this.userRepo.save(user);
+    return this.getProfile(saved);
+  }
+
   /**
    * Đổi mật khẩu.
    * Sau khi đổi thành công:

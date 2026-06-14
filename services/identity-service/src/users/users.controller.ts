@@ -12,6 +12,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { ConfirmChangeEmailDto, RequestChangeEmailDto } from './dto/change-email.dto';
 import { DeleteAccountDto } from './dto/delete-account.dto';
+import { UpdateAvatarDto } from './dto/update-avatar.dto';
 import { UpdatePrivacyDto } from './dto/update-privacy.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UsersService } from './users.service';
@@ -32,6 +33,11 @@ export class UsersController {
   @Patch('profile')
   updateProfile(@Request() req, @Body() dto: UpdateProfileDto) {
     return this.usersService.updateProfile(req.user, dto);
+  }
+
+  @Patch('avatar')
+  updateAvatar(@Request() req, @Body() dto: UpdateAvatarDto) {
+    return this.usersService.updateAvatar(req.user, dto.avatarUrl);
   }
 
   @Patch('change-password')
