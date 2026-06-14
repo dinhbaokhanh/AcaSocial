@@ -57,18 +57,6 @@ Khác với Avatar (1 ảnh), một bài viết thường có nhiều ảnh. Cli
 
 ---
 
-## Quản lý rác (Orphan Cleanup)
-
-> **Future Work / Note cho Vấn đáp:** 
-> 
-> Hiện tại, khi user đổi avatar mới hoặc xóa một bài viết, các file cũ trên Cloudinary sẽ trở thành file "mồ côi" (orphan) do không còn service nào tham chiếu tới, gây lãng phí dung lượng lưu trữ.
-> 
-> Giải pháp chuẩn cho môi trường Production (nằm ngoài scope hiện tại để giảm độ phức tạp):
-> 1. **Chủ động:** `identity-service` gọi `DELETE /api/media/:oldId` trước khi update avatar mới.
-> 2. **Thụ động (Khuyên dùng):** Cấu hình một Cron Job định kỳ (VD: mỗi đêm) chạy quét đối chiếu xem có những `mediaId` nào trong `media_assets` không được reference ở bảng `users` hay `posts` trong N ngày qua thì tiến hành xóa cả ở Database và Cloudinary.
-
----
-
 ## API Endpoints
 
 (Các endpoint này được expose qua Gateway tại `/api/media/...`)
