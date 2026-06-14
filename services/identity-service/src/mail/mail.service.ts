@@ -8,7 +8,6 @@ import * as nodemailer from 'nodemailer';
  */
 @Injectable()
 export class MailService {
-  // Transporter là kết nối SMTP được khởi tạo một lần và tái sử dụng
   private transporter: nodemailer.Transporter;
 
   constructor(private config: ConfigService) {
