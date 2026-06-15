@@ -13,8 +13,10 @@ async function bootstrap() {
     }),
   );
 
-  app.enableCors();
+  // CORS không cần thiết ở đây vì service này chỉ nhận traffic từ API Gateway.
+  // CORS cho client bên ngoài đã được Gateway xử lý (CORSProvider middleware).
 
   await app.listen(process.env.PORT ?? 8082);
 }
 bootstrap();
+

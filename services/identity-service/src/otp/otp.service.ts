@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import Redis from 'ioredis';
 import { REDIS_CLIENT } from '../common/redis.provider';
 
@@ -18,8 +19,10 @@ export class OtpService {
   constructor(@Inject(REDIS_CLIENT) private redis: Redis) {}
 
   // Sinh số nguyên ngẫu nhiên 6 chữ số trong khoảng [100000, 999999]
+  // randomInt() dùng CSPRNG của OS — không thể dự đoán như Math.random().
+  // randomInt(100000, 1000000) sinh số nguyên ngẫu nhiên trong đoạn [100000, 1000000).
   private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    return randomInt(100000, 1000000).toString();
   }
 
   /**
