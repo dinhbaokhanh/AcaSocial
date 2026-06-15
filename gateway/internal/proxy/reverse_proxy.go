@@ -12,13 +12,13 @@ import (
 	"github.com/sony/gobreaker/v2"
 )
 
-// RoundRobinProxy phân tải HTTP traffic lần lượt qua các backend để tăng năng lực phục vụ
+// RoundRobinProxy phân phối request lần lượt qua nhiều backend (round-robin).
 type RoundRobinProxy struct {
 	proxies []*httputil.ReverseProxy
 	current uint32
 }
 
-// BackendTarget là một địa chỉ backend cụ thể kèm đường dẫn nội bộ cần rewrite.
+// BackendTarget là một backend cụ thể: địa chỉ host và path nội bộ cần rewrite đến.
 type BackendTarget struct {
 	Host       string
 	URLPattern string
@@ -29,23 +29,23 @@ func (rr *RoundRobinProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No backends available", http.StatusBadGateway)
 		return
 	}
-	// Xoay vòng index backend bằng thuật toán tịnh tiến nguyên tử vòng lặp (Atomic round-robin)
+	// Atomic round-robin: tăng counter và lấy phần dư để chọn backend tiếp theo.
 	idx := atomic.AddUint32(&rr.current, 1) % uint32(len(rr.proxies))
 	rr.proxies[idx].ServeHTTP(w, r)
 }
 
-// NewLoadBalancedProxy tạo proxy phân tải đến danh sách nhiều server backend.
+// NewLoadBalancedProxy tạo reverse proxy có load balancing và circuit breaker cho danh sách backend.
 func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeoutSec int) (http.Handler, error) {
 	if len(targets) == 0 {
 		return nil, fmt.Errorf("không có backend nào được cấp")
 	}
 
 	if timeoutSec <= 0 {
-		timeoutSec = 15 // Mặc định 15 giây nếu chưa được config
+		timeoutSec = 15
 	}
 	timeout := time.Duration(timeoutSec) * time.Second
 
-	// Dùng chung cấu hình Transport cho tất cả proxy để tối ưu Connection Pool
+	// Dùng chung một Transport để tận dụng connection pool giữa các backend.
 	transport := &http.Transport{
 		ResponseHeaderTimeout: timeout,
 		MaxIdleConns:          5000,
@@ -56,7 +56,7 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 	proxies := make([]*httputil.ReverseProxy, 0, len(targets))
 
 	for _, target := range targets {
-		target := target // tạo bản copy local để closure capture đúng giá trị
+		target := target // capture đúng giá trị trong closure
 
 		targetURL, err := url.Parse(target.Host)
 		if err != nil {
@@ -65,7 +65,8 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 
 		p := httputil.NewSingleHostReverseProxy(targetURL)
 
-		// Mỗi target có một Circuit Breaker độc lập (bảo vệ Host đó)
+		// Mỗi backend có Circuit Breaker riêng.
+		// Mở CB khi tỉ lệ lỗi >= 50% trên tối thiểu 10 request.
 		cb := gobreaker.NewCircuitBreaker[*http.Response](gobreaker.Settings{
 			Name:        "CB-" + targetURL.Host,
 			MaxRequests: 5,
@@ -77,18 +78,15 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 			},
 		})
 
-		p.Transport = &breakerTransport{
-			cb:        cb,
-			transport: transport,
-		}
+		p.Transport = &breakerTransport{cb: cb, transport: transport}
 
 		backendPattern := target.URLPattern
 		if backendPattern == "" {
 			backendPattern = endpointPattern
 		}
 
-		// Ghi đè Director để sửa Host header và rewrite path theo url_pattern.
-		// Cần capture targetURL, endpointPattern, backendPattern theo giá trị (đã làm ở trên)
+		// Director rewrite Host header và path trước khi gửi đến backend.
+		// X-Request-ID được forward tường minh để hỗ trợ tracing xuyên service.
 		capturedEndpoint := endpointPattern
 		capturedBackend := backendPattern
 		capturedHost := targetURL
@@ -98,6 +96,11 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 			req.Host = capturedHost.Host
 			req.URL.Path = rewritePath(req.URL.Path, capturedEndpoint, capturedBackend)
 			req.URL.RawPath = req.URL.EscapedPath()
+
+			// Forward X-Request-ID để backend service có thể trace cùng request ID.
+			if reqID := req.Header.Get("X-Request-ID"); reqID != "" {
+				req.Header.Set("X-Request-ID", reqID)
+			}
 		}
 
 		p.ErrorHandler = func(w http.ResponseWriter, r *http.Request, proxyErr error) {
@@ -107,15 +110,16 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 		proxies = append(proxies, p)
 	}
 
-	// Tối ưu: Nếu chỉ khai báo 1 server trong gateway.json, không cần tải tầng Load Balancer array
+	// Nếu chỉ có 1 backend, trả thẳng proxy đó — không cần wrapper round-robin.
 	if len(proxies) == 1 {
 		return proxies[0], nil
 	}
 
-	// Trả về Load Balancer cho nhiều server
 	return &RoundRobinProxy{proxies: proxies}, nil
 }
 
+// rewritePath dịch path của request từ pattern frontend sang pattern backend.
+// Ví dụ: /api/media/{id} → /media/{id} với id được thay bằng giá trị thực.
 func rewritePath(requestPath, endpointPattern, backendPattern string) string {
 	if backendPattern == "" || backendPattern == endpointPattern {
 		return requestPath
@@ -127,6 +131,7 @@ func rewritePath(requestPath, endpointPattern, backendPattern string) string {
 		return backendPattern
 	}
 
+	// Trích xuất các tham số động từ path (ví dụ: {id} → "123").
 	params := make(map[string]string)
 	for i, ep := range endpointSegments {
 		rp := requestSegments[i]
@@ -140,6 +145,7 @@ func rewritePath(requestPath, endpointPattern, backendPattern string) string {
 		}
 	}
 
+	// Điền giá trị tham số vào backend pattern.
 	backendSegments := splitPath(backendPattern)
 	for i, seg := range backendSegments {
 		if strings.HasPrefix(seg, "{") && strings.HasSuffix(seg, "}") {
@@ -161,7 +167,8 @@ func splitPath(path string) []string {
 	return strings.Split(trimmed, "/")
 }
 
-// breakerTransport bọc http.RoundTripper qua cơ chế Circuit Breaker
+// breakerTransport bọc RoundTripper với Circuit Breaker.
+// HTTP 5xx được tính là lỗi để CB có thể đếm và ngắt mạch khi cần.
 type breakerTransport struct {
 	cb        *gobreaker.CircuitBreaker[*http.Response]
 	transport http.RoundTripper
@@ -173,8 +180,7 @@ func (b *breakerTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 		if err != nil {
 			return nil, err
 		}
-		// Coi HTTP 5xx là failure để circuit breaker đếm đúng
-		// (network thành công nhưng backend đang có vấn đề)
+		// Coi 5xx là failure: network OK nhưng backend đang có vấn đề.
 		if r.StatusCode >= 500 {
 			return nil, fmt.Errorf("backend trả về %d", r.StatusCode)
 		}

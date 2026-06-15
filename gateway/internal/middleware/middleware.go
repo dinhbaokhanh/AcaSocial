@@ -9,10 +9,10 @@ import (
 	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
 )
 
-// Middleware định nghĩa kiểu hàm bọc HTTP Handler
+// Middleware là kiểu hàm nhận handler và trả về handler đã được bọc thêm logic.
 type Middleware func(http.Handler) http.Handler
 
-// Chain gom nhiều middleware thành một chuỗi xử lý, thứ tự từ ngoài vào trong
+// Chain nối nhiều middleware thành chuỗi. Middleware đầu tiên trong danh sách là lớp ngoài cùng.
 func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 	wrapped := handler
 	for i := len(middlewares) - 1; i >= 0; i-- {
@@ -21,16 +21,24 @@ func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 	return wrapped
 }
 
-// RequestLogger ghi log method, đường dẫn và thời gian xử lý của mỗi request
+// RequestLogger ghi log mỗi request theo định dạng: [status] METHOD path latency | ip=... req=...
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf("%s %s %s", r.Method, r.URL.Path, time.Since(start))
+		rw := newResponseWriter(w)
+		next.ServeHTTP(rw, r)
+		log.Printf("[%d] %s %s %v | ip=%s req=%s",
+			rw.statusCode,
+			r.Method,
+			r.URL.Path,
+			time.Since(start),
+			RealIP(r),
+			r.Header.Get("X-Request-ID"),
+		)
 	})
 }
 
-// Recoverer bắt mọi lỗi panic bên trong, ghi log và trả về 500 thay vì để Gateway sập
+// Recoverer bắt panic trong các handler phía trong, ghi log và trả về 500 thay vì để Gateway sập.
 func Recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -43,7 +51,8 @@ func Recoverer(next http.Handler) http.Handler {
 	})
 }
 
-// CORSProvider trả về middleware CORS sử dụng whitelist từ cấu hình JSON
+// CORSProvider xử lý CORS theo whitelist domain cấu hình trong gateway.json.
+// Chỉ set Allow-Credentials khi origin được chỉ định rõ (không dùng *).
 func CORSProvider(cfg config.CORSConfig) Middleware {
 	allowedOrigins := cfg.AllowedOrigins
 
@@ -63,9 +72,8 @@ func CORSProvider(cfg config.CORSConfig) Middleware {
 			allowOrigin := ""
 
 			if len(allowedOrigins) == 0 {
-				allowOrigin = "*" // Fallback bảo vệ hệ thống không bị panic nếu chưa cấu hình
+				allowOrigin = "*" // fallback nếu chưa cấu hình
 			} else {
-				// Duyệt qua Whitelist để cấp quyền cho đúng domain gọi tới
 				for _, o := range allowedOrigins {
 					if o == "*" || o == origin {
 						allowOrigin = origin
@@ -80,12 +88,12 @@ func CORSProvider(cfg config.CORSConfig) Middleware {
 			w.Header().Set("Access-Control-Allow-Methods", allowedMethods)
 			w.Header().Set("Access-Control-Allow-Headers", allowedHeaders)
 
-			// Kích hoạt Credentials (Cookie-based auth) khi được chỉ định đích danh
+			// Bật cookie/credential chỉ khi origin được xác định rõ (không phải *).
 			if allowOrigin != "" && allowOrigin != "*" {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
 
-			// Trình duyệt gửi OPTIONS để kiểm tra trước
+			// Trả về 204 cho preflight OPTIONS — trình duyệt gửi trước khi request thật.
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)
 				return

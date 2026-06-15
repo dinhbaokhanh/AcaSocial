@@ -1,14 +1,36 @@
 package middleware
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-// Mỗi sự kiện đầu ra là một dòng JSON trên stdout để dễ dàng đọc bởi hệ thống logging (ELK, Loki, etc.)
+// authInfoContextKey là kiểu riêng để key trong context không bị trùng với package khác.
+type authInfoContextKey struct{}
+
+var authInfoKey = authInfoContextKey{}
+
+// AuthInfo chứa kết quả xác thực của một request.
+// AuditLoggerMiddleware tạo ra, AuthMiddleware điền vào qua con trỏ.
+type AuthInfo struct {
+	UserID string // ID user đã đăng nhập
+	Role   string // Role của user
+	JTI    string // JWT ID — dùng để trace token bị thu hồi
+	Reason string // Lý do: auth_ok / invalid_jwt / blacklisted_token / forbidden
+}
+
+// GetAuthInfo lấy *AuthInfo từ context. Trả về nil nếu chưa được inject.
+func GetAuthInfo(r *http.Request) *AuthInfo {
+	info, _ := r.Context().Value(authInfoKey).(*AuthInfo)
+	return info
+}
+
+// SecurityEvent là một bản ghi bảo mật, xuất ra stdout dạng JSON mỗi dòng.
 type SecurityEvent struct {
 	Timestamp  time.Time `json:"ts"`
 	IP         string    `json:"ip"`
@@ -21,7 +43,7 @@ type SecurityEvent struct {
 	UserRole   string    `json:"user_role,omitempty"`
 }
 
-// Các hằng số lý do ghi log bảo mật — dùng chung trong toàn bộ hệ thống
+// Các lý do bảo mật dùng chung trong toàn hệ thống.
 const (
 	ReasonRateLimited          = "rate_limited"
 	ReasonInvalidJWT           = "invalid_jwt"
@@ -32,16 +54,19 @@ const (
 	ReasonAuthOK               = "auth_ok"
 )
 
-// auditLogger là instance logger duy nhất, được khởi tạo một lần khi startup
 var auditLogger *log.Logger
 
-// InitAuditLogger khởi tạo logger ghi log bảo mật ra stdout dạng JSON thuần
+// InitAuditLogger ghi log bảo mật ra stdout (dùng khi chạy thực tế).
 func InitAuditLogger() {
-	// Dùng log.New để tắt prefix mặc định (ngày giờ) vì chúng ta tự ghi trong SecurityEvent
 	auditLogger = log.New(os.Stdout, "", 0)
 }
 
-// LogSecurityEvent ghi một sự kiện bảo mật ra stdout dạng JSON trên một dòng
+// InitAuditLoggerWithWriter cho phép truyền writer tùy chỉnh — tiện cho unit test.
+func InitAuditLoggerWithWriter(w io.Writer) {
+	auditLogger = log.New(w, "", 0)
+}
+
+// LogSecurityEvent ghi một sự kiện bảo mật ra logger dưới dạng JSON.
 func LogSecurityEvent(event SecurityEvent) {
 	if auditLogger == nil {
 		return
@@ -53,14 +78,14 @@ func LogSecurityEvent(event SecurityEvent) {
 	auditLogger.Println(string(data))
 }
 
-// responseWriter là wrapper xung quanh http.ResponseWriter để ghi lại status code
+// responseWriter bọc http.ResponseWriter để lưu lại status code thực sự được ghi ra.
 type responseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
 
 func newResponseWriter(w http.ResponseWriter) *responseWriter {
-	return &responseWriter{w, http.StatusOK} // Mặc định là 200
+	return &responseWriter{w, http.StatusOK}
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
@@ -68,19 +93,30 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// AuditLoggerMiddleware bọc toàn bộ chuỗi middleware, ghi lại kết quả cuối cùng của mỗi request.
+// AuditLoggerMiddleware ghi log bảo mật sau khi toàn bộ chuỗi middleware chạy xong.
+// Inject *AuthInfo vào context trước để AuthMiddleware điền thông tin xác thực vào đó.
 func AuditLoggerMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Lấy IP thực của client (hỗ trợ X-Forwarded-For khi chạy sau proxy)
 		ip := RealIP(r)
 
-		// Bọc ResponseWriter để theo dõi status code được ghi ra
+		// Tạo AuthInfo và đưa vào context — AuthMiddleware sẽ điền vào qua con trỏ này.
+		authInfo := &AuthInfo{}
+		ctx := context.WithValue(r.Context(), authInfoKey, authInfo)
+		r = r.WithContext(ctx)
+
 		wrapped := newResponseWriter(w)
 		next.ServeHTTP(wrapped, r)
 
-		// Phân loại: Lỗi liên quan đến bảo mật (4xx) HOẶC user đăng nhập thành công (2xx kèm X-User-ID)
 		statusCode := wrapped.statusCode
-		userID := r.Header.Get("X-User-ID")
+
+		// Đọc thông tin xác thực từ AuthInfo; fallback về header nếu route không có auth.
+		userID := authInfo.UserID
+		if userID == "" {
+			userID = r.Header.Get("X-User-ID")
+		}
+		reason := authInfo.Reason
+		jti := authInfo.JTI
+
 		isSecurityError := statusCode == http.StatusUnauthorized ||
 			statusCode == http.StatusForbidden ||
 			statusCode == http.StatusTooManyRequests ||
@@ -89,9 +125,12 @@ func AuditLoggerMiddleware(next http.Handler) http.Handler {
 
 		isAuthSuccess := statusCode < 400 && userID != ""
 
-		if isSecurityError || isAuthSuccess {
-			reason := inferReason(statusCode, isAuthSuccess)
+		// Nếu AuthMiddleware không điền reason (route public, bị rate limit...) thì suy từ status.
+		if reason == "" {
+			reason = inferReason(statusCode, isAuthSuccess)
+		}
 
+		if isSecurityError || isAuthSuccess {
 			LogSecurityEvent(SecurityEvent{
 				Timestamp:  time.Now().UTC(),
 				IP:         ip,
@@ -99,31 +138,31 @@ func AuditLoggerMiddleware(next http.Handler) http.Handler {
 				Path:       r.URL.Path,
 				StatusCode: statusCode,
 				Reason:     reason,
+				JTI:        jti,
 				UserID:     userID,
-				UserRole:   r.Header.Get("X-User-Role"),
+				UserRole:   authInfo.Role,
 			})
 		}
 	})
 }
 
-// inferReason suy ra lý do từ chối theo status code của response
+// inferReason suy ra lý do từ status code khi AuthMiddleware không điền sẵn.
 func inferReason(statusCode int, isAuthSuccess bool) string {
 	if isAuthSuccess {
 		return ReasonAuthOK
 	}
-
 	switch statusCode {
-		case http.StatusTooManyRequests:
-			return ReasonRateLimited
-		case http.StatusUnauthorized:
-			return ReasonInvalidJWT
-		case http.StatusForbidden:
-			return ReasonForbidden
-		case http.StatusRequestEntityTooLarge:
-			return ReasonPayloadTooLarge
-		case http.StatusUnsupportedMediaType:
-			return ReasonUnsupportedMediaType
-		default:
-			return "unknown"
+	case http.StatusTooManyRequests:
+		return ReasonRateLimited
+	case http.StatusUnauthorized:
+		return ReasonInvalidJWT
+	case http.StatusForbidden:
+		return ReasonForbidden
+	case http.StatusRequestEntityTooLarge:
+		return ReasonPayloadTooLarge
+	case http.StatusUnsupportedMediaType:
+		return ReasonUnsupportedMediaType
+	default:
+		return "unknown"
 	}
 }

@@ -12,28 +12,39 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// jwtSecretCache lưu JWT_SECRET một lần khi khởi động, tránh gọi os.Getenv mỗi request.
+var jwtSecretCache []byte
+
+// InitJWT đọc JWT_SECRET từ env và cache lại. Crash ngay nếu thiếu.
 func InitJWT() {
-	if os.Getenv("JWT_SECRET") == "" {
+	secret := os.Getenv("JWT_SECRET")
+	if secret == "" {
 		panic("CRITICAL: Thiếu biến môi trường JWT_SECRET — Gateway từ chối khởi động!")
 	}
+	jwtSecretCache = []byte(secret)
 }
 
-// AuthMiddlewareProvider tạo middleware xác thực JWT và kiểm tra RBAC
+// AuthMiddlewareProvider xác thực JWT và kiểm tra RBAC cho từng route.
+// Sau khi xác thực thành công, inject X-User-ID và X-User-Role vào request header
+// để các service phía sau đọc mà không cần tự xác thực lại.
 func AuthMiddlewareProvider(jwtCfg config.JWTConfig, requiredRoles []string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-			// Lấy và kiểm tra định dạng header Authorization
+			// Kiểm tra header Authorization có đúng định dạng "Bearer <token>" không.
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
+				if info := GetAuthInfo(r); info != nil {
+					info.Reason = ReasonInvalidJWT
+				}
 				http.Error(w, "Unauthorized - Thiếu hoặc sai định dạng Authorization header", http.StatusUnauthorized)
 				return
 			}
 			tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-			jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 
-			// Parser chỉ verify chữ ký và thời hạn — không check issuer/audience
-			// vì identity-service không set các claim này khi ký token
+			// Dùng secret đã cache, chỉ verify chữ ký HS256 và expiry.
+			// Không check issuer/audience vì identity-service không set các claim đó.
+			jwtSecret := jwtSecretCache
 			parser := jwt.NewParser(
 				jwt.WithValidMethods([]string{"HS256"}),
 				jwt.WithExpirationRequired(),
@@ -48,57 +59,72 @@ func AuthMiddlewareProvider(jwtCfg config.JWTConfig, requiredRoles []string) fun
 			})
 
 			if err != nil || !token.Valid {
+				if info := GetAuthInfo(r); info != nil {
+					info.Reason = ReasonInvalidJWT
+				}
 				http.Error(w, "Unauthorized - Token không hợp lệ hoặc đã hết hạn", http.StatusUnauthorized)
 				return
 			}
 
-			// Đọc claims từ payload
 			claims, ok := token.Claims.(jwt.MapClaims)
 			if !ok {
 				http.Error(w, "Unauthorized - Không đọc được thông tin token", http.StatusUnauthorized)
 				return
 			}
 
-			// Kiểm tra jti tồn tại để tra cứu blacklist
+			// jti bắt buộc phải có — dùng để kiểm tra token có bị thu hồi không.
 			jti, hasJti := claims["jti"].(string)
 			if !hasJti || jti == "" {
+				if info := GetAuthInfo(r); info != nil {
+					info.Reason = ReasonInvalidJWT
+				}
 				http.Error(w, "Unauthorized - Token thiếu claim jti", http.StatusUnauthorized)
 				return
 			}
 
-			// Từ chối nếu jti đã bị revoke (người dùng đã đăng xuất hoặc token bị cướp)
+			// Từ chối token đã bị thu hồi (logout, đổi mật khẩu, xóa tài khoản).
 			if isBlacklisted(jti) {
+				if info := GetAuthInfo(r); info != nil {
+					info.JTI = jti
+					info.Reason = ReasonBlacklistedToken
+				}
 				http.Error(w, "Unauthorized - Token đã bị thu hồi", http.StatusUnauthorized)
 				return
 			}
 
-			// Lấy UserID (tránh lỗi trống / float64)
+			// Lấy UserID từ claim "id" hoặc "sub". Hỗ trợ cả string và số nguyên lớn.
 			var userIDStr string
 			if userID, ok := claims["id"].(string); ok {
 				userIDStr = userID
 			} else if subID, ok := claims["sub"].(string); ok {
 				userIDStr = subID
 			} else if numID, ok := claims["id"].(json.Number); ok {
-				userIDStr = numID.String() // Giữ nguyên độ dài, không lo mất số
+				userIDStr = numID.String()
 			}
 
-			// Chặn Bypass nếu ID trống rỗng
 			if strings.TrimSpace(userIDStr) == "" {
 				http.Error(w, "Unauthorized - Invalid or Empty User ID in Token", http.StatusUnauthorized)
 				return
 			}
 			r.Header.Set("X-User-ID", userIDStr)
 
+			// Kiểm tra RBAC nếu route yêu cầu role cụ thể.
 			role, hasRole := claims["role"].(string)
-			// RBAC Validation (kiểm tra Role)
 			if len(requiredRoles) > 0 {
 				if !hasRole || role == "" {
+					if info := GetAuthInfo(r); info != nil {
+						info.JTI = jti
+						info.Reason = ReasonForbidden
+					}
 					http.Error(w, "Forbidden - Missing Role Claim", http.StatusForbidden)
 					return
 				}
-				
-				isAllowed := slices.Contains(requiredRoles, role)
-				if !isAllowed {
+
+				if !slices.Contains(requiredRoles, role) {
+					if info := GetAuthInfo(r); info != nil {
+						info.JTI = jti
+						info.Reason = ReasonForbidden
+					}
 					http.Error(w, "Forbidden - Insufficient Permissions", http.StatusForbidden)
 					return
 				}
@@ -106,6 +132,14 @@ func AuthMiddlewareProvider(jwtCfg config.JWTConfig, requiredRoles []string) fun
 
 			if hasRole && role != "" {
 				r.Header.Set("X-User-Role", role)
+			}
+
+			// Xác thực thành công — điền đầy đủ AuthInfo để AuditLogger ghi log chính xác.
+			if info := GetAuthInfo(r); info != nil {
+				info.UserID = userIDStr
+				info.Role = role
+				info.JTI = jti
+				info.Reason = ReasonAuthOK
 			}
 
 			next.ServeHTTP(w, r)
