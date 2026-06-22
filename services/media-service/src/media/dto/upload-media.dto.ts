@@ -1,11 +1,13 @@
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum } from 'class-validator';
 import { MediaCategory } from '../media.entity';
 
-/**
- * UploadMediaDto nhận category từ multipart form-data field.
- * File binary được xử lý riêng bởi FileInterceptor, không nằm trong DTO này.
- */
 export class UploadMediaDto {
+  @ApiProperty({
+    enum: MediaCategory,
+    example: MediaCategory.IMAGE,
+    description: 'Loại file: image | document | code',
+  })
   @IsEnum(MediaCategory, {
     message: `category phải là một trong: ${Object.values(MediaCategory).join(', ')}`,
   })
