@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/middleware"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/proxy"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/middleware"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/proxy"
 )
 
 // NewRouter xây dựng HTTP handler với đầy đủ middleware per-route từ cấu hình JSON
@@ -45,7 +45,6 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 	})
 
 	// Các route khác sẽ được load từ file config
-
 	for _, endpoint := range cfg.Endpoints {
 		targets := make([]proxy.BackendTarget, 0)
 		for _, backend := range endpoint.Backend {
@@ -66,7 +65,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			return nil, fmt.Errorf("URL backend không hợp lệ cho endpoint %s: %w", endpoint.Endpoint, err)
 		}
 
-		// Tạo pattern routing theo chuẩn Go 1.22+: "METHOD /path"
+		// Tạo pattern routing
 		pattern := endpoint.Endpoint
 		if endpoint.Method != "" && endpoint.Method != "ANY" {
 			pattern = fmt.Sprintf("%s %s", strings.ToUpper(endpoint.Method), endpoint.Endpoint)
@@ -89,13 +88,12 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			handler = middleware.AuthMiddlewareProvider(cfg.JWT, endpoint.RequiredRoles)(handler)
 		}
 
-		// 3. Caching Redis (phải nằm SAU Auth để cache key luôn gắn với từng user,
-		//    tránh trường hợp anonymous đọc được cached response của user đã login)
+		// 3. Caching Redis 
 		if endpoint.CacheTTLSeconds > 0 {
 			handler = middleware.CacheMiddleware(endpoint.CacheTTLSeconds)(handler)
 		}
 
-		// 4. Xóa header định danh người dùng do client tự chèn vào (phải ở trước Auth)
+		// 4. Xóa header định danh người dùng do client tự chèn vào
 		inner := handler
 		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			r.Header.Del("X-User-ID")
@@ -103,7 +101,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			inner.ServeHTTP(w, r)
 		})
 
-		// 5. Rate limiting theo IP từ cấu hình gateway.json (luôn ở ngoài cùng)
+		// 5. Rate limiting theo IP từ cấu hình gateway.json
 		handler = middleware.RateLimitMiddlewareProvider(cfg.MaxRequestsPerMinute)(handler)
 
 		mux.Handle(pattern, handler)

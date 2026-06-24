@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
 )
 
 // Middleware là kiểu hàm nhận handler và trả về handler đã được bọc thêm logic.

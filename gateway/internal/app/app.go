@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/middleware"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/routing"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/middleware"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/routing"
 )
 
 // App là lõi trung tâm của API Gateway
@@ -24,7 +24,6 @@ func New(cfg *config.GatewayConfig) (*App, error) {
 	}
 
 	// RequestID -> RequestValidation -> AuditLogger -> Recoverer -> RequestLogger -> CORS -> Router
-	// RequestID phải ở ngoài cùng để X-Request-ID có mặt xuyên suốt toàn bộ chuỗi xử lý
 	handler := middleware.Chain(
 		router,
 		middleware.CORSProvider(cfg.CORS),
@@ -39,10 +38,10 @@ func New(cfg *config.GatewayConfig) (*App, error) {
 		server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", cfg.Port),
 			Handler:           handler,
-			ReadHeaderTimeout: 5 * time.Second,  // Tối đa 5s đọc header — chặn slowloris
-			ReadTimeout:       15 * time.Second, // Tối đa 15s đọc toàn bộ request (header + body)
-			WriteTimeout:      30 * time.Second, // Tối đa 30s ghi response — đủ cho proxy chậm
-			IdleTimeout:       120 * time.Second, // Giữ kết nối keep-alive tối đa 120s
+			ReadHeaderTimeout: 5 * time.Second,  
+			ReadTimeout:       15 * time.Second, 
+			WriteTimeout:      30 * time.Second, 
+			IdleTimeout:       120 * time.Second, 
 		},
 	}, nil
 }

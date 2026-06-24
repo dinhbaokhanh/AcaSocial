@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/app"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/middleware"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/app"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/middleware"
 	"github.com/joho/godotenv"
 )
 

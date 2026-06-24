@@ -8,7 +8,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/dinhbaokhanh/Final-Project-API-Gateway/internal/config"
+	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
 	"github.com/golang-jwt/jwt/v5"
 )
 

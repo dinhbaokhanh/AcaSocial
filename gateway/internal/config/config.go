@@ -46,20 +46,17 @@ type BackendConfig struct {
 }
 
 // Load đọc và giải mã file cấu hình JSON của Gateway.
-// Các giá trị dạng ${VAR_NAME} trong host sẽ được tự động thay thế bằng biến môi trường,
-// giúp dùng chung một file gateway.json cho cả local lẫn Docker.
 func Load(configPath string) (*GatewayConfig, error) {
 	raw, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("không thể mở file cấu hình: %w", err)
 	}
 
-	// Expand ${VAR} → giá trị từ môi trường, giữ nguyên nếu biến không tồn tại
 	expanded := os.Expand(string(raw), func(key string) string {
 		if val, ok := os.LookupEnv(key); ok {
 			return val
 		}
-		return "${" + key + "}" // giữ nguyên placeholder nếu chưa set
+		return "${" + key + "}"
 	})
 
 	var cfg GatewayConfig
