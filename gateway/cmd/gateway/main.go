@@ -24,6 +24,10 @@ func main() {
 		log.Fatalf("Không thể tải file cấu hình: %v", err)
 	}
 
+	if err := middleware.ConfigureTrustedProxies(cfg.TrustedProxies); err != nil {
+		log.Fatalf("Cấu hình trusted_proxies không hợp lệ: %v", err)
+	}
+
 	// Kết nối Redis cho cơ chế blacklist token
 	redisAddr := os.Getenv("REDIS_URL")
 	if redisAddr == "" {

@@ -18,13 +18,13 @@ var authInfoKey = authInfoContextKey{}
 // AuthInfo chứa kết quả xác thực của một request.
 // AuditLoggerMiddleware tạo ra, AuthMiddleware điền vào qua con trỏ.
 type AuthInfo struct {
-	UserID string // ID user đã đăng nhập
-	Role   string // Role của user
-	JTI    string // JWT ID — dùng để trace token bị thu hồi
-	Reason string // Lý do: auth_ok / invalid_jwt / blacklisted_token / forbidden
+	UserID string 
+	Role   string 
+	JTI    string 
+	Reason string 
 }
 
-// GetAuthInfo lấy *AuthInfo từ context. Trả về nil nếu chưa được inject.
+// GetAuthInfo lấy *AuthInfo từ context.
 func GetAuthInfo(r *http.Request) *AuthInfo {
 	info, _ := r.Context().Value(authInfoKey).(*AuthInfo)
 	return info

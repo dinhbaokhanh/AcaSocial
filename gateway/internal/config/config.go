@@ -24,6 +24,7 @@ type GatewayConfig struct {
 	Port                 int              `json:"port"`
 	TimeoutSeconds       int              `json:"timeout_seconds"`
 	MaxRequestsPerMinute int              `json:"max_requests_per_minute"`
+	TrustedProxies       []string         `json:"trusted_proxies"`
 	JWT                  JWTConfig        `json:"jwt"`
 	CORS                 CORSConfig       `json:"cors"`
 	Endpoints            []EndpointConfig `json:"endpoints"`

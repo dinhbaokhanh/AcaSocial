@@ -77,8 +77,8 @@ Request đến
                             └─> [Per-route]
                                 └─> RateLimit
                                     └─> Strip Headers (X-User-ID, X-User-Role)
-                                        └─> Cache (Redis, nếu cấu hình cacheTTLSeconds)
-                                            └─> JWT Auth + RBAC (nếu authRequired)
+                                        └─> JWT Auth + RBAC (nếu authRequired)
+                                            └─> Cache (Redis, nếu cấu hình cacheTTLSeconds)
                                                 └─> Sanitize Response Headers
                                                     └─> Reverse Proxy
 ```
@@ -98,8 +98,8 @@ Chuỗi middleware được tổ chức theo mẫu kiến trúc **Pipe and Filte
 | **CORS** | Xử lý trước business logic — trả về `OPTIONS` preflight mà không cần chạy Auth/RateLimit |
 | **RateLimit** | Per-route, đặt ngoài cùng — chặn tại cổng, bảo vệ toàn bộ chuỗi phía sau khỏi bị DDoS |
 | **Strip Headers** | Xóa `X-User-ID`, `X-User-Role` do client tự chèn trước khi Auth — tránh giả mạo định danh (*Header Injection Attack*) |
-| **Cache** | Sau Auth để cache key gắn với user cụ thể — tránh anonymous đọc được dữ liệu đã cache của user đã đăng nhập |
-| **JWT Auth + RBAC** | Đặt gần Proxy nhất — chỉ chạy sau khi đã qua Rate Limit và header đã được làm sạch |
+| **JWT Auth + RBAC** | Chạy trước Cache — xác thực JWT và inject `X-User-ID` trước khi tính cache key |
+| **Cache** | Sau Auth để cache key gắn với user cụ thể — tránh user A đọc cache của user B |
 
 > **Tham khảo:** OWASP API Security Top 10 (2023) khuyến nghị áp dụng **layered security** (Broken Object Level Authorization — API1, Broken Authentication — API2) đúng thứ tự như trên. Cơ chế JWT được chuẩn hóa tại [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519).
 

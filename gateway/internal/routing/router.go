@@ -77,20 +77,21 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		}
 		fmt.Printf("[Router] %-35s -> %s\n", pattern, strings.Join(targetHosts, ", "))
 
-		// reverseProxy -> sanitize backend response headers -> (JWT Auth + Cache nếu cần) -> Xóa header giả mạo -> RateLimit
+		// reverseProxy -> sanitize -> Cache -> Auth -> Strip -> RateLimit
+		// Thực thi (ngoài vào trong): RateLimit -> Strip -> Auth -> Cache -> sanitize -> proxy
 		var handler http.Handler = reverseProxy
 
 		// 1. Xóa header nhạy cảm từ backend trước khi trả về cho client
 		handler = sanitizeBackendResponseHeaders(handler)
 
-		// 2. Xác thực JWT + RBAC Check
-		if endpoint.AuthRequired {
-			handler = middleware.AuthMiddlewareProvider(cfg.JWT, endpoint.RequiredRoles)(handler)
-		}
-
-		// 3. Caching Redis 
+		// 2. Caching Redis (wrap sớm — chạy sau Auth để cache key có X-User-ID)
 		if endpoint.CacheTTLSeconds > 0 {
 			handler = middleware.CacheMiddleware(endpoint.CacheTTLSeconds)(handler)
+		}
+
+		// 3. Xác thực JWT + RBAC (wrap sau Cache — chạy trước Cache)
+		if endpoint.AuthRequired {
+			handler = middleware.AuthMiddlewareProvider(cfg.JWT, endpoint.RequiredRoles)(handler)
 		}
 
 		// 4. Xóa header định danh người dùng do client tự chèn vào

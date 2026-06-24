@@ -64,6 +64,11 @@ func CacheMiddleware(ttlSeconds int) func(http.Handler) http.Handler {
 
 			// Cache key gắn với user — tránh user A đọc cache của user B
 			userID := r.Header.Get("X-User-ID")
+			if r.Header.Get("Authorization") != "" && userID == "" {
+				// Auth chưa chạy hoặc thiếu X-User-ID — bỏ qua cache, tránh key dùng chung
+				next.ServeHTTP(w, r)
+				return
+			}
 			rawKey := fmt.Sprintf("%s:%s", r.URL.RequestURI(), userID)
 			hash := md5.Sum([]byte(rawKey))
 			cacheKey := "cache:GET:" + hex.EncodeToString(hash[:])
