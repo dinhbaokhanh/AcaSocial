@@ -81,7 +81,7 @@ export function AppHeader() {
             </>
           ) : (
             <>
-              <Button variant="ghost" size="sm" onClick={() => router.push(ROUTES.LOGIN)}>
+              <Button variant="ghost" size="sm" className={styles.ghostWhite} onClick={() => router.push(ROUTES.LOGIN)}>
                 Sign in
               </Button>
               <Button variant="primary" size="sm" onClick={() => router.push(ROUTES.REGISTER)}>
