@@ -30,13 +30,13 @@ export class UpdateDiscussionDto {
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1, { message: 'Bài viết phải có ít nhất 1 tag' })
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   tagIds?: string[];
 
   // Gửi [] = xóa hết media đính kèm
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   mediaIds?: string[];
 
   @IsOptional()

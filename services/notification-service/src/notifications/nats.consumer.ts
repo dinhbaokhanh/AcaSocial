@@ -3,11 +3,10 @@ import {
   Logger,
   OnModuleDestroy,
   OnModuleInit,
-} from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import { connect, consumerOpts, createInbox, JsMsg, StringCodec } from 'nats'
-import { NotificationsController } from './notifications.controller'
-import { DomainEvent, NotificationsService } from './notifications.service'
+} from "@nestjs/common"
+import { ConfigService } from "@nestjs/config"
+import { connect, consumerOpts, createInbox, JsMsg, StringCodec } from "nats"
+import { DomainEvent, NotificationsService } from "./notifications.service"
 
 @Injectable()
 export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
@@ -17,17 +16,16 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService,
     private readonly service: NotificationsService,
-    private readonly controller: NotificationsController
   ) {}
 
   async onModuleInit() {
-    const url = this.config.get<string>('NATS_URL', 'nats://localhost:4222')
-    const stream = this.config.get<string>('NATS_STREAM', 'ACASOCIAL_EVENTS')
+    const url = this.config.get<string>("NATS_URL", "nats://localhost:4222")
+    const stream = this.config.get<string>("NATS_STREAM", "ACASOCIAL_EVENTS")
     const consumer = this.config.get<string>(
-      'NATS_CONSUMER',
-      'notification-service'
+      "NATS_CONSUMER",
+      "notification-service",
     )
-    const subject = 'ac.social.>'
+    const subject = "ac.social.>"
 
     this.connection = await connect({ servers: url })
     const manager = await this.connection.jetstreamManager()
@@ -35,7 +33,12 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
     try {
       await manager.streams.info(stream)
     } catch {
-      await manager.streams.add({ name: stream, subjects: [subject] })
+      try {
+        await manager.streams.add({ name: stream, subjects: [subject] })
+      } catch {
+        // Another service may have created the stream concurrently.
+        await manager.streams.info(stream)
+      }
     }
 
     const options = consumerOpts()
@@ -59,9 +62,9 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
       try {
         const event = JSON.parse(codec.decode(message.data)) as DomainEvent
         if (!event.eventId || !event.eventType)
-          throw new Error('Invalid event envelope')
+          throw new Error("Invalid event envelope")
         const notification = await this.service.processEvent(event)
-        if (notification) this.controller.publish(notification)
+        if (notification) this.service.publish(notification)
         message.ack()
       } catch (error) {
         this.logger.error(`Failed to process NATS message: ${String(error)}`)

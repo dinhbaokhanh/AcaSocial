@@ -10,6 +10,6 @@ import { NatsConsumer } from './nats.consumer'
 @Module({
   imports: [ConfigModule, TypeOrmModule.forFeature([Notification, InboxEvent])],
   controllers: [NotificationsController],
-  providers: [NotificationsService, NatsConsumer, NotificationsController],
+  providers: [NotificationsService, NatsConsumer],
 })
 export class NotificationsModule {}

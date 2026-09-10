@@ -40,13 +40,13 @@ export class CreateDiscussionDto {
   // Phải có ít nhất 1 tag — đảm bảo mọi bài viết đều được phân loại
   @IsArray()
   @ArrayMinSize(1, { message: 'Bài viết phải có ít nhất 1 tag' })
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   tagIds: string[];
 
   // Media đính kèm (tùy chọn) — chỉ lưu ID, không verify với Media Service
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
+  @IsUUID('all', { each: true })
   mediaIds?: string[];
 
   // Chế độ ẩn danh — authorId vẫn lưu DB (admin bóc mác), nhưng ẩn trên API response

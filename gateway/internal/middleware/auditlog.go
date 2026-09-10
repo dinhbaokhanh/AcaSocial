@@ -18,10 +18,10 @@ var authInfoKey = authInfoContextKey{}
 // AuthInfo chứa kết quả xác thực của một request.
 // AuditLoggerMiddleware tạo ra, AuthMiddleware điền vào qua con trỏ.
 type AuthInfo struct {
-	UserID string 
-	Role   string 
-	JTI    string 
-	Reason string 
+	UserID string
+	Role   string
+	JTI    string
+	Reason string
 }
 
 // GetAuthInfo lấy *AuthInfo từ context.
@@ -91,6 +91,11 @@ func newResponseWriter(w http.ResponseWriter) *responseWriter {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// Allow ReverseProxy's ResponseController to flush SSE through this wrapper.
+func (rw *responseWriter) Unwrap() http.ResponseWriter {
+	return rw.ResponseWriter
 }
 
 // AuditLoggerMiddleware ghi log bảo mật sau khi toàn bộ chuỗi middleware chạy xong.

@@ -7,7 +7,7 @@ export class CreateCommentDto {
 
   // Nếu là reply, truyền UUID của comment cha
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID('all')
   parentCommentId?: string;
 
   @IsOptional()

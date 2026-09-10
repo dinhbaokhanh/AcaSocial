@@ -6,6 +6,6 @@ import { IsUUID } from 'class-validator';
  * Ví dụ: PATCH /discussions/:id/accept  { "commentId": "uuid-of-comment" }
  */
 export class AcceptAnswerDto {
-  @IsUUID('4')
+  @IsUUID('all')
   commentId: string;
 }

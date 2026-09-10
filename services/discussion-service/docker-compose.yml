@@ -9,6 +9,7 @@ services:
     ports:
       - "8084:8084"
     environment:
+      - NATS_URL=nats://nats:4222
       - PORT=8084
       - DB_HOST=discussion-db
       - DB_PORT=5432
@@ -16,11 +17,19 @@ services:
       - DB_PASSWORD=123456
       - DB_NAME=discussion_db
     depends_on:
+      nats:
+        condition: service_started
       discussion-db:
         condition: service_healthy
     networks:
       - acasocial-network
     restart: unless-stopped
+
+  nats:
+    image: nats:2.10-alpine
+    command: ["-js"]
+    networks:
+      - acasocial-network
 
   discussion-db:
     image: postgres:15-alpine

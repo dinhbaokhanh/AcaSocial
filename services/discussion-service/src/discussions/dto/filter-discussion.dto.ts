@@ -35,7 +35,7 @@ export class FilterDiscussionDto extends PaginationQueryDto {
   tag?: string;
 
   @IsOptional()
-  @IsUUID('4')
+  @IsUUID('all')
   authorId?: string;
 
   @IsOptional()

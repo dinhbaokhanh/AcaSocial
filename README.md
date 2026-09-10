@@ -281,7 +281,7 @@ getPosts(@Headers('x-user-id') userId: string) {
 ```
 
 Domain service là nơi quyết định business event có xảy ra hay không. Ví dụ
-`discussion-service` publish `answer.accepted`; notification-service chỉ consume
+`discussion-service` publish `discussion.created` và `comment.created`; notification-service consume
 event, xác định recipient, tạo notification và xử lý delivery realtime.
 
 Event envelope chuẩn:
@@ -289,15 +289,12 @@ Event envelope chuẩn:
 ```json
 {
   "eventId": "evt_123",
-  "eventType": "answer.accepted",
-  "occurredAt": "2026-09-10T10:00:00Z",
-  "producer": "discussion-service",
-  "version": 1,
+  "eventType": "comment.created",
   "data": {
     "actorId": "user-a",
     "recipientId": "user-b",
-    "questionId": "question-1",
-    "answerId": "answer-1"
+    "discussionId": "discussion-1",
+    "commentId": "comment-1"
   }
 }
 ```
@@ -319,19 +316,22 @@ này để xác định user. Frontend không cần gọi trực tiếp service 
 
 ### Test frontend và SSE
 
-Frontend đã có notification bell, unread count, panel, mark-as-read và demo
-events cho `answer.created`, `answer.accepted`, `mention.created`,
-`badge.awarded`, `user.followed` và `system.security_warning`.
-
-Chạy frontend với demo local mà không cần backend notification. Để kết nối SSE
-thật, đặt trong `frontend/.env.local`:
+Frontend tải 30 thông báo gần nhất sau khi đăng nhập/khôi phục session, cập nhật
+qua SSE và lưu trạng thái đã đọc qua API. Sao chép `frontend/.env.example` sang
+`frontend/.env.local` nếu chưa có:
 
 ```env
+NEXT_PUBLIC_API_URL=http://localhost:8080
 NEXT_PUBLIC_NOTIFICATION_STREAM_URL=http://localhost:8080/api/notifications/stream
 ```
 
-URL này cần có session/auth hợp lệ mà Gateway chấp nhận. Frontend vẫn dùng demo
-notification nếu biến môi trường chưa được cấu hình.
+SSE dùng `fetch` với Bearer header qua Gateway. Khi mất kết nối, frontend thử
+lại sau 3 giây và tải lại lịch sử; logout/đổi tài khoản hủy stream cũ.
+Tạo discussion thông báo cho tác giả; comment từ người khác thông báo cho tác
+giả bài viết. Comment của chính tác giả không tạo thông báo.
+
+Hướng dẫn chạy, regression test bằng Chrome và kiểm tra NATS redelivery:
+[Notification flow](docs/notification-flow.md).
 
 ### Publish event mẫu
 
@@ -355,3 +355,105 @@ Sau đó gọi `GET /api/notifications` bằng cùng user để kiểm tra notif
 
 Chi tiết cấu hình và API nằm tại
 `services/notification-service/README.md`.
+
+---
+
+## Changelog — Bugfixes & Config corrections
+
+Phần này ghi lại các lỗi cấu hình và code đã được phát hiện và sửa trong quá trình phát triển.
+
+### [gateway] DISCUSSION_SERVICE_URL trỏ sai port (8083 → 8084)
+
+**Triệu chứng:** `GET /api/discussions` trả về 502 Bad Gateway.
+
+**Nguyên nhân:** `gateway/.env` và `docker-compose.yml` khai báo `DISCUSSION_SERVICE_URL` trỏ đến port `8083`, trong khi `discussion-service` thực sự lắng nghe trên port `8084` (theo `services/discussion-service/.env` và `main.ts`).
+
+**Fix:**
+- `gateway/.env`: `DISCUSSION_SERVICE_URL=http://localhost:8084`
+- `docker-compose.yml` (gateway environment): `DISCUSSION_SERVICE_URL: http://discussion-service:8084`
+
+> Sau khi sửa file, phải restart gateway để nhận env mới: `docker compose up -d --no-deps gateway`
+
+---
+
+### [identity-service] MAIL_HOST sai giá trị
+
+**Triệu chứng:** `POST /api/auth/forgot-password` trả về 502; log identity-service in `getaddrinfo ENOTFOUND khanhdbao@gmail.com`.
+
+**Nguyên nhân:** `services/identity-service/.env` có `MAIL_HOST=khanhdbao@gmail.com` (địa chỉ email) thay vì hostname SMTP.
+
+**Fix:** `MAIL_HOST=smtp.gmail.com`
+
+---
+
+### [identity-service] MAIL_USER sai giá trị
+
+**Triệu chứng:** Gửi mail thất bại — Gmail SMTP từ chối xác thực.
+
+**Nguyên nhân:** `MAIL_USER=AcaSocial` (tên app) thay vì địa chỉ Gmail.
+
+**Fix:** `MAIL_USER=khanhdbao@gmail.com`
+
+---
+
+### [identity-service] JWT_SECRET không khớp với gateway
+
+**Triệu chứng:** Mọi request có token đều bị 401 Unauthorized ngay sau khi đăng nhập.
+
+**Nguyên nhân:** `services/identity-service/.env` có `JWT_SECRET=min_32_chars`, trong khi `gateway/.env` dùng `JWT_SECRET=your_jwt_secret_min_32_chars`. Token được ký bằng secret khác với secret dùng để verify.
+
+**Fix:** `JWT_SECRET` phải giống nhau ở cả hai file — xem mục "Yêu cầu" bên trên.
+
+---
+
+### [media-service] DB_NAME trỏ sai database
+
+**Triệu chứng:** `acasocial-media` log liên tục `Unable to connect to the database. Retrying`; PostgreSQL log `database "acasocial" does not exist`.
+
+**Nguyên nhân:** `services/media-service/.env` có `DB_NAME=acasocial`, nhưng database thực tế được tạo là `media_db` (xem `scripts/init-db.sql`).
+
+**Fix:** `DB_NAME=media_db`
+
+---
+
+### [gateway] Rate limit đăng ký quá thấp cho môi trường dev
+
+**Triệu chứng:** `POST /api/auth/register` trả về 429 Too Many Requests khi test.
+
+**Nguyên nhân:** `gateway/gateway.json` giới hạn `/api/auth/register` ở 10 req/phút.
+
+**Fix:** Tăng lên `"max_requests_per_minute": 60` trong `gateway/gateway.json`. Rebuild gateway sau khi sửa.
+
+---
+
+### [frontend] reset-password gửi thừa field `confirmPassword`
+
+**Triệu chứng:** `POST /api/auth/reset-password` trả về 400 `property confirmPassword should not exist`.
+
+**Nguyên nhân:** `ResetPasswordDto` phía backend không khai báo `confirmPassword` (`forbidNonWhitelisted: true`), nhưng frontend gửi thêm field này trong payload.
+
+**Fix:**
+- `frontend/src/types/index.ts`: xóa `confirmPassword` khỏi `ResetPasswordRequest`
+- `frontend/src/app/(auth)/forgot-password/page.tsx`: bỏ `confirmPassword: confirm` khỏi `authApi.resetPassword(...)` call
+
+---
+
+### [discussion-service] IsUUID('4') reject seed UUIDs
+
+**Triệu chứng:** `POST /api/discussions` trả về 400 `each value in tagIds must be a UUID`; các thao tác liên quan đến UUID từ seed data (reply comment, accept answer, filter by authorId, update tags) đều bị 400.
+
+**Nguyên nhân:** Seed data dùng UUID dạng `aaaaaaaa-0000-0000-0000-000000000001` (không phải UUID v4). Các DTO dùng `@IsUUID('4')` nên reject toàn bộ.
+
+**Các DTO bị ảnh hưởng và đã sửa:**
+
+| File | Field | Trước | Sau |
+|------|-------|-------|-----|
+| `create-discussion.dto.ts` | `tagIds`, `mediaIds` | `@IsUUID('4', { each: true })` | `@IsUUID('all', { each: true })` |
+| `update-discussion.dto.ts` | `tagIds`, `mediaIds` | `@IsUUID('4', { each: true })` | `@IsUUID('all', { each: true })` |
+| `filter-discussion.dto.ts` | `authorId` | `@IsUUID('4')` | `@IsUUID('all')` |
+| `accept-answer.dto.ts` | `commentId` | `@IsUUID('4')` | `@IsUUID('all')` |
+| `create-comment.dto.ts` | `parentCommentId` | `@IsUUID('4')` | `@IsUUID('all')` |
+
+> `@IsUUID('all')` chấp nhận mọi phiên bản UUID (v1–v5) thay vì chỉ v4. Nếu sau này migrate seed sang UUID v4 thật, có thể đổi lại thành `@IsUUID('4')`.
+
+> Rebuild discussion-service sau khi sửa: `docker compose up -d --no-deps --build discussion-service`

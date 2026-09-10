@@ -108,6 +108,16 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		// Middleware chain per-route (ngoài vào trong):
 		// RateLimit → Auth → Cache → sanitize → proxy
 		var handler http.Handler = reverseProxy
+		if endpoint.Endpoint == "/api/notifications/stream" {
+			handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// A stream lives beyond the server's normal 30-second write deadline.
+				if err := http.NewResponseController(w).SetWriteDeadline(time.Time{}); err != nil {
+					http.Error(w, "Streaming unavailable", http.StatusInternalServerError)
+					return
+				}
+				reverseProxy.ServeHTTP(w, r)
+			})
+		}
 
 		// 1. Xóa header nhạy cảm từ backend trước khi trả về cho client
 		handler = sanitizeBackendResponseHeaders(handler)

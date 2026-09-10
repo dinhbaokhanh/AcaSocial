@@ -6,7 +6,7 @@ import "net/http"
 // Ẩn thông tin này giúp giảm attack surface và ngăn fingerprinting server.
 var sensitiveBackendHeaders = []string{
 	"Server",           // Lộ tên/phiên bản web server (VD: "Express", "nginx/1.18")
-	"X-Powered-By",    // Lộ framework (VD: "Express", "PHP/8.1")
+	"X-Powered-By",     // Lộ framework (VD: "Express", "PHP/8.1")
 	"X-AspNet-Version", // Lộ phiên bản ASP.NET
 	"X-AspNetMvc-Version",
 }
@@ -25,6 +25,15 @@ func sanitizeBackendResponseHeaders(next http.Handler) http.Handler {
 type headerSanitizerWriter struct {
 	http.ResponseWriter
 	sanitized bool
+}
+
+func (w *headerSanitizerWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
+}
+
+func (w *headerSanitizerWriter) FlushError() error {
+	w.doSanitize()
+	return http.NewResponseController(w.ResponseWriter).Flush()
 }
 
 func (w *headerSanitizerWriter) WriteHeader(statusCode int) {

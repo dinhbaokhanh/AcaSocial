@@ -6,9 +6,13 @@ import { Tag } from '../tags/entities/tag.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { DiscussionsController } from './discussions.controller';
 import { DiscussionsService } from './discussions.service';
+import { NatsModule } from '../common/nats/nats.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Discussion, DiscussionMedia, Tag, Comment])],
+  imports: [
+    TypeOrmModule.forFeature([Discussion, DiscussionMedia, Tag, Comment]),
+    NatsModule,
+  ],
   controllers: [DiscussionsController],
   providers: [DiscussionsService],
   exports: [DiscussionsService], // Export để Phase 3 (Comments) có thể inject

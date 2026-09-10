@@ -267,7 +267,7 @@ export default function CreatePostPage() {
           >
             Cancel
           </Button>
-          <Button type="submit" variant="primary" loading={loading}>
+          <Button type="submit" variant="primary" loading={loading} disabled={loading || !title.trim() || !content.trim() || selectedTags.length === 0}>
             {postType === 'question' ? 'Publish Question' : 'Publish Discussion'}
           </Button>
         </div>

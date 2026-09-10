@@ -53,7 +53,7 @@ export function KnowledgePostCard({
     myVote,
   } = discussion;
 
-  const isResolved = status === 'resolved' || acceptedCommentId !== null;
+  const isResolved = status === 'solved' || acceptedCommentId !== null;
   const isCompact  = variant === 'compact';
   const isFeatured = variant === 'featured';
 

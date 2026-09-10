@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      await authApi.resetPassword({ email, otp, newPassword, confirmPassword: confirm });
+      await authApi.resetPassword({ email, otp, newPassword });
       setStep('success');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Reset failed.');

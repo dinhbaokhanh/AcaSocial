@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import styles from './NotificationPanel.module.css';
 
 export function NotificationPanel() {
-  const { notifications, unreadCount, isOpen, closePanel, markRead, markAllRead, triggerDemo } = useNotifications();
+  const { notifications, unreadCount, isOpen, closePanel, markRead, markAllRead } = useNotifications();
 
   if (!isOpen) return null;
 
@@ -24,8 +24,6 @@ export function NotificationPanel() {
 
         <div className={styles.actions}>
           <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
-          <Button variant="secondary" size="sm" onClick={() => triggerDemo('answer.created')}>Demo answer</Button>
-          <Button variant="secondary" size="sm" onClick={() => triggerDemo('badge.awarded')}>Demo badge</Button>
         </div>
 
         <div className={styles.list}>

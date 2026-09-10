@@ -19,6 +19,7 @@ import { PostType } from './enums/post-type.enum';
 import { PostStatus } from './enums/post-status.enum';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult } from '../common/pagination/paginated-result.interface';
+import { NatsPublisher } from '../common/nats/nats.publisher';
 
 @Injectable()
 export class DiscussionsService {
@@ -31,6 +32,7 @@ export class DiscussionsService {
     private readonly tagRepo: Repository<Tag>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
+    private readonly nats: NatsPublisher,
   ) {}
 
   // ===== CREATE =====
@@ -92,7 +94,21 @@ export class DiscussionsService {
       .whereInIds(dto.tagIds)
       .execute();
 
-    return this.findOneOrFail(saved.id);
+    const result = await this.findOneOrFail(saved.id);
+
+    // Publish NATS event — fire-and-forget, không block response
+    void this.nats.publish('discussion.created', {
+      discussionId: result.id,
+      title: result.title,
+      postType: result.postType,
+      authorId: user.id,
+      // recipientId = authorId: notification-service dùng để route SSE
+      // (trong thực tế có thể route đến followers sau)
+      recipientId: user.id,
+      actorId: user.id,
+    });
+
+    return result;
   }
 
   // ===== LIST (phân trang + filter + sort) =====

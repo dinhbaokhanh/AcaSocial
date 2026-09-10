@@ -14,6 +14,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { FilterCommentDto, CommentSortBy } from './dto/filter-comment.dto';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
 import { PaginatedResult } from '../common/pagination/paginated-result.interface';
+import { NatsPublisher } from '../common/nats/nats.publisher';
 
 @Injectable()
 export class CommentsService {
@@ -22,6 +23,7 @@ export class CommentsService {
     private readonly commentRepo: Repository<Comment>,
     @InjectRepository(Discussion)
     private readonly discussionRepo: Repository<Discussion>,
+    private readonly nats: NatsPublisher,
   ) {}
 
   // ===== CREATE =====
@@ -71,6 +73,18 @@ export class CommentsService {
 
     // 4. Tăng commentCount trên discussion
     await this.discussionRepo.increment({ id: discussionId }, 'commentCount', 1);
+
+    // 5. Publish NATS event — fire-and-forget
+    // Chỉ notify nếu người comment khác với tác giả bài viết
+    if (discussion.authorId !== user.id) {
+      void this.nats.publish('comment.created', {
+        commentId: saved.id,
+        discussionId,
+        discussionTitle: discussion.title,
+        actorId: user.id,
+        recipientId: discussion.authorId,
+      });
+    }
 
     return saved;
   }

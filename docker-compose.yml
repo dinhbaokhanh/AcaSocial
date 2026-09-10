@@ -100,7 +100,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       IDENTITY_SERVICE_URL: http://identity-service:8081
       MEDIA_SERVICE_URL: http://media-service:8082
-      DISCUSSION_SERVICE_URL: http://discussion-service:8083
+      DISCUSSION_SERVICE_URL: http://discussion-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
     ports:
       - '8080:8080'
@@ -140,12 +140,15 @@ services:
       - ./services/discussion-service/.env
     environment:
       DB_HOST: postgres
+      NATS_URL: nats://nats:4222
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
     networks:
       - internal
     depends_on:
+      nats:
+        condition: service_healthy
       postgres:
         condition: service_healthy
 
