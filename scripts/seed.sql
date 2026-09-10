@@ -1,13 +1,15 @@
 -- =============================================================================
 -- AcaSocial — Seed Data
 -- Chạy sau khi các service đã khởi động và tạo schema (synchronize: true)
--- Usage: docker exec -i acasocial-postgres psql -U postgres < scripts/seed.sql
+-- Usage (PowerShell): Get-Content scripts/seed.sql -Raw | docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1
+-- Usage (bash): docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1 < scripts/seed.sql
+-- WARNING: this script deletes existing seedable data before inserting fresh data.
 -- =============================================================================
 
 -- =============================================================================
 -- IDENTITY DB
 -- =============================================================================
-\c identity_db
+\c db
 
 -- Xóa data cũ (giữ thứ tự để tránh FK violation)
 DELETE FROM refresh_tokens;
@@ -549,5 +551,208 @@ INSERT INTO votes (id, user_id, target_type, target_id, vote_type, created_at) V
 (gen_random_uuid(), '22222222-0000-0000-0000-000000000003', 'comment', 'cccccccc-0000-0000-0000-000000000019', 'upvote', NOW() - INTERVAL '9 days');
 
 
+-- =============================================================================
+-- LARGE DETERMINISTIC DATASET
+-- =============================================================================
+-- 100 extra users. All accounts use: Password123!
+-- IDs are derived from stable hashes so this section is reproducible.
+\c db
+
+INSERT INTO users (
+	id, username, full_name, date_of_birth, email, password_hash, avatar_url,
+	privacy, is_verified, role, password_changed_at, last_login_at, created_at, updated_at
+)
+SELECT
+	md5('generated-user-' || series)::uuid,
+	'demo_user_' || series,
+	'Sinh viên Demo ' || series,
+	DATE '1998-01-01' + (series * 37),
+	'demo.user.' || series || '@ptit.edu.vn',
+	'$2b$10$SlUG7zs.s.75Ks.Z1kEgnO5zTFPUJoMMO7cHAug9Ev623wENmWZIG',
+	'https://i.pravatar.cc/150?img=' || ((series % 70) + 1),
+	(CASE WHEN series % 10 = 0 THEN 'private' ELSE 'public' END)::users_privacy_enum,
+	true,
+	(CASE WHEN series % 25 = 0 THEN 'teacher' ELSE 'student' END)::users_role_enum,
+	NULL,
+	NOW() - ((series % 30) || ' days')::interval,
+	NOW() - ((series % 180) || ' days')::interval,
+	NOW() - ((series % 180) || ' days')::interval
+FROM generate_series(16, 115) AS generated(series);
+
+\c discussion_db
+
+-- 100 extra discussions across the existing academic tags.
+INSERT INTO discussions (
+	id, title, content, post_type, status, author_id, is_anonymous,
+	upvote_count, downvote_count, comment_count, view_count, accepted_comment_id,
+	created_at, updated_at
+)
+SELECT
+	md5('generated-discussion-' || series)::uuid,
+	CASE series % 5
+		WHEN 0 THEN 'Kinh nghiệm triển khai ' || series || ' trong dự án thực tế?'
+		WHEN 1 THEN 'Giải thích khái niệm ' || series || ' cho người mới bắt đầu'
+		WHEN 2 THEN 'Best practice cho đồ án CNTT số ' || series
+		WHEN 3 THEN 'Tài liệu nào phù hợp để học chủ đề ' || series || '?'
+		ELSE 'Thảo luận: xu hướng công nghệ học thuật năm nay ' || series
+	END,
+	'Đây là dữ liệu demo được tạo tự động để kiểm thử danh sách bài viết, phân trang, tìm kiếm, bình chọn và notification. Bài viết số ' || series || ' thuộc bộ dữ liệu mẫu AcaSocial.',
+	(CASE WHEN series % 3 = 0 THEN 'discussion' ELSE 'question' END)::discussions_post_type_enum,
+	(CASE WHEN series % 4 = 0 THEN 'solved' ELSE 'open' END)::discussions_status_enum,
+	md5('generated-user-' || (16 + ((series - 1) % 100)))::uuid,
+	series % 17 = 0,
+	(series * 7) % 80,
+	series % 5,
+	5,
+	50 + (series * 13),
+	NULL,
+	NOW() - ((series % 100) || ' days')::interval,
+	NOW() - ((series % 90) || ' days')::interval
+FROM generate_series(1, 100) AS generated(series);
+
+INSERT INTO discussion_tags (discussion_id, tag_id)
+SELECT
+	md5('generated-discussion-' || series)::uuid,
+	('aaaaaaaa-0000-0000-0000-' || lpad((((series - 1) % 15) + 1)::text, 12, '0'))::uuid
+FROM generate_series(1, 100) AS generated(series);
+
+INSERT INTO discussion_tags (discussion_id, tag_id)
+SELECT
+	md5('generated-discussion-' || series)::uuid,
+	('aaaaaaaa-0000-0000-0000-' || lpad(((series % 15) + 1)::text, 12, '0'))::uuid
+FROM generate_series(1, 100) AS generated(series);
+
+-- 500 comments: five comments per generated discussion.
+INSERT INTO comments (
+	id, discussion_id, author_id, content, parent_comment_id, is_anonymous,
+	upvote_count, downvote_count, created_at, updated_at
+)
+SELECT
+	md5('generated-comment-' || series)::uuid,
+	md5('generated-discussion-' || (((series - 1) / 5) + 1))::uuid,
+	md5('generated-user-' || (16 + ((series - 1) % 100)))::uuid,
+	'Bình luận demo số ' || series || ': mình đồng ý với hướng tiếp cận này. Có thể bổ sung thêm ví dụ và benchmark để bài viết dễ áp dụng hơn.',
+	NULL,
+	series % 23 = 0,
+	series % 12,
+	series % 3,
+	NOW() - ((series % 80) || ' days')::interval,
+	NOW() - ((series % 70) || ' days')::interval
+FROM generate_series(1, 500) AS generated(series);
+
+-- Add one reply to each of the first 100 generated discussions.
+INSERT INTO comments (
+	id, discussion_id, author_id, content, parent_comment_id, is_anonymous,
+	upvote_count, downvote_count, created_at, updated_at
+)
+SELECT
+	md5('generated-reply-' || series)::uuid,
+	md5('generated-discussion-' || series)::uuid,
+	md5('generated-user-' || (16 + ((series + 37) % 100)))::uuid,
+	'Reply demo cho thảo luận ' || series || '. Cảm ơn bạn đã chia sẻ, mình đã thử cách này và kết quả khá ổn.',
+	md5('generated-comment-' || (((series - 1) * 5) + 1))::uuid,
+	false,
+	series % 8,
+	0,
+	NOW() - ((series % 60) || ' days')::interval,
+	NOW() - ((series % 50) || ' days')::interval
+FROM generate_series(1, 100) AS generated(series);
+
+-- 1,000 discussion votes with a unique (user, target) pair.
+INSERT INTO votes (id, user_id, target_type, target_id, vote_type, created_at)
+SELECT
+	md5('generated-discussion-vote-' || series)::uuid,
+	md5('generated-user-' || (16 + ((series - 1) % 100)))::uuid,
+	'discussion',
+	md5('generated-discussion-' || (1 + ((series - 1) / 10)))::uuid,
+	(CASE WHEN series % 11 = 0 THEN 'downvote' ELSE 'upvote' END)::votes_vote_type_enum,
+	NOW() - ((series % 90) || ' days')::interval
+FROM generate_series(1, 1000) AS generated(series);
+
+-- 500 comment votes with a unique target comment.
+INSERT INTO votes (id, user_id, target_type, target_id, vote_type, created_at)
+SELECT
+	md5('generated-comment-vote-' || series)::uuid,
+	md5('generated-user-' || (16 + ((series - 1) % 100)))::uuid,
+	'comment',
+	md5('generated-comment-' || series)::uuid,
+	(CASE WHEN series % 13 = 0 THEN 'downvote' ELSE 'upvote' END)::votes_vote_type_enum,
+	NOW() - ((series % 75) || ' days')::interval
+FROM generate_series(1, 500) AS generated(series);
+
+UPDATE discussions
+SET comment_count = (
+	SELECT COUNT(*) FROM comments WHERE comments.discussion_id = discussions.id
+),
+upvote_count = (
+	SELECT COUNT(*) FROM votes
+	WHERE votes.target_id = discussions.id
+		AND votes.target_type = 'discussion'
+		AND votes.vote_type = 'upvote'
+),
+downvote_count = (
+	SELECT COUNT(*) FROM votes
+	WHERE votes.target_id = discussions.id
+		AND votes.target_type = 'discussion'
+		AND votes.vote_type = 'downvote'
+)
+WHERE id IN (SELECT md5('generated-discussion-' || series)::uuid FROM generate_series(1, 100) AS generated(series));
+
+\c notification_db
+
+DELETE FROM inbox_events;
+DELETE FROM notifications;
+
+-- 300 persisted notifications for the existing demo users.
+INSERT INTO notifications (
+	id, "recipientId", "actorId", type, title, body, data, priority, "readAt", "createdAt"
+)
+SELECT
+	md5('generated-notification-' || series)::uuid,
+	CASE ((series - 1) % 15) + 1
+		WHEN 1 THEN '22222222-0000-0000-0000-000000000001'
+		WHEN 2 THEN '22222222-0000-0000-0000-000000000002'
+		WHEN 3 THEN '22222222-0000-0000-0000-000000000003'
+		WHEN 4 THEN '22222222-0000-0000-0000-000000000004'
+		WHEN 5 THEN '22222222-0000-0000-0000-000000000005'
+		WHEN 6 THEN '22222222-0000-0000-0000-000000000006'
+		WHEN 7 THEN '22222222-0000-0000-0000-000000000007'
+		WHEN 8 THEN '22222222-0000-0000-0000-000000000008'
+		WHEN 9 THEN '22222222-0000-0000-0000-000000000009'
+		WHEN 10 THEN '22222222-0000-0000-0000-000000000010'
+		WHEN 11 THEN '22222222-0000-0000-0000-000000000011'
+		WHEN 12 THEN '22222222-0000-0000-0000-000000000012'
+		WHEN 13 THEN '22222222-0000-0000-0000-000000000013'
+		WHEN 14 THEN '22222222-0000-0000-0000-000000000014'
+		ELSE '22222222-0000-0000-0000-000000000015'
+	END::uuid,
+	md5('generated-user-' || (16 + ((series - 1) % 100)))::uuid,
+	CASE series % 6
+		WHEN 0 THEN 'answer.created'
+		WHEN 1 THEN 'answer.accepted'
+		WHEN 2 THEN 'mention.created'
+		WHEN 3 THEN 'badge.awarded'
+		WHEN 4 THEN 'user.followed'
+		ELSE 'system.security_warning'
+	END,
+	CASE series % 6
+		WHEN 0 THEN 'Có câu trả lời mới'
+		WHEN 1 THEN 'Câu trả lời của bạn đã được chấp nhận'
+		WHEN 2 THEN 'Bạn được nhắc đến'
+		WHEN 3 THEN 'Bạn nhận được badge mới'
+		WHEN 4 THEN 'Bạn có người theo dõi mới'
+		ELSE 'Cảnh báo bảo mật'
+	END,
+	'Thông báo demo số ' || series || ' được tạo từ seed data.',
+	jsonb_build_object('demo', true, 'sequence', series),
+	CASE WHEN series % 6 = 5 THEN 'high' ELSE 'normal' END,
+	CASE WHEN series % 4 = 0 THEN NOW() - ((series % 20) || ' days')::interval ELSE NULL END,
+	NOW() - ((series % 45) || ' days')::interval
+FROM generate_series(1, 300) AS generated(series);
+
+INSERT INTO inbox_events ("eventId", "processedAt")
+SELECT 'seed-notification-event-' || series, NOW() - ((series % 45) || ' days')::interval
+FROM generate_series(1, 300) AS generated(series);
+
 -- Hoàn tất seed
-SELECT 'Seed completed!' AS status;
+SELECT 'Seed completed: 120 users, 120 discussions, 600 comments, 1,500 votes, 300 notifications' AS status;

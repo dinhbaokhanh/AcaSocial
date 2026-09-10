@@ -70,8 +70,13 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
     networks:
       - internal
     depends_on:
@@ -117,6 +122,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     networks:
       - internal
     depends_on:
@@ -134,6 +141,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     networks:
       - internal
     depends_on:
@@ -151,6 +160,8 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
       NATS_URL: nats://nats:4222
     ports:
       - '8085:8085'

@@ -1,35 +1,41 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  PrimaryGeneratedColumn,
+} from 'typeorm'
 
 @Entity('notifications')
 @Index(['recipientId', 'createdAt'])
 export class Notification {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: string
 
   @Column()
-  recipientId: string;
+  recipientId: string
 
-  @Column({ nullable: true })
-  actorId: string | null;
-
-  @Column()
-  type: string;
+  @Column({ type: 'varchar', nullable: true })
+  actorId: string | null
 
   @Column()
-  title: string;
+  type: string
 
   @Column()
-  body: string;
+  title: string
+
+  @Column()
+  body: string
 
   @Column({ type: 'jsonb', default: {} })
-  data: Record<string, unknown>;
+  data: Record<string, unknown>
 
   @Column({ default: 'normal' })
-  priority: string;
+  priority: string
 
   @Column({ type: 'timestamptz', nullable: true })
-  readAt: Date | null;
+  readAt: Date | null
 
   @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
+  createdAt: Date
 }

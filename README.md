@@ -115,6 +115,28 @@ curl http://localhost:8080/health
 # Kết quả mong đợi: {"redis":"ok","status":"ok"}
 ```
 
+### Nạp dữ liệu demo
+
+Sau khi các service đã khởi động ít nhất một lần để TypeORM tạo schema, chạy:
+
+```powershell
+Get-Content scripts\seed.sql -Raw | docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1
+```
+
+Trên macOS/Linux:
+
+```bash
+docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1 < scripts/seed.sql
+```
+
+Seed tạo dữ liệu lớn cho frontend và notification demo: 120 users, 120
+discussions, 632 comments, 1.529 votes và 300 notifications. Tất cả tài khoản
+seed dùng mật khẩu `Password123!`; email mẫu có dạng
+`kien.nguyen.d21@ptit.edu.vn` hoặc `demo.user.16@ptit.edu.vn`.
+
+> Seed có tính destructive: script xóa dữ liệu hiện có trong các bảng seed
+> trước khi insert lại dữ liệu mẫu. Không chạy trên môi trường production.
+
 ---
 
 ### Cách B — Chạy từng service riêng lẻ (local development)

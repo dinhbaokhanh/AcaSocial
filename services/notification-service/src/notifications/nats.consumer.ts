@@ -5,7 +5,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { connect, consumerOpts, JsMsg, StringCodec } from 'nats'
+import { connect, consumerOpts, createInbox, JsMsg, StringCodec } from 'nats'
 import { NotificationsController } from './notifications.controller'
 import { DomainEvent, NotificationsService } from './notifications.service'
 
@@ -43,6 +43,7 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
     options.manualAck()
     options.ackExplicit()
     options.deliverAll()
+    options.deliverTo(createInbox())
     options.filterSubject(subject)
 
     const subscription = await this.connection
