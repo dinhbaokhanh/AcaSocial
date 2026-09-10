@@ -8,21 +8,21 @@ Mạng xã hội xây dựng theo kiến trúc **Microservices**, giao tiếp qu
 
 ```
 AcaSocial/
-├── gateway/                        # API Gateway (Go) — cổng duy nhất từ frontend vào hệ thống
-│   ├── cmd/gateway/main.go         # Entry point
+├── gateway/
+│   ├── cmd/gateway/main.go
 │   ├── internal/                   # Logic nội bộ: routing, middleware, proxy, config
 │   ├── gateway.json                # Khai báo toàn bộ route và backend mapping
-│   ├── .env                        # Biến môi trường local (không commit)
+│   ├── .env
 │   └── .env.example                # Mẫu biến môi trường — copy thành .env khi setup
 │
 ├── services/
 │   ├── identity-service/           # Xác thực & quản lý người dùng (NestJS + PostgreSQL)
-│   ├── community-service/          # (Đang phát triển)
-│   ├── discussion-service/         # (Đang phát triển)
-│   ├── media-service/              # (Đang phát triển)
+│   ├── community-service/
+│   ├── discussion-service/
+│   ├── media-service/
 │   └── notification-service/       # Notification history, JetStream consumer và SSE
 │
-├── frontend/                       # (Đang phát triển)
+├── frontend/
 ├── docker-compose.yml              # Orchestrate toàn bộ stack bằng Docker
 ├── .env                            # Biến dùng chung cho Docker Compose (không commit)
 └── .env.example                    # Mẫu biến dùng chung
