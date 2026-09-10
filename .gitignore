@@ -49,9 +49,7 @@ pnpm-debug.log*
 docker-data/
 docker-volumes/
 
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
+.vscode/
 
 .idea/
 *.iml
