@@ -1,5 +1,4 @@
 services:
-
   # ===== Infrastructure =====
 
   postgres:
@@ -14,11 +13,11 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
     ports:
-      - "5432:5432"  
+      - '5432:5432'
     networks:
       - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME} -d ${DB_NAME}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -33,7 +32,27 @@ services:
     networks:
       - internal
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: acasocial-nats
+    restart: unless-stopped
+    command: ['-js', '-m', '8222']
+    ports:
+      - '4222:4222'
+      - '8222:8222'
+    networks:
+      - internal
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -q --spider http://localhost:8222/healthz || exit 1',
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,8 +96,9 @@ services:
       IDENTITY_SERVICE_URL: http://identity-service:8081
       MEDIA_SERVICE_URL: http://media-service:8082
       DISCUSSION_SERVICE_URL: http://discussion-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8085
     ports:
-      - "8080:8080"
+      - '8080:8080'
     networks:
       - internal
     depends_on:
@@ -118,6 +138,28 @@ services:
       - internal
     depends_on:
       postgres:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: acasocial-notification
+    restart: unless-stopped
+    env_file:
+      - ./services/notification-service/.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      NATS_URL: nats://nats:4222
+    ports:
+      - '8085:8085'
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
         condition: service_healthy
 
 # ===== Volumes =====

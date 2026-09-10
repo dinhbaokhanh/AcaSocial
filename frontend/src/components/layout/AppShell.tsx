@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
 import { PageContainer } from './PageContainer';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import styles from './AppShell.module.css';
 
 interface AppShellProps {
@@ -21,6 +22,7 @@ export function AppShell({ children, rightRail }: AppShellProps) {
   return (
     <div className={styles.shell}>
       <AppHeader />
+      <NotificationPanel />
       <PageContainer>
         <div className={styles.body}>
           {/* Left sidebar */}

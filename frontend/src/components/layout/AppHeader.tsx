@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { ROUTES, SITE_NAME } from '@/lib/constants';
 import styles from './AppHeader.module.css';
 
@@ -54,6 +55,7 @@ export function AppHeader() {
         <div className={styles.actions}>
           {isAuthenticated && user ? (
             <>
+              <NotificationBell />
               <Button
                 variant="primary"
                 size="sm"

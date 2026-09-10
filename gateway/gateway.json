@@ -13,45 +13,403 @@
     "allowed_headers": ["Content-Type", "Authorization"]
   },
   "endpoints": [
-    { "endpoint": "/api/auth/register",       "method": "POST", "max_requests_per_minute": 10, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/register" }] },
-    { "endpoint": "/api/auth/verify-otp",     "method": "POST", "max_requests_per_minute": 5,  "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/verify-otp" }] },
-    { "endpoint": "/api/auth/resend-otp",     "method": "POST", "max_requests_per_minute": 3,  "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/resend-otp" }] },
-    { "endpoint": "/api/auth/login",          "method": "POST", "max_requests_per_minute": 10, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/login" }] },
-    { "endpoint": "/api/auth/refresh",        "method": "POST", "max_requests_per_minute": 20, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/refresh" }] },
-    { "endpoint": "/api/auth/forgot-password","method": "POST", "max_requests_per_minute": 3,  "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/forgot-password" }] },
-    { "endpoint": "/api/auth/reset-password", "method": "POST", "max_requests_per_minute": 5,  "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/reset-password" }] },
-    { "endpoint": "/api/auth/logout",         "method": "POST", "auth_required": true,          "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/logout" }] },
+    {
+      "endpoint": "/api/auth/register",
+      "method": "POST",
+      "max_requests_per_minute": 10,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/register" }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/verify-otp",
+      "method": "POST",
+      "max_requests_per_minute": 5,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/auth/verify-otp"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/resend-otp",
+      "method": "POST",
+      "max_requests_per_minute": 3,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/auth/resend-otp"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/login",
+      "method": "POST",
+      "max_requests_per_minute": 10,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/login" }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/refresh",
+      "method": "POST",
+      "max_requests_per_minute": 20,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/refresh" }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/forgot-password",
+      "method": "POST",
+      "max_requests_per_minute": 3,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/auth/forgot-password"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/reset-password",
+      "method": "POST",
+      "max_requests_per_minute": 5,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/auth/reset-password"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/auth/logout",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/auth/logout" }
+      ]
+    },
 
-    { "endpoint": "/api/users/me",                      "method": "GET",   "auth_required": true, "cache_ttl_seconds": 30, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me" }] },
-    { "endpoint": "/api/users/me",                      "method": "DELETE","auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me" }] },
-    { "endpoint": "/api/users/me/profile",              "method": "PATCH", "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/profile" }] },
-    { "endpoint": "/api/users/me/avatar",               "method": "PATCH", "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/avatar" }] },
-    { "endpoint": "/api/users/me/change-password",      "method": "PATCH", "auth_required": true, "max_requests_per_minute": 5, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-password" }] },
-    { "endpoint": "/api/users/me/privacy",              "method": "PATCH", "auth_required": true, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/privacy" }] },
-    { "endpoint": "/api/users/me/change-email/request", "method": "POST",  "auth_required": true, "max_requests_per_minute": 3, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/request" }] },
-    { "endpoint": "/api/users/me/change-email/confirm", "method": "POST",  "auth_required": true, "max_requests_per_minute": 5, "backend": [{ "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me/change-email/confirm" }] },
+    {
+      "endpoint": "/api/users/me",
+      "method": "GET",
+      "auth_required": true,
+      "cache_ttl_seconds": 30,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me" }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        { "host": ["${IDENTITY_SERVICE_URL}"], "url_pattern": "/users/me" }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/profile",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/profile"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/avatar",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/avatar"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/change-password",
+      "method": "PATCH",
+      "auth_required": true,
+      "max_requests_per_minute": 5,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/change-password"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/privacy",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/privacy"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/change-email/request",
+      "method": "POST",
+      "auth_required": true,
+      "max_requests_per_minute": 3,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/change-email/request"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/users/me/change-email/confirm",
+      "method": "POST",
+      "auth_required": true,
+      "max_requests_per_minute": 5,
+      "backend": [
+        {
+          "host": ["${IDENTITY_SERVICE_URL}"],
+          "url_pattern": "/users/me/change-email/confirm"
+        }
+      ]
+    },
 
-    { "endpoint": "/api/media/upload",  "method": "POST",   "auth_required": true,  "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/upload" }] },
-    { "endpoint": "/api/media/{id}",    "method": "GET",    "auth_required": false, "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }] },
-    { "endpoint": "/api/media/{id}",    "method": "DELETE", "auth_required": true,  "backend": [{ "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }] },
+    {
+      "endpoint": "/api/media/upload",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        { "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/upload" }
+      ]
+    },
+    {
+      "endpoint": "/api/media/{id}",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        { "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }
+      ]
+    },
+    {
+      "endpoint": "/api/media/{id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        { "host": ["${MEDIA_SERVICE_URL}"], "url_pattern": "/media/{id}" }
+      ]
+    },
 
-    { "endpoint": "/api/discussions",           "method": "GET",    "auth_required": false, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions" }] },
-    { "endpoint": "/api/discussions",           "method": "POST",   "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions" }] },
-    { "endpoint": "/api/discussions/{id}",      "method": "GET",    "auth_required": false, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}" }] },
-    { "endpoint": "/api/discussions/{id}",      "method": "PATCH",  "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}" }] },
-    { "endpoint": "/api/discussions/{id}",      "method": "DELETE", "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}" }] },
-    { "endpoint": "/api/discussions/{id}/accept",  "method": "PATCH",  "auth_required": true, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/accept" }] },
-    { "endpoint": "/api/discussions/{id}/accept",  "method": "DELETE", "auth_required": true, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/accept" }] },
-    { "endpoint": "/api/discussions/{id}/vote",    "method": "POST",   "auth_required": true, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/vote" }] },
-    { "endpoint": "/api/discussions/{id}/vote",    "method": "DELETE", "auth_required": true, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/vote" }] },
-    { "endpoint": "/api/discussions/{id}/comments","method": "GET",    "auth_required": false, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/comments" }] },
-    { "endpoint": "/api/discussions/{id}/comments","method": "POST",   "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions/{id}/comments" }] },
-    { "endpoint": "/api/comments/{id}",         "method": "PATCH",  "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/comments/{id}" }] },
-    { "endpoint": "/api/comments/{id}",         "method": "DELETE", "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/comments/{id}" }] },
-    { "endpoint": "/api/comments/{id}/vote",    "method": "POST",   "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/comments/{id}/vote" }] },
-    { "endpoint": "/api/comments/{id}/vote",    "method": "DELETE", "auth_required": true,  "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/comments/{id}/vote" }] },
-    { "endpoint": "/api/tags",                  "method": "GET",    "auth_required": false, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/tags" }] },
-    { "endpoint": "/api/tags/{id}",             "method": "GET",    "auth_required": false, "backend": [{ "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/tags/{id}" }] }
+    {
+      "endpoint": "/api/discussions",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        { "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions" }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        { "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/discussions" }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/accept",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/accept"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/accept",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/accept"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/vote",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/vote",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/comments",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/comments"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/comments",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/discussions/{id}/comments"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/comments/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/comments/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/comments/{id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/comments/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/comments/{id}/vote",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/comments/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/comments/{id}/vote",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${DISCUSSION_SERVICE_URL}"],
+          "url_pattern": "/comments/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/tags",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        { "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/tags" }
+      ]
+    },
+    {
+      "endpoint": "/api/tags/{id}",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        { "host": ["${DISCUSSION_SERVICE_URL}"], "url_pattern": "/tags/{id}" }
+      ]
+    },
+
+    {
+      "endpoint": "/api/notifications",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${NOTIFICATION_SERVICE_URL}"],
+          "url_pattern": "/notifications"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/notifications/{id}/read",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${NOTIFICATION_SERVICE_URL}"],
+          "url_pattern": "/notifications/{id}/read"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/notifications/stream",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": ["${NOTIFICATION_SERVICE_URL}"],
+          "url_pattern": "/notifications/stream"
+        }
+      ]
+    }
   ]
 }
-

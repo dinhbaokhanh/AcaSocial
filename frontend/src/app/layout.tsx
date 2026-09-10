@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth/context';
+import { NotificationProvider } from '@/lib/notifications/context';
 import '@/styles/globals.css';
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/constants';
 
@@ -27,7 +28,9 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only">
           Skip to main content
         </a>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <NotificationProvider>{children}</NotificationProvider>
+        </AuthProvider>
       </body>
     </html>
   );
