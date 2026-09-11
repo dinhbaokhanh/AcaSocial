@@ -64,21 +64,22 @@ export class NatsPublisher implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Publish một domain event lên NATS JetStream.
-   * Fire-and-forget — lỗi chỉ log, không throw để không block main flow.
+   * Chờ JetStream ACK; lỗi được trả về để outbox lên lịch gửi lại.
    */
   async publish(
     eventType: string,
     data: Record<string, unknown>,
+    eventId: string = randomUUID(),
   ): Promise<void> {
     if (!this.js) {
       this.logger.warn(
         `NATS not connected — skipping publish for ${eventType}`,
       );
-      return;
+      throw new Error('NATS not connected');
     }
 
     const payload: DomainEventPayload = {
-      eventId: randomUUID(),
+      eventId,
       eventType,
       data,
     };
@@ -95,6 +96,7 @@ export class NatsPublisher implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `Failed to publish NATS event ${eventType}: ${String(error)}`,
       );
+      throw error;
     }
   }
 }

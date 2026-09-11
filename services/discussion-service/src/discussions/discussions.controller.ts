@@ -18,6 +18,7 @@ import { AcceptAnswerDto } from './dto/accept-answer.dto';
 import { GatewayAuthGuard } from '../common/guards/gateway-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { GatewayUser } from '../common/decorators/current-user.decorator';
+import { StatusDiscussionDto } from './dto/status-discussion.dto';
 
 /**
  * Controller cho CRUD bài viết.
@@ -30,6 +31,15 @@ import type { GatewayUser } from '../common/decorators/current-user.decorator';
 @Controller('discussions')
 export class DiscussionsController {
   constructor(private readonly discussionsService: DiscussionsService) {}
+  @Patch(':id/status')
+  @UseGuards(GatewayAuthGuard)
+  status(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: GatewayUser,
+    @Body() dto: StatusDiscussionDto,
+  ) {
+    return this.discussionsService.setStatus(id, user, dto.status);
+  }
 
   /**
    * POST /discussions — Tạo bài viết mới.
@@ -37,10 +47,7 @@ export class DiscussionsController {
    */
   @Post()
   @UseGuards(GatewayAuthGuard)
-  create(
-    @CurrentUser() user: GatewayUser,
-    @Body() dto: CreateDiscussionDto,
-  ) {
+  create(@CurrentUser() user: GatewayUser, @Body() dto: CreateDiscussionDto) {
     return this.discussionsService.create(user, dto);
   }
 
@@ -51,8 +58,11 @@ export class DiscussionsController {
    * Ví dụ: GET /discussions?postType=question&tag=oop&sort=most_votes&page=1
    */
   @Get()
-  findAll(@Query() filter: FilterDiscussionDto) {
-    return this.discussionsService.findAll(filter);
+  findAll(
+    @Query() filter: FilterDiscussionDto,
+    @CurrentUser() user: GatewayUser,
+  ) {
+    return this.discussionsService.findAll(filter, user);
   }
 
   /**
@@ -61,8 +71,11 @@ export class DiscussionsController {
    * Tăng view_count mỗi lần truy cập.
    */
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.discussionsService.findOne(id);
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: GatewayUser,
+  ) {
+    return this.discussionsService.findOne(id, user);
   }
 
   /**

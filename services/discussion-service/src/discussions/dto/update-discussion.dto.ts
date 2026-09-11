@@ -1,45 +1,38 @@
+import { Transform } from 'class-transformer';
 import {
   IsArray,
-  IsBoolean,
-  IsOptional,
-  IsString,
-  IsUUID,
   ArrayMinSize,
-  MaxLength,
+  ArrayMaxSize,
+  ArrayUnique,
+  IsString,
+  Length,
+  IsUUID,
+  IsBoolean,
+  ValidateIf,
 } from 'class-validator';
-
-/**
- * DTO validate dữ liệu khi cập nhật bài viết.
- * Tất cả fields là optional — chỉ cập nhật field được gửi (partial update).
- *
- * Không dùng PartialType(CreateDiscussionDto) vì:
- * - postType: không cho đổi loại bài sau khi tạo
- * - status: dùng endpoint riêng PATCH /discussions/:id/status (Phase 5)
- */
 export class UpdateDiscussionDto {
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @MaxLength(300)
+  @Length(10, 300)
   title?: string;
-
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
+  @Length(20, 100000)
   content?: string;
-
-  // Nếu gửi tagIds, phải có ít nhất 1 — tránh bài viết không có tag
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsArray()
-  @ArrayMinSize(1, { message: 'Bài viết phải có ít nhất 1 tag' })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(5)
+  @ArrayUnique()
   @IsUUID('all', { each: true })
   tagIds?: string[];
-
-  // Gửi [] = xóa hết media đính kèm
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsArray()
+  @ArrayMaxSize(10)
+  @ArrayUnique()
   @IsUUID('all', { each: true })
   mediaIds?: string[];
-
-  @IsOptional()
-  @IsBoolean()
-  isAnonymous?: boolean;
+  @ValidateIf((_, v) => v !== undefined) @IsBoolean() isAnonymous?: boolean;
 }

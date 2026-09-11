@@ -10,6 +10,9 @@ import { Comment } from './comments/entities/comment.entity';
 import { VotesModule } from './votes/votes.module';
 import { Vote } from './votes/entities/vote.entity';
 import { TagsModule } from './tags/tags.module';
+import { EventsModule } from './events/events.module';
+import { DiscussionOutbox1789090000000 } from './events/outbox.migration';
+import { ContentModule } from './common/content.module';
 
 @Module({
   imports: [
@@ -28,15 +31,21 @@ import { TagsModule } from './tags/tags.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
         entities: [Discussion, DiscussionMedia, Tag, Comment, Vote],
-        synchronize: true,
+        synchronize:
+          config.get<string>('NODE_ENV') !== 'production' &&
+          config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
+        migrations: [DiscussionOutbox1789090000000],
+        migrationsRun: true,
         logging: false,
       }),
     }),
 
+    ContentModule,
     DiscussionsModule,
     CommentsModule,
     VotesModule,
     TagsModule,
+    EventsModule,
   ],
 })
 export class AppModule {}

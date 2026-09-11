@@ -19,6 +19,17 @@ var jwtSecretCache []byte
 var jwtIssuer string
 var jwtAudience string
 
+func OptionalAuth(next http.Handler) http.Handler {
+	verified := AuthMiddlewareProvider(nil)(next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		verified.ServeHTTP(w, r)
+	})
+}
+
 // InitJWT đọc JWT_SECRET từ env và issuer/audience từ config, cache lại.
 // Crash ngay nếu thiếu secret để đảm bảo Gateway không khởi động ở trạng thái không an toàn.
 func InitJWT(cfg config.JWTConfig) {

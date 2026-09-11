@@ -1,17 +1,17 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-
+import { Transform } from 'class-transformer';
+import { IsString, Length, Matches, ValidateIf } from 'class-validator';
 export class CreateTagDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty({ message: 'Tên tag không được để trống' })
-  @MaxLength(100)
+  @Length(1, 100)
   name: string;
-
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsString()
-  @MaxLength(120)
+  @Length(1, 120)
+  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
   slug?: string;
-
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsString()
+  @Length(0, 2000)
   description?: string;
 }

@@ -1,4 +1,6 @@
 # Discussion Service
+
+Quy tắc và kiểm thử của bản refactor: [Implementation](IMPLEMENTATION.md). Tài liệu này không triển khai RAG.
 Service quản lý diễn đàn hỏi đáp, thảo luận, bình luận, bình chọn (vote) và gắn thẻ (tags) cho toàn bộ hệ thống AcaSocial.
 
 ---
@@ -88,8 +90,7 @@ Service chạy tại `http://localhost:8084`. Tuy nhiên, để hoạt động c
    `discussion-service` không kết nối Redis hay giải mã JWT. Nó hoàn toàn tin tưởng API Gateway. Gateway xác thực JWT và tiêm 2 headers `X-User-ID` và `X-User-Role` vào request. `GatewayAuthGuard` sẽ đọc 2 headers này để gán vào `req.user`.
 
 2. **Toàn vẹn Dữ liệu (Data Integrity):**
-   Mọi truy vấn cập nhật bộ đếm (counter) như `upvote_count`, `comment_count`, `usage_count` đều dùng Atomic SQL:
-   `SET usageCount = GREATEST(usage_count - 1, 0)` để tránh tình trạng số đếm bị âm khi có nhiều request đồng thời (Race Condition).
+   Các thay đổi nội dung, bộ đếm và sự kiện outbox cùng nằm trong transaction. Mutation khóa bài viết trước khi xử lý bình luận/vote; tag được khóa theo thứ tự ID nhất quán.
 
 3. **Polymorphic Voting (Bình chọn đa hình):**
    Bảng `votes` lưu chung cả lượt vote của bài viết lẫn bình luận, phân biệt qua `targetType` (DISCUSSION / COMMENT) và `targetId`.
@@ -113,7 +114,7 @@ Service quản lý 4 thực thể chính độc lập nhưng liên kết chặt 
 
 2. **Bảng `comments` (Bình luận)**
    - Liên kết với `discussion_id`.
-   - Hỗ trợ **Threaded Comments** 1 cấp thông qua khóa ngoại đệ quy `parent_id` (trỏ đến comment khác). 
+   - Hỗ trợ trả lời nhiều cấp qua `parent_comment_id`; API phân trang độc lập theo từng nhánh.
 
 3. **Bảng `votes` (Bình chọn Đa hình - Polymorphic)**
    - Cùng một bảng phục vụ cho cả Bài viết và Bình luận để giảm thiểu dư thừa dữ liệu.

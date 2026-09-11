@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional, IsUUID } from 'class-validator';
 import { PaginationQueryDto } from '../../common/pagination/pagination.dto';
 
 export enum CommentSortBy {
@@ -8,6 +8,9 @@ export enum CommentSortBy {
 }
 
 export class FilterCommentDto extends PaginationQueryDto {
+  @IsOptional()
+  @IsUUID('all')
+  parentCommentId?: string;
   @IsOptional()
   @IsEnum(CommentSortBy)
   sort?: CommentSortBy = CommentSortBy.NEWEST;

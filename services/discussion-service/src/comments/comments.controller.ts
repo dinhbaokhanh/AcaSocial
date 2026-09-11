@@ -38,8 +38,9 @@ export class CommentsController {
   findAll(
     @Param('discussionId', ParseUUIDPipe) discussionId: string,
     @Query() filter: FilterCommentDto,
+    @CurrentUser() user: GatewayUser,
   ) {
-    return this.commentsService.findAllByDiscussion(discussionId, filter);
+    return this.commentsService.findAllByDiscussion(discussionId, filter, user);
   }
 
   // ===== THAO TÁC TRỰC TIẾP TRÊN COMMENT =====

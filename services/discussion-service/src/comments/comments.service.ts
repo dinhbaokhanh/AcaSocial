@@ -1,144 +1,149 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { Discussion } from '../discussions/entities/discussion.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { FilterCommentDto, CommentSortBy } from './dto/filter-comment.dto';
+import { FilterCommentDto } from './dto/filter-comment.dto';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
-import { PaginatedResult } from '../common/pagination/paginated-result.interface';
-import { NatsPublisher } from '../common/nats/nats.publisher';
+import {
+  authenticated,
+  lockCommentPost,
+  lockPost,
+  requireManager,
+  requireOpen,
+} from '../common/content-policy';
+import { ContentPresenter } from '../common/content-presenter';
+import { OutboxService } from '../events/outbox.service';
+import { TargetType } from '../votes/enums/target-type.enum';
+import { PostStatus } from '../discussions/enums/post-status.enum';
 
 @Injectable()
 export class CommentsService {
   constructor(
-    @InjectRepository(Comment)
-    private readonly commentRepo: Repository<Comment>,
-    @InjectRepository(Discussion)
-    private readonly discussionRepo: Repository<Discussion>,
-    private readonly nats: NatsPublisher,
+    private readonly db: DataSource,
+    private readonly outbox: OutboxService,
+    private readonly presenter: ContentPresenter,
   ) {}
-
-  // ===== CREATE =====
-
-  async create(
-    discussionId: string,
-    user: GatewayUser,
-    dto: CreateCommentDto,
-  ): Promise<Comment> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    // 1. Kiểm tra bài viết tồn tại
-    const discussion = await this.discussionRepo.findOneBy({ id: discussionId });
-    if (!discussion) {
-      throw new NotFoundException('Discussion not found');
-    }
-
-    // 2. Validate parent comment (NẾU CÓ)
-    // Ngăn chặn việc truyền parentCommentId của bài viết khác vào
-    if (dto.parentCommentId) {
-      const parentComment = await this.commentRepo.findOneBy({
-        id: dto.parentCommentId,
-      });
-
-      if (!parentComment) {
-        throw new BadRequestException('Parent comment not found');
-      }
-
-      if (parentComment.discussionId !== discussionId) {
+  async create(discussionId: string, user: GatewayUser, dto: CreateCommentDto) {
+    const authorId = authenticated(user);
+    const saved = await this.db.transaction(async (m) => {
+      const post = await lockPost(m, discussionId);
+      requireOpen(post);
+      const parent = dto.parentCommentId
+        ? await m.findOneBy(Comment, { id: dto.parentCommentId })
+        : null;
+      if (
+        dto.parentCommentId &&
+        (!parent || parent.discussionId !== discussionId)
+      )
         throw new BadRequestException(
-          'Parent comment does not belong to this discussion',
+          'Parent comment must exist in this discussion',
         );
-      }
-    }
-
-    // 3. Tạo comment
-    const comment = this.commentRepo.create({
-      discussionId,
-      authorId: user.id,
-      content: dto.content,
-      parentCommentId: dto.parentCommentId || null,
-      isAnonymous: dto.isAnonymous ?? false,
+      const comment = await m.save(
+        Comment,
+        m.create(Comment, {
+          discussionId,
+          authorId,
+          content: dto.content,
+          parentCommentId: parent?.id ?? null,
+          isAnonymous: dto.isAnonymous ?? false,
+        }),
+      );
+      await m.increment(Discussion, { id: discussionId }, 'commentCount', 1);
+      const recipientId = parent?.authorId ?? post.authorId;
+      if (recipientId !== authorId)
+        await this.outbox.event(m, 'comment.created', {
+          commentId: comment.id,
+          discussionId,
+          discussionTitle: post.title,
+          recipientId,
+          actorId: comment.isAnonymous ? null : authorId,
+          isAnonymous: comment.isAnonymous,
+          commentPreview: comment.content.replace(/\s+/g, ' ').slice(0, 180),
+        });
+      return comment;
     });
-    const saved = await this.commentRepo.save(comment);
-
-    // 4. Tăng commentCount trên discussion
-    await this.discussionRepo.increment({ id: discussionId }, 'commentCount', 1);
-
-    // 5. Publish NATS event — fire-and-forget
-    // Chỉ notify nếu người comment khác với tác giả bài viết
-    if (discussion.authorId !== user.id) {
-      void this.nats.publish('comment.created', {
-        commentId: saved.id,
-        discussionId,
-        discussionTitle: discussion.title,
-        actorId: saved.isAnonymous ? null : user.id,
-        isAnonymous: saved.isAnonymous,
-        commentPreview: saved.content.replace(/\s+/g, ' ').trim().slice(0, 180),
-        recipientId: discussion.authorId,
-      });
-    }
-
-    return saved;
+    return (await this.presenter.many([saved], user, TargetType.COMMENT))[0];
   }
-
-  // ===== LIST (Phân trang + N+1 Query Tối ưu) =====
-
   async findAllByDiscussion(
     discussionId: string,
     filter: FilterCommentDto,
-  ): Promise<PaginatedResult<Comment>> {
-    const { page = 1, limit = 20, sort } = filter;
-
-    // Phải chắc chắn bài viết tồn tại
-    const discussionExists = await this.discussionRepo.existsBy({ id: discussionId });
-    if (!discussionExists) {
-      throw new NotFoundException('Discussion not found');
-    }
-
-    const qb = this.commentRepo
+    user: GatewayUser = { id: null, role: null },
+  ) {
+    const post = await this.db
+      .getRepository(Discussion)
+      .findOneBy({ id: discussionId });
+    if (!post) throw new NotFoundException('Discussion not found');
+    const { page = 1, limit = 20, sort, parentCommentId } = filter;
+    if (
+      parentCommentId &&
+      !(await this.db
+        .getRepository(Comment)
+        .findOne({
+          where: { id: parentCommentId, discussionId },
+          withDeleted: true,
+        }))
+    )
+      throw new NotFoundException('Parent comment not found');
+    const qb = this.db
+      .getRepository(Comment)
       .createQueryBuilder('c')
-      // Chỉ lấy comment gốc (cấp 1)
-      .where('c.discussionId = :discussionId', { discussionId })
-      .andWhere('c.parentCommentId IS NULL')
-      // Eager load 1 cấp replies
-      .leftJoinAndSelect('c.replies', 'replies');
-
-    // Sắp xếp
-    switch (sort) {
-      case CommentSortBy.OLDEST:
-        qb.orderBy('c.createdAt', 'ASC');
-        break;
-      case CommentSortBy.MOST_VOTES:
-        qb.orderBy('c.upvoteCount', 'DESC').addOrderBy('c.createdAt', 'DESC');
-        break;
-      case CommentSortBy.NEWEST:
-      default:
-        qb.orderBy('c.createdAt', 'DESC');
-        break;
-    }
-
-    // Luôn sort reply bên trong theo thứ tự oldest để đọc theo luồng
-    qb.addOrderBy('replies.createdAt', 'ASC');
-
-    // Phân trang trên comment gốc
-    const totalItems = await qb.getCount();
-    const data = await qb
+      .withDeleted()
+      .where('c.discussionId = :discussionId', { discussionId });
+    if (parentCommentId)
+      qb.andWhere('c.parentCommentId = :parentCommentId', { parentCommentId });
+    else qb.andWhere('c.parentCommentId IS NULL');
+    qb.andWhere(
+      '(c.deletedAt IS NULL OR EXISTS (SELECT 1 FROM comments child WHERE child.parent_comment_id = c.id))',
+    );
+    if (sort === 'most_votes')
+      qb.addSelect('c.upvoteCount - c.downvoteCount', 'net_score').orderBy(
+        'net_score',
+        'DESC',
+      );
+    qb.addOrderBy('c.createdAt', sort === 'oldest' ? 'ASC' : 'DESC').addOrderBy(
+      'c.id',
+      'DESC',
+    );
+    const [items, totalItems] = await qb
       .skip((page - 1) * limit)
       .take(limit)
-      .getMany();
-
+      .getManyAndCount();
+    const counts: { parent: string; count: number }[] = items.length
+      ? await this.db.query(
+          'SELECT parent_comment_id AS parent, count(*)::int AS count FROM comments WHERE parent_comment_id = ANY($1::uuid[]) GROUP BY parent_comment_id',
+          [items.map((c) => c.id)],
+        )
+      : [];
+    const presented = await this.presenter.many(
+      items,
+      user,
+      TargetType.COMMENT,
+    );
     return {
-      data,
+      data: presented.map((item, index) => ({
+        ...item,
+        kind: item.parentCommentId
+          ? 'reply'
+          : post.postType === 'question'
+            ? 'answer'
+            : 'comment',
+        replyCount: counts.find((c) => c.parent === item.id)?.count ?? 0,
+        canAccept:
+          !item.deletedAt &&
+          !item.parentCommentId &&
+          post.postType === 'question' &&
+          post.status !== PostStatus.CLOSED &&
+          user.id === post.authorId &&
+          items[index].authorId !== user.id,
+        canVote: item.canVote && post.status !== PostStatus.CLOSED,
+        canManage: item.canManage && post.status !== PostStatus.CLOSED,
+      })),
       meta: {
         page,
         limit,
@@ -147,72 +152,34 @@ export class CommentsService {
       },
     };
   }
+  async update(id: string, user: GatewayUser, dto: UpdateCommentDto) {
+    authenticated(user);
+    const saved = await this.db.transaction(async (m) => {
+      const { post, comment } = await lockCommentPost(m, id);
+      requireOpen(post);
+      requireManager(comment.authorId, user);
+      if (dto.content !== undefined) comment.content = dto.content;
+      if (dto.isAnonymous !== undefined) comment.isAnonymous = dto.isAnonymous;
+      await m.save(comment);
 
-  // ===== UPDATE =====
-
-  async update(
-    id: string,
-    user: GatewayUser,
-    dto: UpdateCommentDto,
-  ): Promise<Comment> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const comment = await this.findOneOrFail(id);
-    this.assertOwnerOrMod(comment, user);
-
-    if (dto.content !== undefined) comment.content = dto.content;
-    if (dto.isAnonymous !== undefined) comment.isAnonymous = dto.isAnonymous;
-
-    return this.commentRepo.save(comment);
+      return comment;
+    });
+    return (await this.presenter.many([saved], user, TargetType.COMMENT))[0];
   }
-
-  // ===== DELETE (Soft) =====
-
-  async remove(id: string, user: GatewayUser): Promise<{ message: string }> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const comment = await this.findOneOrFail(id);
-    this.assertOwnerOrMod(comment, user);
-
-    // Soft delete: đặt cờ deletedAt = now()
-    // Không xóa comment con, giao diện sẽ xử lý hiển thị "[Bình luận bị xóa]" cho comment cha
-    await this.commentRepo.softRemove(comment);
-
-    // Giảm commentCount trên discussion (chỉ giảm 1)
-    // Dùng GREATEST(..., 0) tránh counter âm trong trường hợp race condition
-    await this.discussionRepo
-      .createQueryBuilder()
-      .update(Discussion)
-      .set({ commentCount: () => 'GREATEST(comment_count - 1, 0)' })
-      .where('id = :id', { id: comment.discussionId })
-      .execute();
-
+  async remove(id: string, user: GatewayUser) {
+    authenticated(user);
+    await this.db.transaction(async (m) => {
+      const { post, comment } = await lockCommentPost(m, id);
+      requireOpen(post);
+      requireManager(comment.authorId, user);
+      await m.softDelete(Comment, { id });
+      post.commentCount = Math.max(0, post.commentCount - 1);
+      if (post.acceptedCommentId === id) {
+        post.acceptedCommentId = null;
+        post.status = PostStatus.OPEN;
+      }
+      await m.save(post);
+    });
     return { message: 'Comment deleted successfully' };
-  }
-
-  // ===== Helpers =====
-
-  private async findOneOrFail(id: string): Promise<Comment> {
-    const comment = await this.commentRepo.findOne({ where: { id } });
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-    return comment;
-  }
-
-  private assertOwnerOrMod(comment: Comment, user: GatewayUser): void {
-    const isOwner = comment.authorId === user.id;
-    const isMod =
-      user.role !== null && ['admin', 'moderator'].includes(user.role);
-
-    if (!isOwner && !isMod) {
-      throw new ForbiddenException(
-        'You do not have permission to modify this comment',
-      );
-    }
   }
 }

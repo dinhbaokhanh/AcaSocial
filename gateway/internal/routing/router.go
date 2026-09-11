@@ -130,6 +130,8 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		// 3. Xác thực JWT + RBAC (wrap sau Cache — chạy trước Cache)
 		if endpoint.AuthRequired {
 			handler = middleware.AuthMiddlewareProvider(endpoint.RequiredRoles)(handler)
+		} else if endpoint.AuthOptional {
+			handler = middleware.OptionalAuth(handler)
 		}
 
 		// 4. Rate limiting — dùng giới hạn riêng của route nếu có, fallback về global

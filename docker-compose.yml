@@ -127,6 +127,8 @@ services:
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      DISCUSSION_SERVICE_URL: http://discussion-service:8084
     networks:
       - internal
     depends_on:
@@ -144,6 +146,9 @@ services:
     environment:
       DB_HOST: postgres
       NATS_URL: nats://nats:4222
+      MEDIA_SERVICE_URL: http://media-service:8082
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}

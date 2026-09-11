@@ -32,11 +32,12 @@ type GatewayConfig struct {
 
 // EndpointConfig định nghĩa một API Route mà Gateway sẽ mở ra để Frontend gọi
 type EndpointConfig struct {
-	Endpoint             string          `json:"endpoint"`
-	Method               string          `json:"method"`
-	AuthRequired         bool            `json:"auth_required"`
-	RequiredRoles        []string        `json:"required_roles"`
-	CacheTTLSeconds      int             `json:"cache_ttl_seconds"`
+	Endpoint        string   `json:"endpoint"`
+	Method          string   `json:"method"`
+	AuthRequired    bool     `json:"auth_required"`
+	AuthOptional    bool     `json:"auth_optional"`
+	RequiredRoles   []string `json:"required_roles"`
+	CacheTTLSeconds int      `json:"cache_ttl_seconds"`
 	// MaxRequestsPerMinute ghi đè giới hạn global cho route này.
 	// Dùng để siết chặt các endpoint nhạy cảm như login, verify-otp, forgot-password.
 	// Nếu = 0 thì dùng giá trị global từ GatewayConfig.

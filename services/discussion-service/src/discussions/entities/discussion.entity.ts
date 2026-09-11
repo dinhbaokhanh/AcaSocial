@@ -61,7 +61,7 @@ export class Discussion {
 
   // ID của comment được chấp nhận là câu trả lời đúng (chỉ dùng cho Question)
   @Column({ name: 'accepted_comment_id', type: 'uuid', nullable: true })
-  acceptedCommentId: string;
+  acceptedCommentId: string | null;
 
   // Quan hệ ManyToMany với Tag thông qua bảng trung gian discussion_tags
   @ManyToMany(() => Tag, (tag) => tag.discussions)

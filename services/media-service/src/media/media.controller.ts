@@ -28,7 +28,10 @@ import * as multer from 'multer';
 import { MediaCategory } from './media.entity';
 import { MediaResponseDto } from './dto/media-response.dto';
 import { MediaService } from './media.service';
-import { FileValidationPipe, MAX_FILE_SIZE_BYTES } from './pipes/file-validation.pipe';
+import {
+  FileValidationPipe,
+  MAX_FILE_SIZE_BYTES,
+} from './pipes/file-validation.pipe';
 import { UploadMediaDto } from './dto/upload-media.dto';
 
 @ApiTags('Media')
@@ -52,21 +55,45 @@ export class MediaController {
     }),
   )
   @ApiSecurity('x-user-id')
-  @ApiOperation({ summary: 'Upload file', description: 'Upload ảnh, tài liệu hoặc code lên Cloudinary. Request phải có header X-User-ID (inject bởi Gateway).' })
+  @ApiOperation({
+    summary: 'Upload file',
+    description:
+      'Upload ảnh, tài liệu hoặc code lên Cloudinary. Request phải có header X-User-ID (inject bởi Gateway).',
+  })
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     schema: {
       type: 'object',
       required: ['file', 'category'],
       properties: {
-        file: { type: 'string', format: 'binary', description: 'File cần upload (tối đa 10MB)' },
-        category: { type: 'string', enum: Object.values(MediaCategory), example: 'image' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'File cần upload (tối đa 10MB)',
+        },
+        category: {
+          type: 'string',
+          enum: Object.values(MediaCategory),
+          example: 'image',
+        },
       },
     },
   })
-  @ApiHeader({ name: 'x-user-id', description: 'UUID của user (inject bởi API Gateway)', required: true })
-  @ApiResponse({ status: 201, description: 'Upload thành công.', type: MediaResponseDto })
-  @ApiResponse({ status: 400, description: 'File không hợp lệ (sai định dạng, vượt 10MB, thiếu category).' })
+  @ApiHeader({
+    name: 'x-user-id',
+    description: 'UUID của user (inject bởi API Gateway)',
+    required: true,
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Upload thành công.',
+    type: MediaResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description:
+      'File không hợp lệ (sai định dạng, vượt 10MB, thiếu category).',
+  })
   async upload(@Req() req: Request, @UploadedFile() file: Express.Multer.File) {
     const categoryRaw = req.body?.category as string;
 
@@ -87,28 +114,59 @@ export class MediaController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Lấy thông tin media', description: 'Endpoint public — không cần JWT. Trả về metadata, không trả về nội dung file.' })
-  @ApiParam({ name: 'id', description: 'UUID của media asset', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
-  @ApiResponse({ status: 200, description: 'Trả về MediaResponseDto.', type: MediaResponseDto })
-  @ApiResponse({ status: 404, description: 'Media không tồn tại hoặc đã bị xóa.' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.mediaService.findOne(id);
+  @ApiOperation({
+    summary: 'Lấy thông tin media',
+    description:
+      'Endpoint public — không cần JWT. Trả về metadata, không trả về nội dung file.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'UUID của media asset',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Trả về MediaResponseDto.',
+    type: MediaResponseDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Media không tồn tại hoặc đã bị xóa.',
+  })
+  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+    const { uploadedBy, ...publicAsset } = await this.mediaService.findOne(id);
+    return publicAsset;
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   @ApiSecurity('x-user-id')
   @ApiSecurity('x-user-role')
-  @ApiOperation({ summary: 'Xóa media', description: 'Soft delete. Chỉ chủ file hoặc admin/moderator mới được xóa. File bị xóa khỏi Cloudinary ngay lập tức.' })
+  @ApiOperation({
+    summary: 'Xóa media',
+    description:
+      'Soft delete. Chỉ chủ file hoặc admin/moderator mới được xóa. File bị xóa khỏi Cloudinary ngay lập tức.',
+  })
   @ApiParam({ name: 'id', description: 'UUID của media asset' })
-  @ApiHeader({ name: 'x-user-id', description: 'UUID của user (inject bởi API Gateway)', required: true })
-  @ApiHeader({ name: 'x-user-role', description: 'Role của user: student | teacher | moderator | admin', required: false })
+  @ApiHeader({
+    name: 'x-user-id',
+    description: 'UUID của user (inject bởi API Gateway)',
+    required: true,
+  })
+  @ApiHeader({
+    name: 'x-user-role',
+    description: 'Role của user: student | teacher | moderator | admin',
+    required: false,
+  })
   @ApiResponse({ status: 200, description: 'Xóa thành công.' })
   @ApiResponse({ status: 403, description: 'Không có quyền xóa file này.' })
-  @ApiResponse({ status: 404, description: 'Media không tồn tại hoặc đã bị xóa.' })
+  @ApiResponse({
+    status: 404,
+    description: 'Media không tồn tại hoặc đã bị xóa.',
+  })
   delete(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
     const userId = req.headers['x-user-id'] as string;
-    const userRole = req.headers['x-user-role'] as string ?? '';
+    const userRole = (req.headers['x-user-role'] as string) ?? '';
     return this.mediaService.delete(id, userId, userRole);
   }
 }

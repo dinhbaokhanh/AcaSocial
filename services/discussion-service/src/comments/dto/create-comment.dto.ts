@@ -1,16 +1,18 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator';
-
+import { Transform } from 'class-transformer';
+import {
+  IsString,
+  Length,
+  IsUUID,
+  IsBoolean,
+  ValidateIf,
+} from 'class-validator';
 export class CreateCommentDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty({ message: 'Nội dung bình luận không được để trống' })
+  @Length(1, 20000)
   content: string;
-
-  // Nếu là reply, truyền UUID của comment cha
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsUUID('all')
   parentCommentId?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isAnonymous?: boolean;
+  @ValidateIf((_, v) => v !== undefined) @IsBoolean() isAnonymous?: boolean;
 }

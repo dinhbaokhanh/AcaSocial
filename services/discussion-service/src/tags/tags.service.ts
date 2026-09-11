@@ -25,6 +25,8 @@ export class TagsService {
    */
   async create(dto: CreateTagDto): Promise<Tag> {
     const slug = dto.slug || this.generateSlug(dto.name);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug))
+      throw new BadRequestException('Tag name must produce a valid slug');
 
     const tag = this.tagRepo.create({
       name: dto.name,
@@ -88,20 +90,21 @@ export class TagsService {
    * Cập nhật Tag (Admin/Mod).
    */
   async update(id: string, dto: UpdateTagDto): Promise<Tag> {
-    const tag = await this.findOne(id);
-
-    if (dto.name !== undefined) tag.name = dto.name;
-    if (dto.description !== undefined) tag.description = dto.description;
-
-    if (dto.slug !== undefined) {
-      tag.slug = dto.slug;
-    } else if (dto.name && dto.name !== tag.name) {
-      // Tự động cập nhật slug nếu đổi tên mà không truyền slug mới
-      tag.slug = this.generateSlug(dto.name);
-    }
-
     try {
-      return await this.tagRepo.save(tag);
+      return await this.tagRepo.manager.transaction(async (manager) => {
+        const tag = await manager.findOne(Tag, {
+          where: { id },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!tag) throw new NotFoundException('Tag not found');
+        // URLs remain stable when a tag is renamed.
+        if (dto.slug !== undefined && dto.slug !== tag.slug)
+          throw new BadRequestException('Tag slugs cannot be changed');
+        if (dto.name !== undefined) tag.name = dto.name;
+        if (dto.description !== undefined) tag.description = dto.description;
+        await manager.save(tag);
+        return tag;
+      });
     } catch (error: any) {
       this.handleDuplicateError(error);
       throw error;
@@ -113,21 +116,23 @@ export class TagsService {
    * QUAN TRỌNG: Không cho phép xóa nếu usage_count > 0.
    */
   async remove(id: string): Promise<{ message: string }> {
-    const tag = await this.findOne(id);
-
-    if (tag.usageCount > 0) {
-      throw new BadRequestException(
-        'Cannot delete tag that is currently in use',
+    await this.tagRepo.manager.transaction(async (manager) => {
+      const tag = await manager.findOne(Tag, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!tag) throw new NotFoundException('Tag not found');
+      const used = await manager.query(
+        'SELECT 1 FROM discussion_tags dt JOIN discussions d ON d.id=dt.discussion_id WHERE dt.tag_id=$1 AND d.deleted_at IS NULL LIMIT 1',
+        [id],
       );
-    }
-
-    // Dọn dẹp các liên kết rác trong bảng trung gian (từ những bài viết đã bị soft-delete)
-    // Nếu không xóa, PostgreSQL sẽ chặn lệnh xóa Tag vì dính Foreign Key Constraint
-    await this.tagRepo.query('DELETE FROM discussion_tags WHERE tag_id = $1', [
-      tag.id,
-    ]);
-
-    await this.tagRepo.remove(tag);
+      if (used.length)
+        throw new BadRequestException(
+          'Cannot delete tag that is currently in use',
+        );
+      await manager.query('DELETE FROM discussion_tags WHERE tag_id=$1', [id]);
+      await manager.remove(tag);
+    });
     return { message: 'Tag deleted successfully' };
   }
 
@@ -140,6 +145,7 @@ export class TagsService {
   private generateSlug(text: string): string {
     return text
       .toLowerCase()
+      .replace(/đ/g, 'd')
       .replace(/\+/g, 'p') // C++ -> cpp
       .replace(/#/g, 'sharp') // C# -> csharp
       .normalize('NFD') // Chuẩn hóa unicode

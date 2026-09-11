@@ -1,10 +1,15 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from './client';
-import type { Comment, PaginatedResponse, CreateCommentPayload } from '@/types';
+import { apiGet, apiPost, apiPatch, apiDelete } from "./client";
+import type { Comment, PaginatedResponse, CreateCommentPayload } from "@/types";
 
 export const commentsApi = {
-  list: (discussionId: string, page = 1, limit = 20) =>
+  list: (
+    discussionId: string,
+    page = 1,
+    limit = 20,
+    parentCommentId?: string,
+  ) =>
     apiGet<PaginatedResponse<Comment>>(
-      `/api/discussions/${discussionId}/comments?page=${page}&limit=${limit}`,
+      `/api/discussions/${discussionId}/comments?page=${page}&limit=${limit}${parentCommentId ? `&parentCommentId=${encodeURIComponent(parentCommentId)}` : ""}`,
     ),
 
   create: (discussionId: string, data: CreateCommentPayload) =>

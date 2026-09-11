@@ -1,107 +1,213 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { tagsApi } from '@/lib/api/tags'
-import { Input } from '@/components/ui/Input'
-import { LoadingState } from '@/components/shared/LoadingState'
-import { EmptyState } from '@/components/shared/EmptyState'
-import { ErrorState } from '@/components/shared/ErrorState'
-import type { Tag } from '@/types'
-import styles from './tags.module.css'
-
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { tagsApi } from "@/lib/api/tags";
+import { useAuth } from "@/lib/auth/context";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import type { Tag } from "@/types";
+import styles from "./tags.module.css";
 export default function TagsPage() {
-  const [tags, setTags] = useState<Tag[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
-
-  const fetchTags = async () => {
-    setLoading(true)
-    setError(null)
+  const { user } = useAuth();
+  const manage = ["admin", "moderator"].includes(user?.role ?? "");
+  const [tags, setTags] = useState<Tag[]>([]),
+    [search, setSearch] = useState(""),
+    [page, setPage] = useState(1),
+    [pages, setPages] = useState(1),
+    [version, setVersion] = useState(0);
+  const [error, setError] = useState(""),
+    [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null),
+    [name, setName] = useState(""),
+    [description, setDescription] = useState("");
+  useEffect(() => {
+    let active = true;
+    const timer = setTimeout(() => {
+      tagsApi
+        .list(page, 30, search)
+        .then((r) => {
+          if (active) {
+            setTags(r.data);
+            setPages(r.meta.totalPages);
+            setLoading(false);
+            setError("");
+          }
+        })
+        .catch((e) => {
+          if (active) {
+            setError(e.message);
+            setLoading(false);
+          }
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [page, search, version]);
+  async function save() {
+    setBusy(true);
+    setError("");
     try {
-      const res = await tagsApi.list(1, 100)
-      setTags(res.data)
-    } catch {
-      setError('Failed to load tags. Please try again.')
+      const data = { name: name.trim(), description: description.trim() };
+      if (editId) await tagsApi.update(editId, data);
+      else await tagsApi.create(data);
+      setEditId(null);
+      setName("");
+      setDescription("");
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Không lưu được tag");
     } finally {
-      setLoading(false)
+      setBusy(false);
     }
   }
-
-  useEffect(() => {
-    const loadTags = async () => {
-      await fetchTags()
-    }
-    void loadTags()
-  }, [])
-
-  const filteredTags = tags.filter(
-    (tag) =>
-      tag.name.toLowerCase().includes(search.toLowerCase()) ||
-      tag.slug.toLowerCase().includes(search.toLowerCase()) ||
-      (tag.description &&
-        tag.description.toLowerCase().includes(search.toLowerCase()))
-  )
-
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Academic Tags</h1>
+        <h1 className={styles.title}>Chủ đề học thuật</h1>
         <p className={styles.subtitle}>
-          A tag is a keyword or label that categorizes your question or
-          discussion with other similar topics. Using the right tags makes it
-          easier for others to find and answer your question.
+          Tìm bài viết theo môn học và lĩnh vực.
         </p>
       </header>
-
-      <div className={styles.searchBar}>
-        <Input
-          id="tag-search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Filter by tag name or keyword..."
-        />
-      </div>
-
-      {loading && <LoadingState label="Loading tags..." />}
-      {error && <ErrorState message={error} onRetry={fetchTags} />}
-
-      {!loading && !error && filteredTags.length === 0 && (
-        <EmptyState
-          title="No tags found"
-          description={
-            search
-              ? `No tags matched "${search}".`
-              : 'No tags are currently registered in the system.'
-          }
-        />
+      <Input
+        id="tag-search"
+        label="Tìm chủ đề"
+        value={search}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          setPage(1);
+        }}
+      />
+      {error && (
+        <p role="alert">
+          {error}{" "}
+          <button onClick={() => setVersion((v) => v + 1)}>Thử lại</button>
+        </p>
       )}
-
-      {!loading && !error && filteredTags.length > 0 && (
-        <div className={styles.tagsGrid}>
-          {filteredTags.map((tag) => (
-            <Link
-              key={tag.id}
-              href={`/tags/${tag.slug}`}
-              className={styles.tagCard}
+      {loading && <p>Đang tải…</p>}
+      {manage && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void save();
+          }}
+          style={{
+            padding: 16,
+            border: "1px solid var(--color-border)",
+            marginBlock: 16,
+          }}
+        >
+          <h2>{editId ? "Sửa chủ đề" : "Thêm chủ đề"}</h2>
+          <Input
+            id="tag-name"
+            label="Tên chủ đề"
+            value={name}
+            maxLength={100}
+            required
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            id="tag-description"
+            label="Mô tả"
+            value={description}
+            maxLength={2000}
+            onChange={(e) => setDescription(e.target.value)}
+          />
+          <Button type="submit" disabled={busy || !name.trim()}>
+            Lưu
+          </Button>
+          {editId && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setEditId(null);
+                setName("");
+                setDescription("");
+              }}
             >
-              <div>
-                <div className={styles.tagCardHeader}>
-                  <span className={styles.tagName}>#{tag.name}</span>
-                  <span className={styles.tagCount}>
-                    {tag.usageCount || 0} questions
-                  </span>
-                </div>
-                <p className={styles.tagDescription}>
-                  {tag.description ||
-                    'No description provided for this academic topic yet.'}
-                </p>
-              </div>
+              Hủy
+            </Button>
+          )}
+        </form>
+      )}
+      <ul style={{ listStyle: "none", padding: 0 }}>
+        {tags.map((t) => (
+          <li
+            key={t.id}
+            style={{
+              padding: 16,
+              borderBottom: "1px solid var(--color-border)",
+            }}
+          >
+            <Link href={"/tags/" + encodeURIComponent(t.slug)}>
+              <strong>#{t.name}</strong>
             </Link>
-          ))}
-        </div>
+            <p>{t.description}</p>
+            <small>{t.usageCount} bài viết</small>
+            {manage && (
+              <div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditId(t.id);
+                    setName(t.name);
+                    setDescription(t.description ?? "");
+                  }}
+                >
+                  Sửa
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    if (
+                      !window.confirm(
+                        "Xóa chủ đề này? Chủ đề đang được sử dụng không thể xóa.",
+                      )
+                    )
+                      return;
+                    setBusy(true);
+                    void tagsApi
+                      .remove(t.id)
+                      .then(() => setVersion((v) => v + 1))
+                      .catch((e) => setError(e.message))
+                      .finally(() => setBusy(false));
+                  }}
+                >
+                  Xóa
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      {!loading && !tags.length && <p>Không có chủ đề phù hợp.</p>}
+      {pages > 1 && (
+        <nav aria-label="Phân trang chủ đề">
+          <Button
+            variant="ghost"
+            disabled={page === 1}
+            onClick={() => setPage((v) => v - 1)}
+          >
+            Trang trước
+          </Button>
+          <span>
+            {page}/{pages}
+          </span>
+          <Button
+            variant="ghost"
+            disabled={page >= pages}
+            onClick={() => setPage((v) => v + 1)}
+          >
+            Trang sau
+          </Button>
+        </nav>
       )}
     </div>
-  )
+  );
 }

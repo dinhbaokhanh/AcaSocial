@@ -1,31 +1,31 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams, useRouter, usePathname } from 'next/navigation'
-import { discussionsApi } from '@/lib/api/discussions'
-import { useAuth } from '@/lib/auth/context'
-import { KnowledgePostCard } from '@/components/academic/KnowledgePostCard'
-import { LoadingState } from '@/components/shared/LoadingState'
-import { EmptyState } from '@/components/shared/EmptyState'
-import { ErrorState } from '@/components/shared/ErrorState'
-import { Select } from '@/components/ui/Select'
-import { Button } from '@/components/ui/Button'
-import type { Discussion, PaginatedResponse, PostType, SortBy } from '@/types'
+import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { discussionsApi } from "@/lib/api/discussions";
+import { useAuth } from "@/lib/auth/context";
+import { KnowledgePostCard } from "@/components/academic/KnowledgePostCard";
+import { LoadingState } from "@/components/shared/LoadingState";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { ErrorState } from "@/components/shared/ErrorState";
+import { Select } from "@/components/ui/Select";
+import { Button } from "@/components/ui/Button";
+import type { Discussion, PaginatedResponse, PostType, SortBy } from "@/types";
 import {
   SORT_OPTIONS,
   POST_TYPE_OPTIONS,
   DEFAULT_PAGE_SIZE,
   ROUTES,
-} from '@/lib/constants'
-import styles from './feed.module.css'
+} from "@/lib/constants";
+import styles from "./feed.module.css";
 
 interface FeedProps {
   /** Pre-filter by post type (for /questions and /discussions routes) */
-  fixedPostType?: PostType
+  fixedPostType?: PostType;
   /** Pre-filter by tag slug (for /tags/[slug] route) */
-  fixedTag?: string
-  title: string
-  description?: string
+  fixedTag?: string;
+  title: string;
+  description?: string;
 }
 
 export function Feed({
@@ -34,26 +34,26 @@ export function Feed({
   title,
   description,
 }: FeedProps) {
-  const searchParams = useSearchParams()
-  const router = useRouter()
-  const pathname = usePathname()
-  const { isAuthenticated } = useAuth()
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated } = useAuth();
 
-  const [data, setData] = useState<PaginatedResponse<Discussion> | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<PaginatedResponse<Discussion> | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Read filter state from URL
-  const search = searchParams.get('search') ?? ''
-  const tag = fixedTag ?? searchParams.get('tag') ?? ''
-  const sort = (searchParams.get('sort') ?? 'newest') as SortBy
+  const search = searchParams.get("search") ?? "";
+  const tag = fixedTag ?? searchParams.get("tag") ?? "";
+  const sort = (searchParams.get("sort") ?? "newest") as SortBy;
   const postType =
-    fixedPostType ?? ((searchParams.get('type') ?? '') as PostType | '')
-  const page = Number(searchParams.get('page') ?? '1')
+    fixedPostType ?? ((searchParams.get("type") ?? "") as PostType | "");
+  const page = Number(searchParams.get("page") ?? "1");
 
   const fetchData = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
       const result = await discussionsApi.list({
         search: search || undefined,
@@ -62,28 +62,28 @@ export function Feed({
         postType: postType || undefined,
         page,
         limit: DEFAULT_PAGE_SIZE,
-      })
-      setData(result)
+      });
+      setData(result);
     } catch {
-      setError('Failed to load posts. Please try again.')
+      setError("Failed to load posts. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [search, tag, sort, postType, page])
+  }, [search, tag, sort, postType, page]);
 
   useEffect(() => {
     const loadFeed = async () => {
-      await fetchData()
-    }
-    void loadFeed()
-  }, [fetchData])
+      await fetchData();
+    };
+    void loadFeed();
+  }, [fetchData]);
 
   function updateParam(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString())
-    if (value) params.set(key, value)
-    else params.delete(key)
-    params.delete('page') // Reset to page 1 on filter change
-    router.push(`${pathname}?${params.toString()}`)
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set(key, value);
+    else params.delete(key);
+    params.delete("page"); // Reset to page 1 on filter change
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   return (
@@ -110,7 +110,7 @@ export function Feed({
               POST_TYPE_OPTIONS as unknown as { value: string; label: string }[]
             }
             value={postType}
-            onChange={(e) => updateParam('type', e.target.value)}
+            onChange={(e) => updateParam("type", e.target.value)}
             aria-label="Post type"
           />
         )}
@@ -120,7 +120,7 @@ export function Feed({
             SORT_OPTIONS as unknown as { value: string; label: string }[]
           }
           value={sort}
-          onChange={(e) => updateParam('sort', e.target.value)}
+          onChange={(e) => updateParam("sort", e.target.value)}
           aria-label="Sort by"
         />
         {search && (
@@ -130,7 +130,7 @@ export function Feed({
             </span>
             <button
               className={styles.clearBtn}
-              onClick={() => updateParam('search', '')}
+              onClick={() => updateParam("search", "")}
               aria-label="Clear search"
             >
               ×
@@ -144,7 +144,7 @@ export function Feed({
             </span>
             <button
               className={styles.clearBtn}
-              onClick={() => updateParam('tag', '')}
+              onClick={() => updateParam("tag", "")}
               aria-label="Clear tag filter"
             >
               ×
@@ -160,11 +160,11 @@ export function Feed({
 
       {!loading && !error && data && data.data.length === 0 && (
         <EmptyState
-          title={search ? 'No results found' : 'No posts yet'}
+          title={search ? "No results found" : "No posts yet"}
           description={
             search
               ? `No posts match "${search}". Try a different search term.`
-              : 'Be the first to ask a question or start a discussion.'
+              : "Be the first to ask a question or start a discussion."
           }
           action={
             isAuthenticated ? (
@@ -189,24 +189,24 @@ export function Feed({
           </div>
 
           {/* Pagination */}
-          {data.totalPages > 1 && (
+          {data.meta.totalPages > 1 && (
             <nav className={styles.pagination} aria-label="Pagination">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
-                onClick={() => updateParam('page', String(page - 1))}
+                onClick={() => updateParam("page", String(page - 1))}
               >
                 ← Previous
               </Button>
               <span className={styles.pageInfo}>
-                Page {page} of {data.totalPages}
+                Page {page} of {data.meta.totalPages}
               </span>
               <Button
                 variant="outline"
                 size="sm"
-                disabled={page >= data.totalPages}
-                onClick={() => updateParam('page', String(page + 1))}
+                disabled={page >= data.meta.totalPages}
+                onClick={() => updateParam("page", String(page + 1))}
               >
                 Next →
               </Button>
@@ -215,5 +215,5 @@ export function Feed({
         </>
       )}
     </div>
-  )
+  );
 }

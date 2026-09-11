@@ -8,9 +8,9 @@ import {
 
 // Phân loại file: dùng để áp whitelist validation và tổ chức folder trên Cloudinary
 export enum MediaCategory {
-  IMAGE    = 'image',
+  IMAGE = 'image',
   DOCUMENT = 'document',
-  CODE     = 'code',
+  CODE = 'code',
 }
 
 @Entity('media_assets')
@@ -18,6 +18,14 @@ export class MediaAsset {
   // UUID nội bộ — dùng làm path param trong API (/media/:id)
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({
+    name: 'original_name',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  originalName: string | null;
 
   // Cloudinary public_id, chứa dấu "/" → không dùng làm path param
   @Column({ name: 'public_id', unique: true })
@@ -55,7 +63,12 @@ export class MediaAsset {
   updatedAt: Date;
 
   // Soft delete: không xóa bản ghi, chỉ đánh dấu thời điểm xóa
-  @Column({ name: 'deleted_at', type: 'timestamptz', nullable: true, default: null })
+  @Column({
+    name: 'deleted_at',
+    type: 'timestamptz',
+    nullable: true,
+    default: null,
+  })
   deletedAt: Date | null;
 
   // Lưu ai là người thực hiện xóa (chủ file hoặc admin/moderator)

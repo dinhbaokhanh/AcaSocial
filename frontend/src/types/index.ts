@@ -7,13 +7,13 @@
 // Enums
 // --------------------------------------------------------------------------
 
-export type Role = 'student' | 'teacher' | 'moderator' | 'admin';
-export type Privacy = 'public' | 'private';
-export type PostType = 'question' | 'discussion';
-export type PostStatus = 'open' | 'solved' | 'closed';
-export type VoteType = 'upvote' | 'downvote';
-export type TargetType = 'discussion' | 'comment';
-export type SortBy = 'newest' | 'oldest' | 'most_votes' | 'most_comments';
+export type Role = "student" | "teacher" | "moderator" | "admin";
+export type Privacy = "public" | "private";
+export type PostType = "question" | "discussion";
+export type PostStatus = "open" | "solved" | "closed";
+export type VoteType = "upvote" | "downvote";
+export type TargetType = "discussion" | "comment";
+export type SortBy = "newest" | "oldest" | "most_votes" | "most_comments";
 
 // --------------------------------------------------------------------------
 // User
@@ -61,12 +61,17 @@ export interface Tag {
 // --------------------------------------------------------------------------
 
 export interface Discussion {
+  isMine?: boolean;
+  canManage?: boolean;
+  canVote?: boolean;
+  media?: { id: string; mediaId: string; sortOrder: number }[];
+  acceptedAnswer?: Comment | null;
   id: string;
   title: string;
   content: string;
   postType: PostType;
   status: PostStatus;
-  authorId: string;
+  authorId: string | null;
   isAnonymous: boolean;
   upvoteCount: number;
   downvoteCount: number;
@@ -87,9 +92,16 @@ export interface Discussion {
 // --------------------------------------------------------------------------
 
 export interface Comment {
+  isMine?: boolean;
+  canManage?: boolean;
+  canVote?: boolean;
+  canAccept?: boolean;
+  replyCount?: number;
+  kind?: "answer" | "comment" | "reply";
+  deletedAt?: string | null;
   id: string;
   discussionId: string;
-  authorId: string;
+  authorId: string | null;
   content: string;
   parentCommentId: string | null;
   isAnonymous: boolean;
@@ -122,11 +134,8 @@ export interface Vote {
 // --------------------------------------------------------------------------
 
 export interface PaginatedResponse<T> {
+  meta: { page: number; limit: number; totalItems: number; totalPages: number };
   data: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export interface ApiError {
@@ -177,8 +186,8 @@ export interface ResetPasswordRequest {
 // --------------------------------------------------------------------------
 
 export interface DiscussionFilterParams {
-  postType?: PostType | '';
-  status?: PostStatus | '';
+  postType?: PostType | "";
+  status?: PostStatus | "";
   tag?: string;
   authorId?: string;
   sort?: SortBy;
@@ -201,6 +210,8 @@ export interface CreateDiscussionPayload {
 }
 
 export interface UpdateDiscussionPayload {
+  mediaIds?: string[];
+  isAnonymous?: boolean;
   title?: string;
   content?: string;
   tagIds?: string[];

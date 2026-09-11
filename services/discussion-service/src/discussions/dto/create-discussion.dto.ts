@@ -1,56 +1,38 @@
+import { Transform } from 'class-transformer';
 import {
   IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+  ArrayUnique,
+  IsString,
+  Length,
+  IsUUID,
   IsBoolean,
   IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  IsUUID,
-  ArrayMinSize,
-  MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { PostType } from '../enums/post-type.enum';
-
-/**
- * DTO validate dữ liệu khi tạo bài viết mới.
- * NestJS ValidationPipe tự động reject request nếu không hợp lệ.
- *
- * Ví dụ request hợp lệ:
- * {
- *   "title": "Hỏi về DI trong NestJS",
- *   "content": "Mình muốn hiểu cơ chế DI...",
- *   "postType": "question",
- *   "tagIds": ["uuid-tag-1", "uuid-tag-2"],
- *   "isAnonymous": false
- * }
- */
 export class CreateDiscussionDto {
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty({ message: 'Tiêu đề không được để trống' })
-  @MaxLength(300)
+  @Length(10, 300)
   title: string;
-
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
-  @IsNotEmpty({ message: 'Nội dung không được để trống' })
+  @Length(20, 100000)
   content: string;
-
-  @IsEnum(PostType, { message: 'postType phải là question hoặc discussion' })
-  postType: PostType;
-
-  // Phải có ít nhất 1 tag — đảm bảo mọi bài viết đều được phân loại
+  @IsEnum(PostType) postType: PostType;
   @IsArray()
-  @ArrayMinSize(1, { message: 'Bài viết phải có ít nhất 1 tag' })
+  @ArrayMinSize(1)
+  @ArrayMaxSize(5)
+  @ArrayUnique()
   @IsUUID('all', { each: true })
   tagIds: string[];
-
-  // Media đính kèm (tùy chọn) — chỉ lưu ID, không verify với Media Service
-  @IsOptional()
+  @ValidateIf((_, v) => v !== undefined)
   @IsArray()
+  @ArrayMaxSize(10)
+  @ArrayUnique()
   @IsUUID('all', { each: true })
   mediaIds?: string[];
-
-  // Chế độ ẩn danh — authorId vẫn lưu DB (admin bóc mác), nhưng ẩn trên API response
-  @IsOptional()
-  @IsBoolean()
-  isAnonymous?: boolean;
+  @ValidateIf((_, v) => v !== undefined) @IsBoolean() isAnonymous?: boolean;
 }

@@ -3,129 +3,67 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In } from 'typeorm';
 import { Discussion } from './entities/discussion.entity';
 import { DiscussionMedia } from './entities/discussion-media.entity';
 import { Tag } from '../tags/entities/tag.entity';
 import { Comment } from '../comments/entities/comment.entity';
 import { CreateDiscussionDto } from './dto/create-discussion.dto';
 import { UpdateDiscussionDto } from './dto/update-discussion.dto';
-import { FilterDiscussionDto, SortBy } from './dto/filter-discussion.dto';
+import { FilterDiscussionDto } from './dto/filter-discussion.dto';
 import { AcceptAnswerDto } from './dto/accept-answer.dto';
-import { PostType } from './enums/post-type.enum';
 import { PostStatus } from './enums/post-status.enum';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
-import { PaginatedResult } from '../common/pagination/paginated-result.interface';
-import { NatsPublisher } from '../common/nats/nats.publisher';
-
+import {
+  authenticated,
+  lockPost,
+  requireManager,
+  requireOpen,
+} from '../common/content-policy';
+import { ContentPresenter } from '../common/content-presenter';
+import { MediaReferenceService } from '../common/media-reference.service';
+import { TargetType } from '../votes/enums/target-type.enum';
+import { OutboxService } from '../events/outbox.service';
+const guest: GatewayUser = { id: null, role: null };
 @Injectable()
 export class DiscussionsService {
   constructor(
-    @InjectRepository(Discussion)
-    private readonly discussionRepo: Repository<Discussion>,
-    @InjectRepository(DiscussionMedia)
-    private readonly mediaRepo: Repository<DiscussionMedia>,
-    @InjectRepository(Tag)
-    private readonly tagRepo: Repository<Tag>,
-    @InjectRepository(Comment)
-    private readonly commentRepo: Repository<Comment>,
-    private readonly nats: NatsPublisher,
+    private readonly db: DataSource,
+    private readonly outbox: OutboxService,
+    private readonly presenter: ContentPresenter,
+    private readonly media: MediaReferenceService,
   ) {}
 
-  // ===== CREATE =====
-
-  /**
-   * Tạo bài viết mới.
-   *
-   * Flow:
-   * 1. Validate tags tồn tại trong DB
-   * 2. Tạo discussion entity + liên kết tags
-   * 3. Lưu media references (nếu có)
-   * 4. Tăng usage_count cho các tags được sử dụng
-   * 5. Return discussion đầy đủ kèm relations
-   */
-  async create(
-    user: GatewayUser,
-    dto: CreateDiscussionDto,
-  ): Promise<Discussion> {
-    // GatewayAuthGuard đảm bảo user.id tồn tại,
-    // nhưng TypeScript không biết → thêm runtime check cho type safety
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    // 1. Validate tags tồn tại trong DB
-    const tags = await this.tagRepo.findBy({ id: In(dto.tagIds) });
-    if (tags.length !== dto.tagIds.length) {
-      throw new BadRequestException('Một hoặc nhiều tag không tồn tại');
-    }
-
-    // 2. Tạo discussion
-    const discussion = this.discussionRepo.create({
-      title: dto.title,
-      content: dto.content,
-      postType: dto.postType,
-      authorId: user.id,
-      isAnonymous: dto.isAnonymous ?? false,
-      tags,
-    });
-    const saved = await this.discussionRepo.save(discussion);
-
-    // 3. Lưu media references (nếu có) — chỉ lưu ID, không verify với Media Service
-    if (dto.mediaIds?.length) {
-      const mediaEntries = dto.mediaIds.map((mediaId, index) =>
-        this.mediaRepo.create({
-          discussionId: saved.id,
-          mediaId,
-          sortOrder: index,
+  async create(user: GatewayUser, dto: CreateDiscussionDto) {
+    const authorId = authenticated(user);
+    await this.media.validate(dto.mediaIds, authorId);
+    const id = await this.db.transaction(async (m) => {
+      const tags = await this.tags(m, dto.tagIds);
+      const post = await m.save(
+        Discussion,
+        m.create(Discussion, {
+          title: dto.title,
+          content: dto.content,
+          postType: dto.postType,
+          authorId,
+          isAnonymous: dto.isAnonymous ?? false,
+          tags,
         }),
       );
-      await this.mediaRepo.save(mediaEntries);
-    }
+      await this.attach(m, post.id, dto.mediaIds ?? []);
+      await this.tagCounts(m, dto.tagIds, 1);
 
-    // 4. Tăng usage_count cho tags — để hiển thị "tag phổ biến"
-    await this.tagRepo
-      .createQueryBuilder()
-      .update(Tag)
-      .set({ usageCount: () => 'usage_count + 1' })
-      .whereInIds(dto.tagIds)
-      .execute();
-
-    const result = await this.findOneOrFail(saved.id);
-
-    // Publish NATS event — fire-and-forget, không block response
-    void this.nats.publish('discussion.created', {
-      discussionId: result.id,
-      title: result.title,
-      postType: result.postType,
-      authorId: user.id,
-      // recipientId = authorId: notification-service dùng để route SSE
-      // (trong thực tế có thể route đến followers sau)
-      recipientId: user.id,
-      actorId: user.id,
+      await this.outbox.event(m, 'discussion.created', {
+        discussionId: post.id,
+        title: post.title,
+        recipientId: authorId,
+      });
+      return post.id;
     });
-
-    return result;
+    return this.findOne(id, user, false);
   }
-
-  // ===== LIST (phân trang + filter + sort) =====
-
-  /**
-   * Danh sách bài viết có phân trang, filter, sort, search.
-   *
-   * Flow:
-   * 1. Tạo QueryBuilder + join relations
-   * 2. Áp dụng filters (postType, status, authorId, search, tag)
-   * 3. Áp dụng sort (newest/oldest/most_votes/most_comments)
-   * 4. Đếm tổng (distinct để tránh trùng khi filter nhiều tags)
-   * 5. Phân trang (skip + take)
-   */
-  async findAll(
-    filter: FilterDiscussionDto,
-  ): Promise<PaginatedResult<Discussion>> {
+  async findAll(filter: FilterDiscussionDto, user: GatewayUser = guest) {
     const {
       page = 1,
       limit = 20,
@@ -136,71 +74,45 @@ export class DiscussionsService {
       sort,
       search,
     } = filter;
-
-    const qb = this.discussionRepo
+    const qb = this.db
+      .getRepository(Discussion)
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.tags', 'tag')
       .leftJoinAndSelect('d.media', 'media');
-
-    // --- Filters ---
-    if (postType) {
-      qb.andWhere('d.postType = :postType', { postType });
-    }
-    if (status) {
-      qb.andWhere('d.status = :status', { status });
-    }
-    if (authorId) {
-      qb.andWhere('d.authorId = :authorId', { authorId });
-    }
-    if (search) {
-      qb.andWhere('d.title ILIKE :search', { search: `%${search}%` });
-    }
-
-    // Filter theo tag slug — nhiều slug dấu phẩy: "oop,database"
+    if (postType) qb.andWhere('d.postType = :postType', { postType });
+    if (status) qb.andWhere('d.status = :status', { status });
+    if (authorId)
+      qb.andWhere('d.authorId = :authorId AND d.isAnonymous = false', {
+        authorId,
+      });
+    if (search) qb.andWhere('d.title ILIKE :search', { search: `%${search}%` });
     if (tag) {
-      const slugs = tag.split(',').map((s) => s.trim());
-      // Subquery: tìm discussion_id có tag.slug nằm trong danh sách
-      qb.andWhere((subQb) => {
-        const subQuery = subQb
-          .subQuery()
-          .select('dt.discussion_id')
-          .from('discussion_tags', 'dt')
-          .innerJoin('tags', 't', 't.id = dt.tag_id')
-          .where('t.slug IN (:...slugs)')
-          .getQuery();
-        return `d.id IN ${subQuery}`;
-      }).setParameter('slugs', slugs);
+      const slugs = tag
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      if (slugs.length)
+        qb.andWhere(
+          'd.id IN (SELECT dt.discussion_id FROM discussion_tags dt JOIN tags t ON t.id = dt.tag_id WHERE t.slug IN (:...slugs))',
+          { slugs },
+        );
     }
-
-    // --- Sort ---
-    switch (sort) {
-      case SortBy.OLDEST:
-        qb.orderBy('d.createdAt', 'ASC');
-        break;
-      case SortBy.MOST_VOTES:
-        qb.orderBy('d.upvoteCount', 'DESC').addOrderBy('d.createdAt', 'DESC');
-        break;
-      case SortBy.MOST_COMMENTS:
-        qb.orderBy('d.commentCount', 'DESC').addOrderBy('d.createdAt', 'DESC');
-        break;
-      case SortBy.NEWEST:
-      default:
-        qb.orderBy('d.createdAt', 'DESC');
-    }
-
-    // --- Pagination ---
-    // Clone QB riêng cho count — tránh distinct(true) ảnh hưởng getMany()
-    // PostgreSQL sẽ lỗi nếu SELECT DISTINCT + ORDER BY cột không nằm trong SELECT list
-    const countQb = qb.clone();
-    const totalItems = await countQb.distinct(true).getCount();
-
-    const data = await qb
+    if (sort === 'most_votes')
+      qb.addSelect('d.upvoteCount - d.downvoteCount', 'net_score').orderBy(
+        'net_score',
+        'DESC',
+      );
+    else if (sort === 'most_comments') qb.orderBy('d.commentCount', 'DESC');
+    qb.addOrderBy('d.createdAt', sort === 'oldest' ? 'ASC' : 'DESC').addOrderBy(
+      'd.id',
+      'DESC',
+    );
+    const [items, totalItems] = await qb
       .skip((page - 1) * limit)
       .take(limit)
-      .getMany();
-
+      .getManyAndCount();
     return {
-      data,
+      data: await this.presenter.many(items, user, TargetType.DISCUSSION),
       meta: {
         page,
         limit,
@@ -209,270 +121,171 @@ export class DiscussionsService {
       },
     };
   }
-
-  // ===== GET DETAIL =====
-
-  /**
-   * Chi tiết bài viết — tăng view_count fire-and-forget.
-   *
-   * Tại sao fire-and-forget? View count không critical — nếu +1 thất bại,
-   * user vẫn cần nhận response. Tránh thêm latency cho read endpoint.
-   */
-  async findOne(id: string): Promise<Discussion> {
-    const discussion = await this.findOneOrFail(id);
-
-    // Tăng view_count — fire-and-forget, không await, không block response
-    this.discussionRepo.increment({ id }, 'viewCount', 1);
-
-    return discussion;
+  async findOne(id: string, user: GatewayUser = guest, countView = true) {
+    const post = await this.db
+      .getRepository(Discussion)
+      .findOne({ where: { id }, relations: ['tags', 'media'] });
+    if (!post) throw new NotFoundException('Discussion not found');
+    if (countView)
+      await this.db.getRepository(Discussion).increment({ id }, 'viewCount', 1);
+    const answer = post.acceptedCommentId
+      ? await this.db
+          .getRepository(Comment)
+          .findOneBy({ id: post.acceptedCommentId })
+      : null;
+    const [result] = await this.presenter.many(
+      [post],
+      user,
+      TargetType.DISCUSSION,
+    );
+    return {
+      ...result,
+      acceptedAnswer: answer
+        ? (await this.presenter.many([answer], user, TargetType.COMMENT))[0]
+        : null,
+    };
   }
-
-  // ===== UPDATE =====
-
-  /**
-   * Cập nhật bài viết — chỉ author hoặc admin/moderator.
-   *
-   * Flow:
-   * 1. Tìm discussion + relations
-   * 2. Kiểm tra quyền (owner hoặc admin/mod)
-   * 3. Cập nhật fields cơ bản (chỉ field được gửi)
-   * 4. Cập nhật tags + sync usage_count (nếu gửi tagIds)
-   * 5. Cập nhật media — xóa cũ, tạo mới (nếu gửi mediaIds)
-   * 6. Save + return đầy đủ
-   */
-  async update(
-    id: string,
-    user: GatewayUser,
-    dto: UpdateDiscussionDto,
-  ): Promise<Discussion> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const discussion = await this.findOneOrFail(id);
-    this.assertOwnerOrMod(discussion, user);
-
-    // Cập nhật fields cơ bản — chỉ field được gửi (partial update)
-    if (dto.title !== undefined) discussion.title = dto.title;
-    if (dto.content !== undefined) discussion.content = dto.content;
-    if (dto.isAnonymous !== undefined) discussion.isAnonymous = dto.isAnonymous;
-
-    // Cập nhật tags (nếu gửi) + sync usage_count
-    if (dto.tagIds) {
-      const newTags = await this.tagRepo.findBy({ id: In(dto.tagIds) });
-      if (newTags.length !== dto.tagIds.length) {
-        throw new BadRequestException('Một hoặc nhiều tag không tồn tại');
-      }
-
-      // Tính diff old vs new để sync usage_count chính xác
-      const oldTagIds = discussion.tags.map((t) => t.id);
-      const removedIds = oldTagIds.filter((tid) => !dto.tagIds!.includes(tid));
-      const addedIds = dto.tagIds.filter((tid) => !oldTagIds.includes(tid));
-
-      // Giảm counter tags bị bỏ
-      if (removedIds.length > 0) {
-        await this.tagRepo
-          .createQueryBuilder()
-          .update(Tag)
-          .set({ usageCount: () => 'GREATEST(usage_count - 1, 0)' })
-          .whereInIds(removedIds)
-          .execute();
-      }
-
-      // Tăng counter tags mới thêm
-      if (addedIds.length > 0) {
-        await this.tagRepo
-          .createQueryBuilder()
-          .update(Tag)
-          .set({ usageCount: () => 'usage_count + 1' })
-          .whereInIds(addedIds)
-          .execute();
-      }
-
-      discussion.tags = newTags;
-    }
-
-    // Cập nhật media (nếu gửi) — strategy: xóa cũ, tạo mới
-    // Gửi mediaIds: [] = xóa hết media
-    if (dto.mediaIds !== undefined) {
-      await this.mediaRepo.delete({ discussionId: id });
-      if (dto.mediaIds.length > 0) {
-        const mediaEntries = dto.mediaIds.map((mediaId, index) =>
-          this.mediaRepo.create({ discussionId: id, mediaId, sortOrder: index }),
+  async update(id: string, user: GatewayUser, dto: UpdateDiscussionDto) {
+    authenticated(user);
+    await this.media.validate(dto.mediaIds, user.id!);
+    await this.db.transaction(async (m) => {
+      const post = await lockPost(m, id);
+      requireManager(post.authorId, user);
+      requireOpen(post);
+      if (dto.tagIds !== undefined) {
+        const tags = await this.tags(m, dto.tagIds);
+        const old = await m.findOneOrFail(Discussion, {
+          where: { id },
+          relations: ['tags'],
+        });
+        // Lock all affected tags in one stable order before adjusting their counts.
+        await m.query(
+          'SELECT id FROM tags WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
+          [[...new Set([...old.tags.map((t) => t.id), ...dto.tagIds])]],
         );
-        await this.mediaRepo.save(mediaEntries);
+        await this.tagCounts(
+          m,
+          old.tags.filter((t) => !dto.tagIds!.includes(t.id)).map((t) => t.id),
+          -1,
+        );
+        await this.tagCounts(
+          m,
+          tags
+            .filter((t) => !old.tags.some((o) => o.id === t.id))
+            .map((t) => t.id),
+          1,
+        );
+        post.tags = tags;
       }
-    }
-
-    await this.discussionRepo.save(discussion);
-    return this.findOneOrFail(id);
+      if (dto.title !== undefined) post.title = dto.title;
+      if (dto.content !== undefined) post.content = dto.content;
+      if (dto.isAnonymous !== undefined) post.isAnonymous = dto.isAnonymous;
+      await m.save(post);
+      if (dto.mediaIds !== undefined) await this.attach(m, id, dto.mediaIds);
+    });
+    return this.findOne(id, user, false);
   }
-
-  // ===== DELETE (soft) =====
-
-  /**
-   * Soft delete bài viết — chỉ set deleted_at, không xóa row.
-   * Giảm usage_count cho tags đã gắn.
-   */
-  async remove(
-    id: string,
-    user: GatewayUser,
-  ): Promise<{ message: string }> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const discussion = await this.findOneOrFail(id);
-    this.assertOwnerOrMod(discussion, user);
-
-    await this.discussionRepo.softRemove(discussion);
-
-    // Giảm usage_count cho tags — GREATEST(..., 0) tránh counter âm
-    const tagIds = discussion.tags.map((t) => t.id);
-    if (tagIds.length > 0) {
-      await this.tagRepo
-        .createQueryBuilder()
-        .update(Tag)
-        .set({ usageCount: () => 'GREATEST(usage_count - 1, 0)' })
-        .whereInIds(tagIds)
-        .execute();
-    }
-
+  async remove(id: string, user: GatewayUser) {
+    authenticated(user);
+    await this.db.transaction(async (m) => {
+      const post = await lockPost(m, id);
+      requireManager(post.authorId, user);
+      const full = await m.findOneOrFail(Discussion, {
+        where: { id },
+        relations: ['tags'],
+      });
+      await m.softDelete(Discussion, { id });
+      await this.tagCounts(
+        m,
+        full.tags.map((t) => t.id),
+        -1,
+      );
+    });
     return { message: 'Discussion deleted successfully' };
   }
-
-  // ===== ACCEPTED ANSWER =====
-
-  /**
-   * Chấp nhận 1 comment làm câu trả lời đúng cho bài dạng Question.
-   *
-   * Quy tắc:
-   * - Chỉ bài viết dạng QUESTION mới có accepted answer
-   * - Chỉ tác giả bài viết được quyền chọn (admin/mod KHÔNG can thiệp)
-   * - Comment phải thuộc đúng bài viết
-   * - Có thể đổi câu trả lời bất kỳ lúc nào
-   * - Tự động chuyển status → SOLVED
-   */
-  async acceptAnswer(
-    id: string,
-    user: GatewayUser,
-    dto: AcceptAnswerDto,
-  ): Promise<Discussion> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const discussion = await this.findOneOrFail(id);
-
-    // Chỉ bài viết dạng QUESTION mới hỗ trợ accepted answer
-    if (discussion.postType !== PostType.QUESTION) {
-      throw new BadRequestException(
-        'Only questions can have accepted answers',
+  async acceptAnswer(id: string, user: GatewayUser, dto: AcceptAnswerDto) {
+    authenticated(user);
+    await this.db.transaction(async (m) => {
+      const post = await lockPost(m, id);
+      this.requireQuestionOwner(post, user);
+      requireOpen(post);
+      const answer = await m.findOneBy(Comment, { id: dto.commentId });
+      if (!answer) throw new NotFoundException('Answer not found');
+      if (answer.discussionId !== id || answer.parentCommentId)
+        throw new BadRequestException(
+          'Only a root answer in this question can be accepted',
+        );
+      if (answer.authorId === post.authorId)
+        throw new BadRequestException('You cannot accept your own answer');
+      if (post.acceptedCommentId === answer.id) return;
+      post.acceptedCommentId = answer.id;
+      post.status = PostStatus.SOLVED;
+      await m.save(post);
+      await this.outbox.event(m, 'answer.accepted', {
+        discussionId: id,
+        commentId: answer.id,
+        recipientId: answer.authorId,
+      });
+    });
+    return this.findOne(id, user, false);
+  }
+  async removeAcceptedAnswer(id: string, user: GatewayUser) {
+    authenticated(user);
+    await this.db.transaction(async (m) => {
+      const post = await lockPost(m, id);
+      this.requireQuestionOwner(post, user);
+      requireOpen(post);
+      post.acceptedCommentId = null;
+      post.status = PostStatus.OPEN;
+      await m.save(post);
+    });
+    return this.findOne(id, user, false);
+  }
+  async setStatus(id: string, user: GatewayUser, status: PostStatus) {
+    authenticated(user);
+    if (![PostStatus.OPEN, PostStatus.CLOSED].includes(status))
+      throw new BadRequestException('Use accept answer to solve a question');
+    if (!['admin', 'moderator'].includes(user.role ?? ''))
+      throw new ForbiddenException(
+        'Only moderators can close or reopen discussions',
       );
-    }
-
-    // Chỉ tác giả bài viết được quyền chọn câu trả lời
-    if (discussion.authorId !== user.id) {
+    await this.db.transaction(async (m) => {
+      const post = await lockPost(m, id);
+      post.status =
+        status === PostStatus.OPEN && post.acceptedCommentId
+          ? PostStatus.SOLVED
+          : status;
+      await m.save(post);
+    });
+    return this.findOne(id, user, false);
+  }
+  private requireQuestionOwner(post: Discussion, user: GatewayUser) {
+    if (post.postType !== 'question')
+      throw new BadRequestException('Only questions can have accepted answers');
+    if (post.authorId !== user.id)
       throw new ForbiddenException(
         'Only the question author can accept answers',
       );
-    }
-
-    // Validate comment tồn tại và thuộc đúng bài viết
-    const comment = await this.commentRepo.findOneBy({ id: dto.commentId });
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-    if (comment.discussionId !== id) {
-      throw new BadRequestException(
-        'This comment does not belong to this discussion',
-      );
-    }
-
-    // Gán accepted answer + chuyển status sang SOLVED
-    discussion.acceptedCommentId = dto.commentId;
-    discussion.status = PostStatus.SOLVED;
-    await this.discussionRepo.save(discussion);
-
-    return this.findOneOrFail(id);
   }
-
-  /**
-   * Hủy chấp nhận câu trả lời — chuyển status về OPEN.
-   */
-  async removeAcceptedAnswer(
-    id: string,
-    user: GatewayUser,
-  ): Promise<Discussion> {
-    if (!user.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    const discussion = await this.findOneOrFail(id);
-
-    if (discussion.postType !== PostType.QUESTION) {
-      throw new BadRequestException(
-        'Only questions can have accepted answers',
-      );
-    }
-
-    if (discussion.authorId !== user.id) {
-      throw new ForbiddenException(
-        'Only the question author can remove accepted answers',
-      );
-    }
-
-    if (!discussion.acceptedCommentId) {
-      throw new BadRequestException(
-        'This question has no accepted answer',
-      );
-    }
-
-    // Xóa accepted answer + chuyển status về OPEN
-    discussion.acceptedCommentId = null as any;
-    discussion.status = PostStatus.OPEN;
-    await this.discussionRepo.save(discussion);
-
-    return this.findOneOrFail(id);
+  private async tags(m: EntityManager, ids: string[]) {
+    const tags = await m.findBy(Tag, { id: In(ids) });
+    if (tags.length !== ids.length)
+      throw new BadRequestException('One or more tags do not exist');
+    return tags;
   }
-
-  // ===== Helpers =====
-
-  /**
-   * Tìm discussion kèm relations, throw 404 nếu không tồn tại.
-   * TypeORM tự động exclude soft-deleted records.
-   */
-  private async findOneOrFail(id: string): Promise<Discussion> {
-    const discussion = await this.discussionRepo.findOne({
-      where: { id },
-      relations: ['tags', 'media'],
-    });
-    if (!discussion) {
-      throw new NotFoundException('Discussion not found');
-    }
-    return discussion;
-  }
-
-  /**
-   * Kiểm tra user là author hoặc admin/moderator.
-   *
-   * | user.role    | Là author | Kết quả       |
-   * |-------------|-----------|---------------|
-   * | student     | ✅        | Cho phép      |
-   * | student     | ❌        | 403 Forbidden |
-   * | admin       | Bất kỳ    | Cho phép      |
-   * | moderator   | Bất kỳ    | Cho phép      |
-   * | teacher     | ❌        | 403 Forbidden |
-   */
-  private assertOwnerOrMod(discussion: Discussion, user: GatewayUser): void {
-    const isOwner = discussion.authorId === user.id;
-    const isMod =
-      user.role !== null && ['admin', 'moderator'].includes(user.role);
-
-    if (!isOwner && !isMod) {
-      throw new ForbiddenException(
-        'You do not have permission to modify this discussion',
+  private async tagCounts(m: EntityManager, ids: string[], delta: number) {
+    for (const id of [...ids].sort())
+      await m.query(
+        'UPDATE tags SET usage_count = GREATEST(usage_count + $1, 0) WHERE id = $2',
+        [delta, id],
       );
-    }
+  }
+  private async attach(m: EntityManager, discussionId: string, ids: string[]) {
+    await m.delete(DiscussionMedia, { discussionId });
+    if (ids.length)
+      await m.insert(
+        DiscussionMedia,
+        ids.map((mediaId, sortOrder) => ({ discussionId, mediaId, sortOrder })),
+      );
   }
 }
