@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Query,
   Sse,
@@ -26,7 +27,7 @@ export class NotificationsController {
   }
 
   @Patch(":id/read")
-  markRead(@CurrentUserId() userId: string, @Param("id") id: string) {
+  markRead(@CurrentUserId() userId: string, @Param("id", ParseUUIDPipe) id: string) {
     return this.service.markRead(userId, id);
   }
 

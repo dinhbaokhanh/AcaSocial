@@ -81,7 +81,9 @@ export class CommentsService {
         commentId: saved.id,
         discussionId,
         discussionTitle: discussion.title,
-        actorId: user.id,
+        actorId: saved.isAnonymous ? null : user.id,
+        isAnonymous: saved.isAnonymous,
+        commentPreview: saved.content.replace(/\s+/g, ' ').trim().slice(0, 180),
         recipientId: discussion.authorId,
       });
     }

@@ -4,12 +4,10 @@ import { Repository } from "typeorm"
 import { Subject, filter } from "rxjs"
 import { InboxEvent } from "./entities/inbox-event.entity"
 import { Notification } from "./entities/notification.entity"
-
-export interface DomainEvent {
-  eventId: string
-  eventType: string
-  data: Record<string, unknown>
-}
+import { ConfigService } from '@nestjs/config'
+import { contextualBody } from './notification-content'
+import { DomainEvent, validateDomainEvent } from './domain-event'
+export type { DomainEvent } from './domain-event'
 
 @Injectable()
 export class NotificationsService {
@@ -28,13 +26,44 @@ export class NotificationsService {
   constructor(
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
+    private readonly config: ConfigService,
   ) {}
 
   async processEvent(event: DomainEvent): Promise<Notification | null> {
+    validateDomainEvent(event)
     const recipientId = String(
       event.data.recipientId ?? event.data.receiverId ?? "",
     )
     if (!recipientId) return null
+
+    // The atomic claim below remains the authority for concurrent deliveries.
+    // Skip identity lookup for already committed events, even if identity is down.
+    if (await this.notifications.manager.existsBy(InboxEvent, { eventId: event.eventId })) return null
+
+    const data = { ...event.data }
+    if (event.eventType === 'comment.created') {
+      if (data.isAnonymous === true) {
+        data.actorId = null
+        delete data.actorName
+        delete data.senderId
+      } else if (data.isAnonymous === false && typeof data.actorId === 'string') {
+        // Resolve on the consumer so identity latency never delays posting a comment.
+        const base = this.config.get<string>('IDENTITY_SERVICE_URL', 'http://localhost:8081')
+        const response = await fetch(`${base}/internal/users/${encodeURIComponent(data.actorId)}/display`, {
+          headers: { 'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN') },
+          signal: AbortSignal.timeout(3000),
+        })
+        if (response.status === 404) data.actorName = 'Người dùng đã xóa tài khoản'
+        else {
+          if (!response.ok) throw new Error(`Identity display lookup failed: ${response.status}`)
+          const profile = await response.json() as { displayName: string }
+          if (typeof profile?.displayName !== 'string' || !profile.displayName.trim()) {
+            throw new Error('Identity display lookup returned an invalid profile')
+          }
+          data.actorName = profile.displayName
+        }
+      }
+    }
 
     return this.notifications.manager.transaction(async (manager) => {
       // Claim the event and persist its notification atomically, including concurrent deliveries.
@@ -52,12 +81,12 @@ export class NotificationsService {
         manager.create(Notification, {
           recipientId,
           actorId: this.optionalString(
-            event.data.actorId ?? event.data.senderId,
+            data.actorId ?? data.senderId,
           ),
           type: event.eventType,
           title: this.titleFor(event.eventType),
-          body: this.bodyFor(event.eventType),
-          data: event.data,
+          body: contextualBody(event.eventType, data) ?? this.bodyFor(event.eventType),
+          data,
           priority: event.eventType.startsWith("system.") ? "high" : "normal",
           readAt: null,
         }),
@@ -76,8 +105,16 @@ export class NotificationsService {
   async markRead(recipientId: string, id: string) {
     const notification = await this.notifications.findOneBy({ id, recipientId })
     if (!notification) throw new NotFoundException("Notification not found")
-    notification.readAt = new Date()
-    return this.notifications.save(notification)
+    // Preserve the first read timestamp, including concurrent requests.
+    await this.notifications.createQueryBuilder()
+      .update(Notification)
+      .set({ readAt: () => 'COALESCE("readAt", CURRENT_TIMESTAMP)' })
+      .where({ id, recipientId })
+      .execute()
+    const saved = await this.notifications.findOneBy({ id, recipientId })
+    if (!saved) throw new NotFoundException("Notification not found")
+    this.publish(saved)
+    return saved
   }
 
   private optionalString(value: unknown): string | null {

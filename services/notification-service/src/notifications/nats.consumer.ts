@@ -7,6 +7,7 @@ import {
 import { ConfigService } from "@nestjs/config"
 import { connect, consumerOpts, createInbox, JsMsg, StringCodec } from "nats"
 import { DomainEvent, NotificationsService } from "./notifications.service"
+import { InvalidDomainEventError, validateDomainEvent } from './domain-event'
 
 @Injectable()
 export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
@@ -48,6 +49,7 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
     options.deliverAll()
     options.deliverTo(createInbox())
     options.filterSubject(subject)
+    options.bindStream(stream)
 
     const subscription = await this.connection
       .jetstream()
@@ -60,15 +62,23 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
     const codec = StringCodec()
     for await (const message of subscription) {
       try {
-        const event = JSON.parse(codec.decode(message.data)) as DomainEvent
-        if (!event.eventId || !event.eventType)
-          throw new Error("Invalid event envelope")
+        let event: DomainEvent
+        try {
+          event = JSON.parse(codec.decode(message.data)) as DomainEvent
+        } catch {
+          throw new InvalidDomainEventError('Invalid event JSON')
+        }
+        validateDomainEvent(event)
+        if (message.subject !== `ac.social.${event.eventType}`) {
+          throw new InvalidDomainEventError('Event type does not match subject')
+        }
         const notification = await this.service.processEvent(event)
         if (notification) this.service.publish(notification)
         message.ack()
       } catch (error) {
         this.logger.error(`Failed to process NATS message: ${String(error)}`)
-        message.nak(5000)
+        if (error instanceof InvalidDomainEventError) message.term()
+        else message.nak(5000)
       }
     }
   }

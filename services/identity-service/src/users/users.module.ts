@@ -6,10 +6,11 @@ import { RefreshToken } from './refresh-token.entity';
 import { User } from './user.entity';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { InternalUsersController } from './internal-users.controller';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, RefreshToken]), MailModule, OtpModule],
-  controllers: [UsersController],
+  controllers: [UsersController, InternalUsersController],
   providers: [UsersService],
 })
 export class UsersModule {}

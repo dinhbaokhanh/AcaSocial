@@ -3,8 +3,10 @@
 import { useNotifications } from '@/lib/notifications/context';
 import { Button } from '@/components/ui/Button';
 import styles from './NotificationPanel.module.css';
+import { useRouter } from 'next/navigation';
 
 export function NotificationPanel() {
+  const router = useRouter();
   const { notifications, unreadCount, isOpen, closePanel, markRead, markAllRead } = useNotifications();
 
   if (!isOpen) return null;
@@ -35,7 +37,13 @@ export function NotificationPanel() {
                 key={item.id}
                 type="button"
                 className={`${styles.item} ${item.read ? styles.read : styles.unread}`}
-                onClick={() => markRead(item.id)}
+                onClick={() => {
+                  markRead(item.id);
+                  if (item.href) {
+                    closePanel();
+                    router.push(item.href);
+                  }
+                }}
               >
                 <div className={styles.dot} aria-hidden="true" />
                 <div className={styles.content}>
@@ -44,6 +52,7 @@ export function NotificationPanel() {
                     {!item.read && <span className={styles.new}>New</span>}
                   </div>
                   <p>{item.body}</p>
+                  {item.href && <small className={styles.openPost}>Xem bài viết →</small>}
                   <small>{new Date(item.createdAt).toLocaleString()}</small>
                 </div>
               </button>

@@ -33,6 +33,7 @@ export interface AppNotification {
   createdAt: string;
   read: boolean;
   actorName?: string;
+  href?: string;
 }
 
 interface NotificationContextValue {
@@ -119,6 +120,10 @@ function mapApiNotification(n: ApiNotification): AppNotification {
     body: n.body,
     createdAt: n.createdAt,
     read: n.readAt !== null,
+    actorName: typeof n.data?.actorName === 'string' ? n.data.actorName : undefined,
+    href: typeof n.data?.discussionId === 'string'
+      ? `/posts/${encodeURIComponent(n.data.discussionId)}`
+      : undefined,
   };
 }
 

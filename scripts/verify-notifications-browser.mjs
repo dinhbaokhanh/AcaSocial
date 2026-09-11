@@ -157,6 +157,9 @@ const commentNotification = notifications.find(
   (n) => n.data.commentId === comment.id,
 );
 assert.ok(commentNotification);
+assert.ok(commentNotification.data.actorName, 'public comment actor name resolved');
+assert.ok(commentNotification.body.includes(discussion.title), 'notification contains discussion title');
+assert.ok(commentNotification.body.includes('Comment from another account'), 'notification contains comment preview');
 assert.equal(
   (await request("/api/notifications?limit=30", tokenB)).some(
     (n) => n.id === commentNotification.id,
@@ -168,6 +171,7 @@ await evaluate(
     JSON.stringify(titleB) +
     ').closest("button").click()',
 );
+await until('location.pathname === ' + JSON.stringify('/posts/' + discussion.id), 'notification opens the discussion');
 for (let i = 0; i < 30; i++) {
   if (
     (await request("/api/notifications?limit=30", tokenA)).find(
@@ -263,6 +267,24 @@ assert.ok(
   streams.filter((status) => status === 200).length > connectionsBeforeOffline,
   "frontend did not establish a new SSE connection",
 );
+const anonymousPreview = 'Anonymous comment ' + Date.now();
+const anonymousComment = await request(
+  '/api/discussions/' + discussion.id + '/comments', tokenB, 'POST',
+  { content: anonymousPreview, isAnonymous: true },
+);
+await until(
+  'document.querySelector("aside")?.innerText.includes(' + JSON.stringify(anonymousPreview) + ')',
+  'anonymous comment rendered live',
+);
+const anonymousNotification = (await request('/api/notifications?limit=30', tokenA))
+  .find((n) => n.data.commentId === anonymousComment.id);
+assert.ok(anonymousNotification);
+assert.equal(anonymousNotification.actorId, null);
+assert.equal(anonymousNotification.data.actorId, null);
+assert.equal(anonymousNotification.data.actorName, undefined);
+assert.equal(anonymousNotification.data.senderId, undefined);
+assert.ok(anonymousNotification.body.startsWith('Người dùng ẩn danh'));
+console.log('PASS anonymous notification hides actor identity');
 const screenshot = await cdp("Page.captureScreenshot", { format: "png" });
 writeFileSync(
   "tmp/notification-e2e/frontend.png",

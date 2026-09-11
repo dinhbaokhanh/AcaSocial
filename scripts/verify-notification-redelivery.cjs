@@ -40,7 +40,7 @@ async function main() {
       }
       assert.ok(settled, "consumer did not acknowledge the duplicate events");
       const result = await pool.query(
-        "SELECT count(*)::int AS count FROM notifications WHERE type = $1 AND data = $2::jsonb",
+        "SELECT count(*)::int AS count FROM notifications WHERE type = $1 AND data @> $2::jsonb",
         [type, JSON.stringify(event.data)],
       );
       assert.equal(
