@@ -14,6 +14,7 @@ import { PostStatus } from '../enums/post-status.enum';
 import { Tag } from '../../tags/entities/tag.entity';
 import { DiscussionMedia } from './discussion-media.entity';
 import { Comment } from '../../comments/entities/comment.entity';
+import { Index } from 'typeorm';
 
 /**
  * Discussion là entity chính, ánh xạ tới bảng "discussions" trong PostgreSQL.
@@ -23,7 +24,23 @@ import { Comment } from '../../comments/entities/comment.entity';
  * mediaIds tham chiếu đến Media Service thông qua bảng discussion_media.
  */
 @Entity('discussions')
+@Index(['roomId'])
 export class Discussion {
+  @Column({ name: 'room_id', type: 'uuid', nullable: true })
+  roomId: string | null;
+
+  @Column({ name: 'major_id', type: 'uuid', nullable: true })
+  majorId: string | null;
+
+  @Column({ name: 'curriculum_id', type: 'uuid', nullable: true })
+  curriculumId: string | null;
+
+  @Column({ name: 'course_id', type: 'uuid', nullable: true })
+  courseId: string | null;
+
+  @Column({ name: 'curriculum_course_id', type: 'uuid', nullable: true })
+  curriculumCourseId: string | null;
+
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -38,6 +55,9 @@ export class Discussion {
 
   @Column({ type: 'enum', enum: PostStatus, default: PostStatus.OPEN })
   status: PostStatus;
+
+  @Column({ name: 'content_provenance', type: 'varchar', length: 20, nullable: true })
+  contentProvenance: 'OFFICIAL' | 'DERIVED' | 'SIMULATED' | null;
 
   // Tham chiếu đến user trong Identity Service — không dùng FK vì khác DB
   @Column({ name: 'author_id', type: 'uuid' })
@@ -56,12 +76,46 @@ export class Discussion {
   @Column({ name: 'comment_count', default: 0 })
   commentCount: number;
 
+  @Column({ name: 'answer_count', default: 0 })
+  answerCount: number;
+
   @Column({ name: 'view_count', default: 0 })
   viewCount: number;
 
   // ID của comment được chấp nhận là câu trả lời đúng (chỉ dùng cho Question)
   @Column({ name: 'accepted_comment_id', type: 'uuid', nullable: true })
   acceptedCommentId: string | null;
+
+  @Column({ name: 'accepted_answer_id', type: 'uuid', nullable: true })
+  acceptedAnswerId: string | null;
+
+  @Column({ name: 'content_version', type: 'int', default: 1 })
+  contentVersion: number;
+
+  // Manual admin/moderator approval uses moderation fields; AI fields remain reserved.
+  @Column({ name: 'moderation_status', type: 'varchar', length: 20, default: 'pending' })
+  moderationStatus: 'pending' | 'approved' | 'hidden';
+
+  @Column({ type: 'varchar', length: 20, default: 'visible' })
+  visibility: 'visible' | 'held' | 'hidden';
+
+  @Column({ name: 'ai_screening_status', type: 'varchar', length: 20, default: 'queued' })
+  aiScreeningStatus: 'queued' | 'processing' | 'completed' | 'failed';
+
+  @Column({ name: 'ai_recommended_action', type: 'varchar', length: 20, nullable: true })
+  aiRecommendedAction: 'allow' | 'review' | 'block' | null;
+
+  @Column({ name: 'comments_locked', default: false })
+  commentsLocked: boolean;
+
+  @Column({ name: 'comments_locked_by', type: 'uuid', nullable: true })
+  commentsLockedBy: string | null;
+
+  @Column({ name: 'comments_locked_at', type: 'timestamptz', nullable: true })
+  commentsLockedAt: Date | null;
+
+  @Column({ name: 'comments_lock_reason', type: 'text', nullable: true })
+  commentsLockReason: string | null;
 
   // Quan hệ ManyToMany với Tag thông qua bảng trung gian discussion_tags
   @ManyToMany(() => Tag, (tag) => tag.discussions)

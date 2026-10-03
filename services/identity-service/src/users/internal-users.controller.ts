@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { User } from './user.entity';
 import { DisplayUsersDto } from './dto/display-users.dto';
+import { ResolveUsernamesDto } from './dto/resolve-usernames.dto';
 
 // Protected by the global InternalTokenGuard; deliberately not routed by Gateway.
 @Controller('internal/users')
@@ -31,6 +32,15 @@ export class InternalUsersController {
         avatarUrl: true,
         role: true,
       },
+    });
+  }
+
+  @Post('resolve-usernames')
+  resolveUsernames(@Body() dto: ResolveUsernamesDto) {
+    if (!dto.usernames.length) return [];
+    return this.users.find({
+      where: { username: In(dto.usernames) },
+      select: { id: true, username: true },
     });
   }
 

@@ -12,8 +12,10 @@ export type Privacy = "public" | "private";
 export type PostType = "question" | "discussion";
 export type PostStatus = "open" | "solved" | "closed";
 export type VoteType = "upvote" | "downvote";
-export type TargetType = "discussion" | "comment";
+export type TargetType = "discussion" | "comment" | "answer";
 export type SortBy = "newest" | "oldest" | "most_votes" | "most_comments";
+export type RoomType = "major" | "course" | "event" | "forum";
+export type RoomVisibility = "public" | "restricted" | "private";
 
 // --------------------------------------------------------------------------
 // User
@@ -21,7 +23,7 @@ export type SortBy = "newest" | "oldest" | "most_votes" | "most_comments";
 
 export interface User {
   id: string;
-  username: string;
+  username: string | null;
   fullName: string;
   email: string;
   avatarUrl: string | null;
@@ -56,6 +58,29 @@ export interface Tag {
   createdAt: string;
 }
 
+export interface RoomAcademicBinding {
+  roomId: string;
+  majorId: string;
+  curriculumId: string | null;
+  courseId: string | null;
+  curriculumCourseId: string | null;
+}
+
+export interface Room {
+  canManage?: boolean;
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  roomType: RoomType;
+  parentRoomId: string | null;
+  visibility: RoomVisibility;
+  membershipPolicy: "open" | "approval" | "invite_only";
+  postingPolicy: "anyone" | "members" | "approved_contributors";
+  status: "draft" | "active" | "read_only" | "archived";
+  academicBinding: RoomAcademicBinding | null;
+}
+
 // --------------------------------------------------------------------------
 // Discussion (Post)
 // --------------------------------------------------------------------------
@@ -65,7 +90,7 @@ export interface Discussion {
   canManage?: boolean;
   canVote?: boolean;
   media?: { id: string; mediaId: string; sortOrder: number }[];
-  acceptedAnswer?: Comment | null;
+  acceptedAnswer?: Answer | Comment | null;
   id: string;
   title: string;
   content: string;
@@ -78,6 +103,13 @@ export interface Discussion {
   commentCount: number;
   viewCount: number;
   acceptedCommentId: string | null;
+  acceptedAnswerId?: string | null;
+  answerCount?: number;
+  roomId?: string | null;
+  contentVersion?: number;
+  moderationStatus?: 'pending' | 'approved' | 'hidden';
+  visibility?: 'visible' | 'held' | 'hidden';
+  commentsLockReason?: string | null;
   tags: Tag[];
   createdAt: string;
   updatedAt: string;
@@ -87,11 +119,33 @@ export interface Discussion {
   myVote?: VoteType | null;
 }
 
+export interface Answer {
+  isMine?: boolean;
+  canManage?: boolean;
+  canVote?: boolean;
+  myVote?: VoteType | null;
+  canAcceptAnswer?: boolean;
+  id: string;
+  discussionId: string;
+  authorId: string | null;
+  content: string;
+  isAnonymous: boolean;
+  contentVersion: number;
+  moderationStatus: 'pending' | 'approved' | 'hidden';
+  visibility: 'visible' | 'held' | 'hidden';
+  upvoteCount: number;
+  downvoteCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 // --------------------------------------------------------------------------
 // Comment (Answer)
 // --------------------------------------------------------------------------
 
 export interface Comment {
+  moderationStatus?: 'pending' | 'approved' | 'hidden';
+  visibility?: 'visible' | 'held' | 'hidden';
   isMine?: boolean;
   canManage?: boolean;
   canVote?: boolean;
@@ -154,7 +208,6 @@ export interface LoginRequest {
 }
 
 export interface RegisterRequest {
-  username: string;
   fullName: string;
   email: string;
   password: string;
@@ -169,6 +222,7 @@ export interface AuthTokens {
 export interface OtpRequest {
   email: string;
   otp: string;
+  username: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -186,6 +240,7 @@ export interface ResetPasswordRequest {
 // --------------------------------------------------------------------------
 
 export interface DiscussionFilterParams {
+  roomId?: string;
   postType?: PostType | "";
   status?: PostStatus | "";
   tag?: string;
@@ -201,10 +256,11 @@ export interface DiscussionFilterParams {
 // --------------------------------------------------------------------------
 
 export interface CreateDiscussionPayload {
+  roomId: string;
   title: string;
   content: string;
   postType: PostType;
-  tagIds: string[];
+  tagIds?: string[];
   mediaIds?: string[];
   isAnonymous?: boolean;
 }

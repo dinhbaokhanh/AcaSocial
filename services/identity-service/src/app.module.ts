@@ -6,6 +6,7 @@ import { RedisModule } from './common/redis.module';
 import { RefreshToken } from './users/refresh-token.entity';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
+import { UserRoleAudit } from './users/role-audit.entity';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { UsersModule } from './users/users.module';
         username: config.get<string>('DB_USERNAME'),
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME'),
-        entities: [User, RefreshToken],
+        entities: [User, RefreshToken, UserRoleAudit],
         synchronize: true,
         logging: false,
       }),

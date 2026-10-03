@@ -612,6 +612,575 @@
           "url_pattern": "/discussions/{id}/status"
         }
       ]
+    },
+    {
+      "endpoint": "/api/majors",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/majors"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/majors",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/majors"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/majors/{id}/curricula",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/majors/{id}/curricula"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/courses",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/courses"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/courses",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/courses"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/topics",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/topics"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/topics",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/topics"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/curricula",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/curricula"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/curricula/{id}/courses",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/curricula/{id}/courses"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/curriculum-courses",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/curriculum-courses"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/courses/{id}/topics",
+      "method": "PUT",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/courses/{id}/topics"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/courses/{id}/topics",
+      "method": "GET",
+      "auth_required": false,
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/courses/{id}/topics"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms",
+      "method": "GET",
+      "auth_required": false,
+      "auth_optional": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}",
+      "method": "GET",
+      "auth_required": false,
+      "auth_optional": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/join",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/join"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/rules",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/rules"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/members/{userId}",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/members/{userId}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/status",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/status"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/answers",
+      "method": "GET",
+      "auth_required": false,
+      "auth_optional": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/discussions/{id}/answers"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/answers",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/discussions/{id}/answers"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/answers/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/answers/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/answers/{id}",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/answers/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/accepted-answer",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/discussions/{id}/accepted-answer"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/discussions/{id}/accepted-answer",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/discussions/{id}/accepted-answer"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${IDENTITY_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/users"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/{id}/role",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${IDENTITY_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/users/{id}/role"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/users/{id}/role-audits",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${IDENTITY_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/users/{id}/role-audits"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/answers/{id}/vote",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/answers/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/answers/{id}/vote",
+      "method": "DELETE",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/answers/{id}/vote"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/tags/{id}/disable",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin",
+        "moderator"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/tags/{id}/disable"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/tags/{id}/enable",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin",
+        "moderator"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/tags/{id}/enable"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/tags/{id}/merge",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin",
+        "moderator"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/tags/{id}/merge"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/majors/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/majors/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/courses/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/courses/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/topics/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/topics/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/curricula/{id}/status",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${ACADEMIC_SERVICE_URL}"
+          ],
+          "url_pattern": "/curricula/{id}/status"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/moderation/pending",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin",
+        "moderator"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/moderation/pending"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/moderation/{type}/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "required_roles": [
+        "admin",
+        "moderator"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/moderation/{type}/{id}"
+        }
+      ]
     }
   ]
 }

@@ -15,10 +15,14 @@ import type { Tag, PostType } from "@/types";
 import styles from "./create-post.module.css";
 import { AttachmentPicker } from "@/components/academic/Attachments";
 import type { MediaUploadResponse } from "@/lib/api/media";
+import { useRoom } from "@/lib/rooms/context";
+import { RoomChooser } from "@/components/rooms/RoomChooser";
+import { Select } from "@/components/ui/Select";
 
 export default function CreatePostPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { rooms, selectedRoom, loading: roomsLoading, selectRoom } = useRoom();
 
   const [postType, setPostType] = useState<PostType>("question");
   const [title, setTitle] = useState("");
@@ -56,7 +60,7 @@ export default function CreatePostPage() {
     };
   }, [tagSearch, tagRetry]);
 
-  if (authLoading) {
+  if (authLoading || roomsLoading) {
     return <LoadingState label="Checking authentication..." />;
   }
 
@@ -87,17 +91,19 @@ export default function CreatePostPage() {
     );
   }
 
+  if (!selectedRoom) return <RoomChooser />;
+
   const handleToggleTag = (tag: Tag) => {
-    if (selectedTags.some((t) => t.id === tag.id)) {
-      setSelectedTags(selectedTags.filter((t) => t.id !== tag.id));
-    } else {
-      if (selectedTags.length >= 5) {
+    setSelectedTags((current) => {
+      if (current.some((item) => item.id === tag.id))
+        return current.filter((item) => item.id !== tag.id);
+      if (current.length >= 5) {
         setError("You can select at most 5 tags.");
-        return;
+        return current;
       }
       setError("");
-      setSelectedTags([...selectedTags, tag]);
-    }
+      return [...current, tag];
+    });
   };
 
   const filteredTags = allTags.filter(
@@ -127,16 +133,12 @@ export default function CreatePostPage() {
       setError("Content must be at least 20 characters long.");
       return;
     }
-    if (selectedTags.length === 0) {
-      setError("Please select at least 1 relevant tag.");
-      return;
-    }
-
     setLoading(true);
     setError("");
 
     try {
       const created = await discussionsApi.create({
+        roomId: selectedRoom.id,
         title: title.trim(),
         content: content.trim(),
         postType,
@@ -173,6 +175,24 @@ export default function CreatePostPage() {
             {error}
           </div>
         )}
+
+        <div className={styles.roomSection}>
+          <label className={styles.label} htmlFor="post-room">Room bắt buộc</label>
+          <Select
+            id="post-room"
+            value={selectedRoom.id}
+            options={rooms
+              .filter((room) => room.status === "active")
+              .map((room) => ({ value: room.id, label: `${room.name} · ${room.roomType}` }))}
+            onChange={(event) => {
+              const room = rooms.find((item) => item.id === event.target.value);
+              if (room) selectRoom(room);
+            }}
+          />
+          <p className={styles.roomHint}>
+            Bài viết chỉ xuất hiện trong r/{selectedRoom.slug} và tuân theo luật của room này.
+          </p>
+        </div>
 
         {/* Post Type Selector */}
         <div className={styles.typeSection}>
@@ -249,7 +269,7 @@ export default function CreatePostPage() {
               </button>
             </p>
           )}
-          <label className={styles.label}>Tags (select 1 to 5)</label>
+          <label className={styles.label}>Tags (tùy chọn, tối đa 5)</label>
           <div className={styles.selectedTags}>
             {selectedTags.length === 0 ? (
               <span
@@ -258,7 +278,7 @@ export default function CreatePostPage() {
                   color: "var(--color-text-muted)",
                 }}
               >
-                No tags selected yet. Pick from suggestions below.
+                Bạn có thể để trống; AI sẽ đề xuất topic trong taxonomy của room.
               </span>
             ) : (
               selectedTags.map((tag) => (

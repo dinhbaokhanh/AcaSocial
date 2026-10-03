@@ -13,18 +13,12 @@ export const votesApi = {
     targetId: string,
     data: CastVotePayload,
   ) => {
-    const path =
-      targetType === "discussion"
-        ? `/api/discussions/${targetId}/vote`
-        : `/api/comments/${targetId}/vote`;
+    const path = `/api/${targetType === "discussion" ? "discussions" : `${targetType}s`}/${targetId}/vote`;
     return apiPost<VoteResult>(path, data, true);
   },
 
   removeVote: (targetType: TargetType, targetId: string) => {
-    const path =
-      targetType === "discussion"
-        ? `/api/discussions/${targetId}/vote`
-        : `/api/comments/${targetId}/vote`;
+    const path = `/api/${targetType === "discussion" ? "discussions" : `${targetType}s`}/${targetId}/vote`;
     return apiDelete<VoteResult>(path);
   },
 };

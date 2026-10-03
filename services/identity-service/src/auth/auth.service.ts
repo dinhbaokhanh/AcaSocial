@@ -5,6 +5,7 @@ import {
   HttpStatus,
   Inject,
   Injectable,
+  OnModuleInit,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -34,7 +35,7 @@ import { VerifyOtpDto } from './dto/verify-otp.dto';
  * Controller chỉ nhận/trả HTTP, mọi xử lý thực sự đều ở đây.
  */
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   constructor(
     @InjectRepository(User) private userRepo: Repository<User>,
     @InjectRepository(RefreshToken) private refreshTokenRepo: Repository<RefreshToken>,
@@ -45,23 +46,26 @@ export class AuthService {
     private otpService: OtpService,
   ) {}
 
+  async onModuleInit() {
+    await this.userRepo.createQueryBuilder()
+      .update(User)
+      .set({ username: null })
+      .where('is_verified = false AND username IS NOT NULL')
+      .execute();
+  }
+
   /**
    * Đăng ký tài khoản mới.
    * Tài khoản được tạo với isVerified = false, chưa đăng nhập được cho đến khi xác minh OTP.
    * withDeleted: true đảm bảo email đã soft-delete cũng không được đăng ký lại.
    */
   async register(dto: RegisterDto): Promise<{ message: string }> {
-    // Kiểm tra email và username chưa tồn tại (kể cả tài khoản đã xóa mềm)
-    const [existingEmail, existingUsername] = await Promise.all([
-      this.userRepo.findOne({ where: { email: dto.email }, withDeleted: true }),
-      this.userRepo.findOne({ where: { username: dto.username }, withDeleted: true }),
-    ]);
+    const existingEmail = await this.userRepo.findOne({ where: { email: dto.email }, withDeleted: true });
     if (existingEmail) throw new ConflictException('Email already registered');
-    if (existingUsername) throw new ConflictException('Username already taken');
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = this.userRepo.create({
-      username: dto.username,
+      username: null,
       fullName: dto.fullName,
       dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : null,
       email: dto.email,
@@ -85,10 +89,14 @@ export class AuthService {
     if (!user) throw new NotFoundException('User not found');
     if (user.isVerified) throw new BadRequestException('Account already verified');
 
+    const existingUsername = await this.userRepo.findOne({ where: { username: dto.username }, withDeleted: true });
+    if (existingUsername) throw new ConflictException('Username already taken');
+
     const valid = await this.otpService.verifyOtp(`register:${dto.email}`, dto.otp);
     if (!valid) throw new BadRequestException('Invalid or expired OTP');
 
     user.isVerified = true;
+    user.username = dto.username;
     await this.userRepo.save(user);
 
     return { message: 'Account verified successfully' };

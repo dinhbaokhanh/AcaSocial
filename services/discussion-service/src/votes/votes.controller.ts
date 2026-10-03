@@ -63,4 +63,16 @@ export class VotesController {
   ) {
     return this.votesService.removeVote(TargetType.COMMENT, id, user);
   }
+
+  @Post('answers/:id/vote')
+  @UseGuards(GatewayAuthGuard)
+  castAnswerVote(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: GatewayUser, @Body() dto: CastVoteDto) {
+    return this.votesService.castVote(TargetType.ANSWER, id, user, dto);
+  }
+
+  @Delete('answers/:id/vote')
+  @UseGuards(GatewayAuthGuard)
+  removeAnswerVote(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: GatewayUser) {
+    return this.votesService.removeVote(TargetType.ANSWER, id, user);
+  }
 }

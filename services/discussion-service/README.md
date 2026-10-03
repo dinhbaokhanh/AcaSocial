@@ -1,5 +1,11 @@
 # Discussion Service
 
+> Phạm vi hiện tại: [Academic and Discussion Scope](../../docs/academic-foundation.md).
+> Không có xác thực học thuật hoặc phân hạng tri thức. Giữ câu trả lời, chọn lời giải,
+> phòng, bình luận, vote và tag. Chỉ bài đăng cần admin hoặc moderator duyệt;
+> bài mới hoặc sửa chờ duyệt trước khi công khai. Bình luận và đáp án không cần duyệt. AI và báo cáo chưa triển khai;
+> schema/entity hiện có được giữ nguyên cho triển khai sau.
+
 Quy tắc và kiểm thử của bản refactor: [Implementation](IMPLEMENTATION.md). Tài liệu này không triển khai RAG.
 Service quản lý diễn đàn hỏi đáp, thảo luận, bình luận, bình chọn (vote) và gắn thẻ (tags) cho toàn bộ hệ thống AcaSocial.
 

@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { DataSource, EntityManager, In } from 'typeorm';
+import { DataSource, EntityManager, In, IsNull } from 'typeorm';
 import { Discussion } from './entities/discussion.entity';
 import { DiscussionMedia } from './entities/discussion-media.entity';
 import { Tag } from '../tags/entities/tag.entity';
@@ -17,6 +17,8 @@ import { PostStatus } from './enums/post-status.enum';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
 import {
   authenticated,
+  requireReadable,
+  requireApproved,
   lockPost,
   requireManager,
   requireOpen,
@@ -25,6 +27,11 @@ import { ContentPresenter } from '../common/content-presenter';
 import { MediaReferenceService } from '../common/media-reference.service';
 import { TargetType } from '../votes/enums/target-type.enum';
 import { OutboxService } from '../events/outbox.service';
+import { RoomsService } from '../rooms/rooms.service';
+import { DiscussionRevision } from './entities/discussion-revision.entity';
+import { Answer, AnswerAcceptance } from '../answers/answer.entity';
+import { ConflictException } from '@nestjs/common';
+import { AcademicReferenceService } from '../common/academic-reference.service';
 const guest: GatewayUser = { id: null, role: null };
 @Injectable()
 export class DiscussionsService {
@@ -33,26 +40,64 @@ export class DiscussionsService {
     private readonly outbox: OutboxService,
     private readonly presenter: ContentPresenter,
     private readonly media: MediaReferenceService,
+    private readonly rooms: RoomsService,
+    private readonly academic: AcademicReferenceService,
   ) {}
 
   async create(user: GatewayUser, dto: CreateDiscussionDto) {
     const authorId = authenticated(user);
     await this.media.validate(dto.mediaIds, authorId);
+
+    // Resolve academic context từ curriculumCourseId (nếu có)
+    const selectedContext = dto.curriculumCourseId
+      ? await this.academic.context(dto.curriculumCourseId)
+      : null;
+
+    // New posts always require an explicit room selected by the user.
+    const resolvedRoomId = dto.roomId;
+    const roomContext = await this.rooms.assertCanPost(resolvedRoomId, user);
+
+    // Validation: academic context phải khớp với room binding
+    if (
+      selectedContext && roomContext?.binding?.majorId &&
+      selectedContext.majorId !== roomContext.binding.majorId
+    ) throw new BadRequestException('Selected course does not belong to the room major');
+    if (
+      selectedContext && roomContext?.binding?.curriculumCourseId &&
+      selectedContext.curriculumCourseId !== roomContext.binding.curriculumCourseId
+    ) throw new BadRequestException('Course room fixes the academic context');
     const id = await this.db.transaction(async (m) => {
-      const tags = await this.tags(m, dto.tagIds);
+      const tagIds = [...new Set(dto.tagIds ?? [])];
+      const tags = await this.tags(m, tagIds);
       const post = await m.save(
         Discussion,
         m.create(Discussion, {
+          moderationStatus: 'pending',
+          visibility: 'held',
           title: dto.title,
           content: dto.content,
           postType: dto.postType,
           authorId,
           isAnonymous: dto.isAnonymous ?? false,
           tags,
+          roomId: resolvedRoomId,
+          majorId: selectedContext?.majorId ?? roomContext?.binding?.majorId ?? null,
+          curriculumId: selectedContext?.curriculumId ?? roomContext?.binding?.curriculumId ?? null,
+          courseId: selectedContext?.courseId ?? roomContext?.binding?.courseId ?? null,
+          curriculumCourseId:
+            selectedContext?.curriculumCourseId ?? roomContext?.binding?.curriculumCourseId ?? null,
         }),
       );
       await this.attach(m, post.id, dto.mediaIds ?? []);
-      await this.tagCounts(m, dto.tagIds, 1);
+      await this.tagCounts(m, tagIds, 1);
+      await m.save(DiscussionRevision, m.create(DiscussionRevision, {
+        discussionId: post.id,
+        contentVersion: 1,
+        title: post.title,
+        content: post.content,
+        revisionType: 'semantic',
+        editedBy: authorId,
+      }));
 
       await this.outbox.event(m, 'discussion.created', {
         discussionId: post.id,
@@ -79,7 +124,16 @@ export class DiscussionsService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.tags', 'tag')
       .leftJoinAndSelect('d.media', 'media');
+    if (!['admin', 'moderator'].includes(user.role ?? '')) qb.andWhere("((d.moderationStatus = 'approved' AND d.visibility = 'visible') OR d.authorId = :reviewViewer)", { reviewViewer: user.id });
     if (postType) qb.andWhere('d.postType = :postType', { postType });
+    if (filter.roomId) qb.andWhere('d.roomId = :roomId', { roomId: filter.roomId });
+    if (!['admin', 'moderator'].includes(user.role ?? ''))
+      qb.andWhere(`(d.roomId IS NULL OR d.authorId = :viewer OR NOT EXISTS (
+        SELECT 1 FROM rooms private_room WHERE private_room.id = d.room_id AND private_room.visibility = 'private'
+      ) OR EXISTS (
+        SELECT 1 FROM room_memberships rm
+        WHERE rm.room_id = d.room_id AND rm.user_id = :viewer AND rm.status = 'active'
+      ))`, { viewer: user.id ?? null });
     if (status) qb.andWhere('d.status = :status', { status });
     if (authorId)
       qb.andWhere('d.authorId = :authorId AND d.isAnonymous = false', {
@@ -126,9 +180,14 @@ export class DiscussionsService {
       .getRepository(Discussion)
       .findOne({ where: { id }, relations: ['tags', 'media'] });
     if (!post) throw new NotFoundException('Discussion not found');
+    requireReadable(post, user);
+    if (post.roomId) await this.rooms.findOne(post.roomId, user);
     if (countView)
       await this.db.getRepository(Discussion).increment({ id }, 'viewCount', 1);
-    const answer = post.acceptedCommentId
+    const acceptedAnswer = post.acceptedAnswerId
+      ? await this.db.getRepository(Answer).findOneBy({ id: post.acceptedAnswerId })
+      : null;
+    const answer = !acceptedAnswer && post.acceptedCommentId
       ? await this.db
           .getRepository(Comment)
           .findOneBy({ id: post.acceptedCommentId })
@@ -140,20 +199,28 @@ export class DiscussionsService {
     );
     return {
       ...result,
-      acceptedAnswer: answer
+      acceptedAnswer: (acceptedAnswer ?
+        (await this.presenter.many([acceptedAnswer], user, TargetType.ANSWER))[0] : null) ?? (answer
         ? (await this.presenter.many([answer], user, TargetType.COMMENT))[0]
-        : null,
+        : null),
     };
   }
   async update(id: string, user: GatewayUser, dto: UpdateDiscussionDto) {
     authenticated(user);
     await this.media.validate(dto.mediaIds, user.id!);
+    const tagIds = dto.tagIds === undefined ? undefined : [...new Set(dto.tagIds)];
     await this.db.transaction(async (m) => {
       const post = await lockPost(m, id);
       requireManager(post.authorId, user);
       requireOpen(post);
-      if (dto.tagIds !== undefined) {
-        const tags = await this.tags(m, dto.tagIds);
+      if (dto.expectedVersion !== undefined && post.contentVersion !== dto.expectedVersion)
+        throw new ConflictException('Discussion changed; reload');
+      const contentChanged =
+        (dto.title !== undefined && dto.title !== post.title) ||
+        (dto.content !== undefined && dto.content !== post.content) ||
+        tagIds !== undefined || dto.mediaIds !== undefined;
+      if (tagIds !== undefined) {
+        const tags = await this.tags(m, tagIds);
         const old = await m.findOneOrFail(Discussion, {
           where: { id },
           relations: ['tags'],
@@ -161,11 +228,11 @@ export class DiscussionsService {
         // Lock all affected tags in one stable order before adjusting their counts.
         await m.query(
           'SELECT id FROM tags WHERE id = ANY($1::uuid[]) ORDER BY id FOR UPDATE',
-          [[...new Set([...old.tags.map((t) => t.id), ...dto.tagIds])]],
+          [[...new Set([...old.tags.map((t) => t.id), ...tagIds])]],
         );
         await this.tagCounts(
           m,
-          old.tags.filter((t) => !dto.tagIds!.includes(t.id)).map((t) => t.id),
+          old.tags.filter((t) => !tagIds.includes(t.id)).map((t) => t.id),
           -1,
         );
         await this.tagCounts(
@@ -180,6 +247,34 @@ export class DiscussionsService {
       if (dto.title !== undefined) post.title = dto.title;
       if (dto.content !== undefined) post.content = dto.content;
       if (dto.isAnonymous !== undefined) post.isAnonymous = dto.isAnonymous;
+      if (contentChanged) {
+        post.contentVersion += 1;
+        post.moderationStatus = 'pending';
+        post.visibility = 'held';
+        await m.save(DiscussionRevision, m.create(DiscussionRevision, {
+          discussionId: post.id,
+          contentVersion: post.contentVersion,
+          title: post.title,
+          content: post.content,
+          revisionType: dto.revisionType ?? 'semantic',
+          editedBy: user.id!,
+        }));
+        { // Any edit requires approval again, so active acceptance is revoked.
+          if (post.acceptedAnswerId) {
+            await m.update(
+              AnswerAcceptance,
+              { discussionId: post.id, revokedAt: IsNull() },
+              { revokedAt: new Date(), revokedBy: user.id!, revokeReason: 'question_edited' },
+            );
+            post.acceptedAnswerId = null;
+            post.status = PostStatus.OPEN;
+          }
+          if (post.acceptedCommentId) {
+            post.acceptedCommentId = null;
+            post.status = PostStatus.OPEN;
+          }
+        }
+      }
       await m.save(post);
       if (dto.mediaIds !== undefined) await this.attach(m, id, dto.mediaIds);
     });
@@ -195,6 +290,9 @@ export class DiscussionsService {
         relations: ['tags'],
       });
       await m.softDelete(Discussion, { id });
+      await this.outbox.event(m, 'content.deleted', {
+        entityType: 'discussion', entityId: id, roomId: post.roomId,
+      });
       await this.tagCounts(
         m,
         full.tags.map((t) => t.id),
@@ -207,6 +305,7 @@ export class DiscussionsService {
     authenticated(user);
     await this.db.transaction(async (m) => {
       const post = await lockPost(m, id);
+      requireApproved(post);
       this.requireQuestionOwner(post, user);
       requireOpen(post);
       const answer = await m.findOneBy(Comment, { id: dto.commentId });
@@ -269,8 +368,8 @@ export class DiscussionsService {
   }
   private async tags(m: EntityManager, ids: string[]) {
     const tags = await m.findBy(Tag, { id: In(ids) });
-    if (tags.length !== ids.length)
-      throw new BadRequestException('One or more tags do not exist');
+    if (tags.length !== ids.length || tags.some((tag) => tag.status !== 'active'))
+      throw new BadRequestException('One or more active tags do not exist');
     return tags;
   }
   private async tagCounts(m: EntityManager, ids: string[], delta: number) {

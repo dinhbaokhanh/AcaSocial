@@ -8,3 +8,6 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'discussion_db')\gexec
 
 SELECT 'CREATE DATABASE notification_db'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notification_db')\gexec
+
+SELECT 'CREATE DATABASE academic_db'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'academic_db')\gexec

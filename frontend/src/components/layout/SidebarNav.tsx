@@ -2,7 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { useRoom } from '@/lib/rooms/context';
 import styles from './SidebarNav.module.css';
+import { useAuth } from '@/lib/auth/context';
 
 interface NavItem {
   href: string;
@@ -56,6 +59,9 @@ const NAV_ITEMS: NavItem[] = [
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { rooms, selectedRoom, selectRoom } = useRoom();
+  const { user } = useAuth();
 
   function isActive(item: NavItem): boolean {
     if (item.exact) return pathname === item.href;
@@ -80,6 +86,48 @@ export function SidebarNav() {
           </li>
         ))}
       </ul>
+
+      <div className={styles.divider} />
+
+      {user && ['admin', 'moderator'].includes(user.role) && (
+        <div className={styles.section}>
+          <p className={styles.sectionLabel}>Quản trị</p>
+          <ul role="list" className={styles.list}>
+            <li><Link className={[styles.link, pathname.startsWith('/moderation') ? styles.active : ''].filter(Boolean).join(' ')} href="/moderation"><span className={styles.label}>Duyệt bài đăng</span></Link></li>
+            {user?.role === 'admin' && <li><Link className={[styles.link, pathname.startsWith('/admin/users') ? styles.active : ''].filter(Boolean).join(' ')} href="/admin/users"><span className={styles.label}>Phân quyền</span></Link></li>}
+          </ul>
+        </div>
+      )}
+
+      {user && ['admin', 'moderator'].includes(user.role) && <div className={styles.divider} />}
+
+      <div className={styles.section}>
+        <p className={styles.sectionLabel}>Rooms</p>
+        <ul role="list" className={styles.list}>
+          {rooms.filter((room) => room.status === 'active').slice(0, 8).map((room) => (
+            <li key={room.id}>
+              <button
+                type="button"
+                className={[
+                  styles.link,
+                  styles.roomButton,
+                  selectedRoom?.id === room.id ? styles.active : '',
+                ].filter(Boolean).join(' ')}
+                onClick={() => {
+                  selectRoom(room);
+                  router.push('/');
+                }}
+              >
+                <span className={styles.roomGlyph} aria-hidden="true">
+                  {room.roomType === 'course' ? 'C' : room.roomType === 'major' ? 'M' : room.roomType === 'event' ? 'E' : 'F'}
+                </span>
+                <span className={styles.label}>{room.name}</span>
+              </button>
+            </li>
+          ))}
+          {rooms.length === 0 && <li className={styles.noRooms}>Chưa có room</li>}
+        </ul>
+      </div>
 
       <div className={styles.divider} />
 

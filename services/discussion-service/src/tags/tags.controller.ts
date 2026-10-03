@@ -14,6 +14,7 @@ import { TagsService } from './tags.service';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
 import { FilterTagDto } from './dto/filter-tag.dto';
+import { MergeTagDto, TagStatusDto } from './dto/merge-tag.dto';
 import { GatewayAuthGuard } from '../common/guards/gateway-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -71,5 +72,26 @@ export class TagsController {
   @UseGuards(GatewayAuthGuard, RolesGuard)
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.tagsService.remove(id);
+  }
+
+  @Patch(':id/disable')
+  @Roles('admin', 'moderator')
+  @UseGuards(GatewayAuthGuard, RolesGuard)
+  disable(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TagStatusDto) {
+    return this.tagsService.setStatus(id, 'inactive', dto.reason);
+  }
+
+  @Patch(':id/enable')
+  @Roles('admin', 'moderator')
+  @UseGuards(GatewayAuthGuard, RolesGuard)
+  enable(@Param('id', ParseUUIDPipe) id: string, @Body() dto: TagStatusDto) {
+    return this.tagsService.setStatus(id, 'active', dto.reason);
+  }
+
+  @Post(':id/merge')
+  @Roles('admin', 'moderator')
+  @UseGuards(GatewayAuthGuard, RolesGuard)
+  merge(@Param('id', ParseUUIDPipe) id: string, @Body() dto: MergeTagDto) {
+    return this.tagsService.merge(id, dto.targetTagId);
   }
 }

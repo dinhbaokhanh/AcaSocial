@@ -59,6 +59,24 @@ services:
       timeout: 5s
       retries: 5
 
+  academic-db-init:
+    image: postgres:16-alpine
+    restart: "no"
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+      DB_USERNAME: ${DB_USERNAME}
+    volumes:
+      - ./scripts/init-db.sql:/scripts/init-db.sql:ro
+    command:
+      - sh
+      - -c
+      - psql -h postgres -U "$$DB_USERNAME" -d postgres -v ON_ERROR_STOP=1 -f /scripts/init-db.sql
+    networks:
+      - internal
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   # ===== Services =====
 
   identity-service:
@@ -104,6 +122,7 @@ services:
       MEDIA_SERVICE_URL: http://media-service:8082
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
+      ACADEMIC_SERVICE_URL: http://academic-service:8086
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
     ports:
       - '8080:8080'
@@ -113,6 +132,7 @@ services:
       - identity-service
       - media-service
       - discussion-service
+      - academic-service
 
   media-service:
     build:
@@ -148,6 +168,7 @@ services:
       NATS_URL: nats://nats:4222
       MEDIA_SERVICE_URL: http://media-service:8082
       IDENTITY_SERVICE_URL: http://identity-service:8081
+      ACADEMIC_SERVICE_URL: http://academic-service:8086
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
@@ -159,6 +180,27 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+
+  academic-service:
+    build:
+      context: ./services/academic-service
+      dockerfile: Dockerfile
+    container_name: acasocial-academic
+    restart: unless-stopped
+    environment:
+      PORT: 8086
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: academic_db
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      IDENTITY_SERVICE_URL: http://identity-service:8081
+    networks:
+      - internal
+    depends_on:
+      academic-db-init:
+        condition: service_completed_successfully
 
   notification-service:
     build:

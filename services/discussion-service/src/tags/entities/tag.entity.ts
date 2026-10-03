@@ -31,9 +31,18 @@ export class Tag {
   @Column({ name: 'usage_count', default: 0 })
   usageCount: number;
 
+  @Column({ type: 'varchar', length: 20, default: 'active' })
+  status: 'active' | 'inactive' | 'merged';
+
+  @Column({ name: 'merged_into_tag_id', type: 'uuid', nullable: true })
+  mergedIntoTagId: string | null;
+
   @ManyToMany(() => Discussion, (d) => d.tags)
   discussions: Discussion[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @Column({ name: 'updated_at', type: 'timestamptz', default: () => 'now()' })
+  updatedAt: Date;
 }

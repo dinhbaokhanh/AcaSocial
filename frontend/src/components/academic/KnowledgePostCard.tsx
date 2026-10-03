@@ -46,6 +46,8 @@ export function KnowledgePostCard({
     commentCount,
     viewCount,
     acceptedCommentId,
+    acceptedAnswerId,
+    answerCount,
     tags,
     createdAt,
     author,
@@ -53,7 +55,8 @@ export function KnowledgePostCard({
     myVote,
   } = discussion;
 
-  const isResolved = status === 'solved' || acceptedCommentId !== null;
+  const isResolved = status === 'solved' || acceptedCommentId !== null || Boolean(acceptedAnswerId);
+  const responseCount = postType === 'question' ? (answerCount ?? commentCount) : commentCount;
   const isCompact  = variant === 'compact';
   const isFeatured = variant === 'featured';
 
@@ -84,9 +87,9 @@ export function KnowledgePostCard({
             className={[styles.answerCount, isResolved ? styles.answerCountResolved : '']
               .filter(Boolean)
               .join(' ')}
-            title={`${commentCount} answer${commentCount !== 1 ? 's' : ''}`}
+            title={`${responseCount} answer${responseCount !== 1 ? 's' : ''}`}
           >
-            <span className={styles.answerNum}>{commentCount}</span>
+            <span className={styles.answerNum}>{responseCount}</span>
             <span className={styles.answerLabel}>ans</span>
           </div>
         </div>
@@ -120,7 +123,7 @@ export function KnowledgePostCard({
             )}
           </span>
 
-          {isResolved && acceptedCommentId && <AcceptedAnswerBadge compact />}
+          {isResolved && <AcceptedAnswerBadge compact />}
           <StatusBadge status={status} />
         </div>
 

@@ -13,6 +13,11 @@ import {
 } from 'class-validator';
 import { PostType } from '../enums/post-type.enum';
 export class CreateDiscussionDto {
+  @IsUUID('all')
+  roomId: string;
+  @ValidateIf((_, v) => v !== undefined)
+  @IsUUID('all')
+  curriculumCourseId?: string;
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(10, 300)
@@ -22,12 +27,12 @@ export class CreateDiscussionDto {
   @Length(20, 100000)
   content: string;
   @IsEnum(PostType) postType: PostType;
+  @ValidateIf((_, v) => v !== undefined)
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(5)
   @ArrayUnique()
   @IsUUID('all', { each: true })
-  tagIds: string[];
+  tagIds?: string[];
   @ValidateIf((_, v) => v !== undefined)
   @IsArray()
   @ArrayMaxSize(10)

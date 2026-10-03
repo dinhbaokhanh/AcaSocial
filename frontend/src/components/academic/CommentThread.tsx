@@ -43,11 +43,15 @@ export function CommentThread({ post, parentId, onChange, version }: Props) {
       active = false;
     };
   }, [post.id, page, parentId, version]);
+  const legacyAcceptedAnswer =
+    post.acceptedAnswer && "parentCommentId" in post.acceptedAnswer
+      ? post.acceptedAnswer
+      : null;
   const displayed =
-    !parentId && page === 1 && post.acceptedAnswer
+    !parentId && page === 1 && legacyAcceptedAnswer
       ? [
-          post.acceptedAnswer,
-          ...items.filter((c) => c.id !== post.acceptedAnswer!.id),
+          legacyAcceptedAnswer,
+          ...items.filter((c) => c.id !== legacyAcceptedAnswer.id),
         ]
       : items;
   return (
@@ -212,7 +216,7 @@ function CommentEntry({
                     </Button>
                   </>
                 )}
-                {post.isMine &&
+                {item.canAccept && post.isMine &&
                   post.postType === "question" &&
                   !item.parentCommentId &&
                   !item.isMine && (

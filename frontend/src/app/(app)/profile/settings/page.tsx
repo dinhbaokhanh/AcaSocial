@@ -12,6 +12,7 @@ import { LoadingState } from '@/components/shared/LoadingState'
 import { ApiRequestError } from '@/lib/api/client'
 import type { Privacy } from '@/types'
 import styles from './settings.module.css'
+import { useToast } from '@/lib/toast/context'
 
 export default function ProfileSettingsPage() {
   const {
@@ -20,18 +21,17 @@ export default function ProfileSettingsPage() {
     isLoading: authLoading,
     refreshUser,
   } = useAuth()
+  const toast = useToast()
 
   // Profile form state
   const [fullName, setFullName] = useState('')
   const [dateOfBirth, setDateOfBirth] = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
-  const [profileSuccess, setProfileSuccess] = useState('')
   const [profileError, setProfileError] = useState('')
 
   // Avatar state
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [avatarSaving, setAvatarSaving] = useState(false)
-  const [avatarSuccess, setAvatarSuccess] = useState('')
   const [avatarError, setAvatarError] = useState('')
 
   // Password change state
@@ -39,13 +39,11 @@ export default function ProfileSettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
-  const [passwordSuccess, setPasswordSuccess] = useState('')
   const [passwordError, setPasswordError] = useState('')
 
   // Privacy state
   const [privacy, setPrivacy] = useState<Privacy>('public')
   const [privacySaving, setPrivacySaving] = useState(false)
-  const [privacySuccess, setPrivacySuccess] = useState('')
   const [privacyError, setPrivacyError] = useState('')
 
   useEffect(() => {
@@ -74,7 +72,6 @@ export default function ProfileSettingsPage() {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setProfileSaving(true)
-    setProfileSuccess('')
     setProfileError('')
     try {
       await usersApi.updateProfile({
@@ -84,7 +81,7 @@ export default function ProfileSettingsPage() {
           : undefined,
       })
       await refreshUser()
-      setProfileSuccess('Profile details updated successfully.')
+      toast.success('Profile updated', 'Your account details have been saved.')
     } catch (err) {
       setProfileError(
         err instanceof ApiRequestError
@@ -102,14 +99,13 @@ export default function ProfileSettingsPage() {
     if (!file) return
 
     setAvatarSaving(true)
-    setAvatarSuccess('')
     setAvatarError('')
 
     try {
       const media = await mediaApi.upload(file)
       await usersApi.updateAvatar({ avatarUrl: media.secureUrl })
       await refreshUser()
-      setAvatarSuccess('Avatar updated successfully!')
+      toast.success('Avatar updated', 'Your profile photo has been changed.')
     } catch (err) {
       setAvatarError(
         err instanceof Error ? err.message : 'Failed to upload avatar.'
@@ -133,7 +129,6 @@ export default function ProfileSettingsPage() {
     }
 
     setPasswordSaving(true)
-    setPasswordSuccess('')
     setPasswordError('')
 
     try {
@@ -142,7 +137,7 @@ export default function ProfileSettingsPage() {
         newPassword,
         confirmPassword,
       })
-      setPasswordSuccess('Password changed successfully.')
+      toast.success('Password changed', 'Your new password is now active.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -161,13 +156,12 @@ export default function ProfileSettingsPage() {
   const handlePrivacySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setPrivacySaving(true)
-    setPrivacySuccess('')
     setPrivacyError('')
 
     try {
       await usersApi.updatePrivacy({ privacy })
       await refreshUser()
-      setPrivacySuccess('Privacy settings updated.')
+      toast.success('Privacy updated', 'Your visibility settings have been saved.')
     } catch (err) {
       setPrivacyError(
         err instanceof ApiRequestError
@@ -199,9 +193,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
 
-        {avatarSuccess && (
-          <div className={styles.successAlert}>{avatarSuccess}</div>
-        )}
         {avatarError && <div className={styles.errorAlert}>{avatarError}</div>}
 
         <div className={styles.avatarRow}>
@@ -245,9 +236,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
 
-        {profileSuccess && (
-          <div className={styles.successAlert}>{profileSuccess}</div>
-        )}
         {profileError && (
           <div className={styles.errorAlert}>{profileError}</div>
         )}
@@ -267,7 +255,7 @@ export default function ProfileSettingsPage() {
           <Input
             id="username"
             label="Username"
-            value={user.username}
+            value={user.username ?? ''}
             disabled
             hint="Usernames are permanent and unique to each academic account."
           />
@@ -306,9 +294,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
 
-        {passwordSuccess && (
-          <div className={styles.successAlert}>{passwordSuccess}</div>
-        )}
         {passwordError && (
           <div className={styles.errorAlert}>{passwordError}</div>
         )}
@@ -362,9 +347,6 @@ export default function ProfileSettingsPage() {
           </p>
         </div>
 
-        {privacySuccess && (
-          <div className={styles.successAlert}>{privacySuccess}</div>
-        )}
         {privacyError && (
           <div className={styles.errorAlert}>{privacyError}</div>
         )}

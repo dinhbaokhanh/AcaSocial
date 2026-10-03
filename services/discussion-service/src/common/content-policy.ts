@@ -14,6 +14,18 @@ export function authenticated(user: GatewayUser): string {
   if (!user.id) throw new UnauthorizedException('Authentication required');
   return user.id;
 }
+export function approved(content: { moderationStatus: string; visibility: string }): boolean {
+  return content.moderationStatus === 'approved' && content.visibility === 'visible';
+}
+export function requireReadable(
+  content: { moderationStatus: string; visibility: string; authorId: string }, user: GatewayUser,
+) {
+  if (!approved(content) && !['admin', 'moderator'].includes(user.role ?? '') && content.authorId !== user.id)
+    throw new NotFoundException('Content not found');
+}
+export function requireApproved(content: { moderationStatus: string; visibility: string }) {
+  if (!approved(content)) throw new BadRequestException('Post awaits approval');
+}
 export function canManage(authorId: string, user: GatewayUser): boolean {
   return (
     !!user.id &&

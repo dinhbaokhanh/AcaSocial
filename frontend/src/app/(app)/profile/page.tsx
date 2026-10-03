@@ -105,7 +105,7 @@ export default function ProfilePage() {
                 {user.fullName}
                 <FacultyBadge role={user.role} />
               </h1>
-              <span className={styles.username}>@{user.username}</span>
+              <span className={styles.username}>{user.username ? `@${user.username}` : 'Email not verified'}</span>
               <div className={styles.detailsRow}>
                 <span>📧 {user.email}</span>
                 <span>📅 Joined {joinDate}</span>

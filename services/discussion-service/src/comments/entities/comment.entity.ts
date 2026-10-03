@@ -52,6 +52,13 @@ export class Comment {
   @Column({ name: 'downvote_count', default: 0 })
   downvoteCount: number;
 
+  // Schema retained; comments do not require approval.
+  @Column({ name: 'moderation_status', type: 'varchar', length: 20, default: 'approved' })
+  moderationStatus: 'pending' | 'approved' | 'hidden';
+
+  @Column({ type: 'varchar', length: 20, default: 'visible' })
+  visibility: 'visible' | 'held' | 'hidden';
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

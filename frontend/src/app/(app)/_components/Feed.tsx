@@ -18,6 +18,8 @@ import {
   ROUTES,
 } from "@/lib/constants";
 import styles from "./feed.module.css";
+import { useRoom } from "@/lib/rooms/context";
+import { RoomChooser } from "@/components/rooms/RoomChooser";
 
 interface FeedProps {
   /** Pre-filter by post type (for /questions and /discussions routes) */
@@ -38,6 +40,7 @@ export function Feed({
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated } = useAuth();
+  const { rooms, selectedRoom, loading: roomsLoading, selectRoom } = useRoom();
 
   const [data, setData] = useState<PaginatedResponse<Discussion> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,10 +55,12 @@ export function Feed({
   const page = Number(searchParams.get("page") ?? "1");
 
   const fetchData = useCallback(async () => {
+    if (!selectedRoom) return;
     setLoading(true);
     setError(null);
     try {
       const result = await discussionsApi.list({
+        roomId: selectedRoom.id,
         search: search || undefined,
         tag: tag || undefined,
         sort,
@@ -69,14 +74,22 @@ export function Feed({
     } finally {
       setLoading(false);
     }
-  }, [search, tag, sort, postType, page]);
+  }, [search, tag, sort, postType, page, selectedRoom]);
 
   useEffect(() => {
+    if (!selectedRoom) {
+      setData(null);
+      setLoading(false);
+      return;
+    }
     const loadFeed = async () => {
       await fetchData();
     };
     void loadFeed();
-  }, [fetchData]);
+  }, [fetchData, selectedRoom]);
+
+  if (roomsLoading) return <LoadingState variant="feed" count={6} />;
+  if (!selectedRoom) return <RoomChooser />;
 
   function updateParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -91,8 +104,9 @@ export function Feed({
       {/* Page header */}
       <div className={styles.pageHeader}>
         <div>
-          <h1 className={styles.pageTitle}>{title}</h1>
+          <h1 className={styles.pageTitle}>{selectedRoom.name}</h1>
           {description && <p className={styles.pageDesc}>{description}</p>}
+          <p className={styles.pageDesc}>r/{selectedRoom.slug} · {title}</p>
         </div>
         {isAuthenticated && (
           <Button size="sm" onClick={() => router.push(ROUTES.POST_CREATE)}>
@@ -103,6 +117,18 @@ export function Feed({
 
       {/* Filter bar */}
       <div className={styles.filters} role="search" aria-label="Filter posts">
+        <Select
+          id="active-room"
+          options={rooms
+            .filter((room) => room.status === "active")
+            .map((room) => ({ value: room.id, label: `${room.name} · ${room.roomType}` }))}
+          value={selectedRoom.id}
+          onChange={(event) => {
+            const room = rooms.find((item) => item.id === event.target.value);
+            if (room) selectRoom(room);
+          }}
+          aria-label="Active room"
+        />
         {!fixedPostType && (
           <Select
             id="filter-type"

@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Tag } from './entities/tag.entity';
 import { CreateTagDto } from './dto/create-tag.dto';
 import { UpdateTagDto } from './dto/update-tag.dto';
@@ -54,6 +54,7 @@ export class TagsService {
     if (search) {
       qb.andWhere('t.name ILIKE :search', { search: `%${search}%` });
     }
+    if (!filter.includeInactive) qb.andWhere("t.status = 'active'");
 
     // Luôn ưu tiên tag được dùng nhiều nhất lên đầu
     qb.orderBy('t.usageCount', 'DESC').addOrderBy('t.createdAt', 'DESC');
@@ -134,6 +135,36 @@ export class TagsService {
       await manager.remove(tag);
     });
     return { message: 'Tag deleted successfully' };
+  }
+
+  async setStatus(id: string, status: 'active' | 'inactive', _reason: string) {
+    const tag = await this.findOne(id);
+    if (tag.status === 'merged') throw new BadRequestException('Merged tags cannot be reactivated');
+    tag.status = status;
+    tag.updatedAt = new Date();
+    return this.tagRepo.save(tag);
+  }
+
+  async merge(sourceId: string, targetId: string) {
+    if (sourceId === targetId) throw new BadRequestException('Cannot merge a tag into itself');
+    return this.tagRepo.manager.transaction(async (manager) => {
+      const tags = await manager.findBy(Tag, { id: In([sourceId, targetId]) });
+      const source = tags.find((tag) => tag.id === sourceId);
+      const target = tags.find((tag) => tag.id === targetId);
+      if (!source || !target) throw new NotFoundException('Source or target tag not found');
+      if (source.status === 'merged' || target.status !== 'active')
+        throw new BadRequestException('Source must not be merged and target must be active');
+      await manager.query(`INSERT INTO discussion_tags (discussion_id, tag_id)
+        SELECT discussion_id, $2 FROM discussion_tags WHERE tag_id=$1
+        ON CONFLICT DO NOTHING`, [sourceId, targetId]);
+      await manager.query('DELETE FROM discussion_tags WHERE tag_id=$1', [sourceId]);
+      source.status = 'merged'; source.mergedIntoTagId = targetId; source.usageCount = 0; source.updatedAt = new Date();
+      await manager.save(source);
+      const count = await manager.query('SELECT count(*)::int AS count FROM discussion_tags WHERE tag_id=$1', [targetId]);
+      target.usageCount = count[0].count; target.updatedAt = new Date();
+      await manager.save(target);
+      return { source, target };
+    });
   }
 
   // ===== Helpers =====

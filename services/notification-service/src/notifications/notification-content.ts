@@ -15,5 +15,10 @@ export function contextualBody(type: string, data: Record<string, unknown>): str
     const preview = text(data.commentPreview).slice(0, 180);
     return `${actor} đã bình luận vào ${post}.${preview ? ` “${preview}”` : ''}`;
   }
+  if (type === 'mention.created') {
+    return title
+      ? `Bạn được nhắc đến trong “${title}”.`
+      : 'Bạn được nhắc đến trong một cuộc thảo luận.';
+  }
   return null;
 }

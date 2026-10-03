@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await authApi.register({ username, fullName, email, password });
+      await authApi.register({ fullName, email, password });
       setStep('otp');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'Registration failed.');
@@ -44,7 +44,7 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await authApi.verifyOtp({ email, otp });
+      await authApi.verifyOtp({ email, otp, username });
       setStep('success');
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : 'OTP verification failed.');
@@ -83,7 +83,7 @@ export default function RegisterPage() {
         <div className={styles.cardHeader}>
           <h1 className={styles.title}>Check your email</h1>
           <p className={styles.subtitle}>
-            We sent a 6-digit code to <strong>{email}</strong>. Enter it below to activate your account.
+            We sent a 6-digit code to <strong>{email}</strong>. Verify your email, then choose your username to activate the account.
           </p>
         </div>
         <form onSubmit={handleVerifyOtp} className={styles.form} noValidate>
@@ -100,8 +100,19 @@ export default function RegisterPage() {
             required
             autoFocus
           />
+          <Input
+            id="verified-username"
+            label="Choose a username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.toLowerCase())}
+            placeholder="john_doe"
+            hint="5–20 characters, lowercase letters, numbers and _"
+            required
+            autoComplete="username"
+          />
           {error && <p className={styles.errorMsg} role="alert">{error}</p>}
-          <Button type="submit" fullWidth loading={loading} disabled={otp.length < 6}>
+          <Button type="submit" fullWidth loading={loading} disabled={otp.length < 6 || username.length < 5}>
             Verify account
           </Button>
         </form>
@@ -133,16 +144,6 @@ export default function RegisterPage() {
           autoFocus
         />
         <Input
-          id="reg-username"
-          label="Username"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value.toLowerCase())}
-          placeholder="john_doe"
-          hint="5–20 characters, lowercase letters, numbers and _"
-          required
-        />
-        <Input
           id="reg-email"
           label="Email"
           type="email"
@@ -168,7 +169,7 @@ export default function RegisterPage() {
           type="submit"
           fullWidth
           loading={loading}
-          disabled={!username || !fullName || !email || !password}
+          disabled={!fullName || !email || !password}
         >
           Create account
         </Button>

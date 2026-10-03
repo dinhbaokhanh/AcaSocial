@@ -22,6 +22,9 @@ export enum SortBy {
  */
 export class FilterDiscussionDto extends PaginationQueryDto {
   @IsOptional()
+  @IsUUID('all')
+  roomId?: string;
+  @IsOptional()
   @IsEnum(PostType)
   postType?: PostType;
 

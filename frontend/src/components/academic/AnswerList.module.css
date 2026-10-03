@@ -1,0 +1,13 @@
+.list { display: flex; flex-direction: column; gap: var(--space-3); }
+.answer {
+  padding: var(--space-3);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.accepted { border-color: var(--color-primary); box-shadow: inset 3px 0 var(--color-primary); }
+.header { display: flex; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-2); color: var(--color-text-muted); font-size: var(--text-xs); }
+.badges { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
+.content { color: var(--color-text-primary); line-height: 1.65; margin-bottom: var(--space-2); }
+.empty, .error { color: var(--color-text-secondary); }
+.error { color: var(--color-danger); }

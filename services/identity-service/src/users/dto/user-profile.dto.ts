@@ -6,7 +6,7 @@ import { Privacy, Role } from '../user.entity';
  */
 export class UserProfileDto {
   id: string;
-  username: string;
+  username: string | null;
   fullName: string;
   email: string;
   dateOfBirth: Date | null;

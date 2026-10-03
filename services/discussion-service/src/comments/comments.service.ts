@@ -12,6 +12,8 @@ import { FilterCommentDto } from './dto/filter-comment.dto';
 import { GatewayUser } from '../common/decorators/current-user.decorator';
 import {
   authenticated,
+  requireReadable,
+  requireApproved,
   lockCommentPost,
   lockPost,
   requireManager,
@@ -21,6 +23,8 @@ import { ContentPresenter } from '../common/content-presenter';
 import { OutboxService } from '../events/outbox.service';
 import { TargetType } from '../votes/enums/target-type.enum';
 import { PostStatus } from '../discussions/enums/post-status.enum';
+import { RoomsService } from '../rooms/rooms.service';
+import { MentionService } from '../common/mention.service';
 
 @Injectable()
 export class CommentsService {
@@ -28,12 +32,16 @@ export class CommentsService {
     private readonly db: DataSource,
     private readonly outbox: OutboxService,
     private readonly presenter: ContentPresenter,
+    private readonly rooms: RoomsService,
+    private readonly mentions: MentionService,
   ) {}
   async create(discussionId: string, user: GatewayUser, dto: CreateCommentDto) {
     const authorId = authenticated(user);
     const saved = await this.db.transaction(async (m) => {
       const post = await lockPost(m, discussionId);
       requireOpen(post);
+      requireApproved(post);
+      if (post.roomId) await this.rooms.assertCanPost(post.roomId, user);
       const parent = dto.parentCommentId
         ? await m.findOneBy(Comment, { id: dto.parentCommentId })
         : null;
@@ -48,6 +56,7 @@ export class CommentsService {
         Comment,
         m.create(Comment, {
           discussionId,
+          moderationStatus: 'approved', visibility: 'visible',
           authorId,
           content: dto.content,
           parentCommentId: parent?.id ?? null,
@@ -56,16 +65,14 @@ export class CommentsService {
       );
       await m.increment(Discussion, { id: discussionId }, 'commentCount', 1);
       const recipientId = parent?.authorId ?? post.authorId;
-      if (recipientId !== authorId)
-        await this.outbox.event(m, 'comment.created', {
-          commentId: comment.id,
-          discussionId,
-          discussionTitle: post.title,
-          recipientId,
-          actorId: comment.isAnonymous ? null : authorId,
-          isAnonymous: comment.isAnonymous,
-          commentPreview: comment.content.replace(/\s+/g, ' ').slice(0, 180),
-        });
+      if (recipientId !== authorId) await this.outbox.event(m, 'comment.created', {
+        commentId: comment.id, discussionId, discussionTitle: post.title, recipientId,
+        actorId: comment.isAnonymous ? null : authorId, isAnonymous: comment.isAnonymous,
+        commentPreview: comment.content.replace(/\s+/g, ' ').slice(0, 180),
+      });
+      await this.mentions.emit(m, comment.content, authorId, {
+        entityType: 'comment', entityId: comment.id, discussionId, discussionTitle: post.title,
+      });
       return comment;
     });
     return (await this.presenter.many([saved], user, TargetType.COMMENT))[0];
@@ -79,6 +86,8 @@ export class CommentsService {
       .getRepository(Discussion)
       .findOneBy({ id: discussionId });
     if (!post) throw new NotFoundException('Discussion not found');
+    requireReadable(post, user);
+    if (post.roomId) await this.rooms.findOne(post.roomId, user);
     const { page = 1, limit = 20, sort, parentCommentId } = filter;
     if (
       parentCommentId &&
@@ -158,7 +167,16 @@ export class CommentsService {
       const { post, comment } = await lockCommentPost(m, id);
       requireOpen(post);
       requireManager(comment.authorId, user);
-      if (dto.content !== undefined) comment.content = dto.content;
+      if (dto.content !== undefined && dto.content !== comment.content) {
+        comment.content = dto.content;
+        comment.moderationStatus = 'approved';
+        comment.visibility = 'visible';
+        if (post.acceptedCommentId === id) {
+          post.acceptedCommentId = null;
+          post.status = PostStatus.OPEN;
+          await m.save(post);
+        }
+      }
       if (dto.isAnonymous !== undefined) comment.isAnonymous = dto.isAnonymous;
       await m.save(comment);
 

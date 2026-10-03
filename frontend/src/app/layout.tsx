@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth/context';
 import { NotificationProvider } from '@/lib/notifications/context';
+import { ToastProvider } from '@/lib/toast/context';
 import '@/styles/globals.css';
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/constants';
 
@@ -29,7 +30,9 @@ export default function RootLayout({
           Skip to main content
         </a>
         <AuthProvider>
-          <NotificationProvider>{children}</NotificationProvider>
+          <ToastProvider>
+            <NotificationProvider>{children}</NotificationProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>

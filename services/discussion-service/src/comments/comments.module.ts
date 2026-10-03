@@ -5,9 +5,10 @@ import { Discussion } from '../discussions/entities/discussion.entity';
 import { CommentsController } from './comments.controller';
 import { CommentsService } from './comments.service';
 import { NatsModule } from '../common/nats/nats.module';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Comment, Discussion]), NatsModule],
+  imports: [TypeOrmModule.forFeature([Comment, Discussion]), NatsModule, RoomsModule],
   controllers: [CommentsController],
   providers: [CommentsService],
 })

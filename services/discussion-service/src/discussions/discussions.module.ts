@@ -8,11 +8,18 @@ import { DiscussionsController } from './discussions.controller';
 import { DiscussionsService } from './discussions.service';
 import { NatsModule } from '../common/nats/nats.module';
 import { InternalAttachmentsController } from './internal-attachments.controller';
+import { RoomsModule } from '../rooms/rooms.module';
+import { DiscussionRevision } from './entities/discussion-revision.entity';
+import { Answer, AnswerAcceptance } from '../answers/answer.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Discussion, DiscussionMedia, Tag, Comment]),
+    TypeOrmModule.forFeature([
+      Discussion, DiscussionMedia, Tag, Comment, DiscussionRevision,
+      Answer, AnswerAcceptance,
+    ]),
     NatsModule,
+    RoomsModule,
   ],
   controllers: [DiscussionsController, InternalAttachmentsController],
   providers: [DiscussionsService],

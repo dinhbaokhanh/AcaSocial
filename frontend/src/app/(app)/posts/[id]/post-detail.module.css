@@ -1,3 +1,6 @@
+/* ────────────────────────────────────────────────────────────
+   Post Detail — Layout wrapper
+   ──────────────────────────────────────────────────────────── */
 .wrap {
   display: flex;
   flex-direction: column;
@@ -5,11 +8,16 @@
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-outline);
   overflow: hidden;
+  /* give room for the sticky reply bar at the bottom */
+  padding-bottom: 0;
 }
 
+/* ────────────────────────────────────────────────────────────
+   Header
+   ──────────────────────────────────────────────────────────── */
 .header {
-  padding: var(--space-4) var(--space-4) var(--space-2);
-  border-bottom: 1px solid var(--color-outline-variant);
+  padding: var(--space-4) var(--space-4) var(--space-2-5);
+  border-bottom: 1px solid var(--color-outline);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -18,36 +26,113 @@
 .headerMeta {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1-5);
   flex-wrap: wrap;
 }
 
+/* ── Type badge: Câu hỏi / Thảo luận ── */
 .typeBadge {
   display: inline-flex;
   align-items: center;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  padding: var(--space-0-5) var(--space-2);
+  gap: var(--space-0-5);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 3px var(--space-1-5);
   border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .typeQ {
-  background-color: var(--color-primary-subtle);
-  color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent);
+  color: var(--color-primary-600);
+  border: 1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent);
 }
 
 .typeD {
-  background-color: var(--color-surface-container);
-  color: var(--color-text-secondary);
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-200);
+}
+
+/* ── Status badge: open / solved / closed ── */
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: 3px var(--space-1-5);
+  border-radius: var(--radius-full);
+  letter-spacing: 0.03em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.statusOpen {
+  background-color: color-mix(in srgb, var(--color-primary-500) 8%, transparent);
+  color: var(--color-primary-600);
+  border: 1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent);
+}
+
+.statusSolved {
+  background-color: color-mix(in srgb, var(--color-verified-500) 10%, transparent);
+  color: var(--color-verified-700);
+  border: 1px solid color-mix(in srgb, var(--color-verified-500) 30%, transparent);
+}
+
+.statusClosed {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-500);
+  border: 1px solid var(--color-neutral-200);
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.statusOpen .statusDot  { background-color: var(--color-primary-500); }
+.statusSolved .statusDot { background-color: var(--color-verified-500); }
+.statusClosed .statusDot { background-color: var(--color-neutral-400); }
+
+/* ── Status banner (dải ngang bên dưới header khi solved/closed) ── */
+.statusBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  border-bottom: 1px solid;
+}
+
+.statusBannerSolved {
+  background-color: color-mix(in srgb, var(--color-verified-500) 8%, transparent);
+  color: var(--color-verified-700);
+  border-color: color-mix(in srgb, var(--color-verified-500) 25%, transparent);
+}
+
+.statusBannerClosed {
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-600);
+  border-color: var(--color-neutral-200);
+}
+
+.statusBannerIcon {
+  font-size: 1em;
+  flex-shrink: 0;
 }
 
 .title {
-  font-size: var(--font-size-2xl);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
   color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
+  line-height: var(--leading-tight);
   margin: 0;
 }
 
@@ -57,7 +142,9 @@
   gap: var(--space-1);
 }
 
-/* Post body */
+/* ────────────────────────────────────────────────────────────
+   Post body
+   ──────────────────────────────────────────────────────────── */
 .postBody {
   display: flex;
   gap: var(--space-4);
@@ -65,301 +152,309 @@
   border-bottom: 1px solid var(--color-outline);
 }
 
-.voteCol {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  flex-shrink: 0;
-}
-
-.netScore {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
 .bodyContent {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: var(--space-4);
 }
 
 .postText {
   color: var(--color-text-primary);
-  font-size: var(--font-size-base);
-  line-height: var(--line-height-relaxed);
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
   word-break: break-word;
 }
 
-/* ── Markdown rendered content ── */
-.markdownBody {
-  /* Paragraphs */
-}
-.markdownBody p {
-  margin: 0 0 var(--space-3);
-}
-.markdownBody p:last-child {
-  margin-bottom: 0;
-}
+/* ────────────────────────────────────────────────────────────
+   Markdown body
+   ──────────────────────────────────────────────────────────── */
+.markdownBody p { margin: 0 0 var(--space-2); }
+.markdownBody p:last-child { margin-bottom: 0; }
 
-/* Headings */
 .markdownBody h1,
 .markdownBody h2,
 .markdownBody h3,
 .markdownBody h4,
 .markdownBody h5,
 .markdownBody h6 {
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-  line-height: var(--line-height-tight);
+  line-height: var(--leading-tight);
   margin: var(--space-4) 0 var(--space-2);
 }
-.markdownBody h1 { font-size: var(--font-size-2xl); }
-.markdownBody h2 { font-size: var(--font-size-xl); }
-.markdownBody h3 { font-size: var(--font-size-lg); }
+.markdownBody h1 { font-size: var(--text-2xl); }
+.markdownBody h2 { font-size: var(--text-xl); }
+.markdownBody h3 { font-size: var(--text-lg); }
 
-/* Inline formatting */
-.markdownBody strong { font-weight: var(--font-weight-bold); }
-.markdownBody em { font-style: italic; }
-.markdownBody del { text-decoration: line-through; color: var(--color-text-muted); }
+.markdownBody strong { font-weight: var(--weight-bold); }
+.markdownBody em    { font-style: italic; }
+.markdownBody del   { text-decoration: line-through; color: var(--color-text-muted); }
 
-/* Links */
-.markdownBody a {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-.markdownBody a:hover {
-  opacity: 0.8;
-}
+.markdownBody a { color: var(--color-primary-600); text-decoration: underline; }
+.markdownBody a:hover { opacity: 0.8; }
 
-/* Inline code */
 .markdownBody code {
-  background-color: var(--color-surface-container);
-  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-sm);
   padding: 0.1em 0.4em;
   font-size: 0.875em;
-  font-family: 'Fira Code', 'Cascadia Code', monospace;
-  color: var(--color-primary);
+  font-family: var(--font-mono);
+  color: var(--color-primary-600);
 }
-
-/* Code block */
 .markdownBody pre {
-  background-color: var(--color-surface-container);
-  border: 1px solid var(--color-outline-variant);
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-neutral-200);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   overflow-x: auto;
-  margin: var(--space-3) 0;
+  margin: var(--space-2) 0;
 }
 .markdownBody pre code {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: var(--font-size-sm);
+  background: none; border: none; padding: 0;
+  font-size: var(--text-sm);
   color: var(--color-text-primary);
 }
-
-/* Blockquote */
 .markdownBody blockquote {
-  border-left: 3px solid var(--color-primary);
-  margin: var(--space-3) 0;
-  padding: var(--space-2) var(--space-4);
+  border-left: 3px solid var(--color-primary-400);
+  margin: var(--space-2) 0;
+  padding: var(--space-1-5) var(--space-3);
   color: var(--color-text-secondary);
-  background-color: var(--color-primary-subtle);
+  background-color: color-mix(in srgb, var(--color-primary-500) 6%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 .markdownBody blockquote p { margin: 0; }
-
-/* Lists */
-.markdownBody ul,
-.markdownBody ol {
+.markdownBody ul, .markdownBody ol {
   padding-left: var(--space-5);
-  margin: var(--space-2) 0 var(--space-3);
+  margin: var(--space-1-5) 0 var(--space-2);
 }
 .markdownBody ul { list-style: disc; }
 .markdownBody ol { list-style: decimal; }
-.markdownBody li { margin-bottom: var(--space-1); }
-
-/* Horizontal rule */
+.markdownBody li { margin-bottom: var(--space-0-5); }
 .markdownBody hr {
   border: none;
-  border-top: 1px solid var(--color-outline-variant);
+  border-top: 1px solid var(--color-outline);
   margin: var(--space-4) 0;
 }
-
-/* GFM Tables */
 .markdownBody table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-sm);
-  margin: var(--space-3) 0;
+  width: 100%; border-collapse: collapse;
+  font-size: var(--text-sm);
+  margin: var(--space-2) 0;
+  border: 1px solid var(--color-outline);
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 1px solid var(--color-outline-variant);
 }
 .markdownBody th {
-  background-color: var(--color-surface-container);
-  font-weight: var(--font-weight-semibold);
-  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-neutral-100);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-1-5) var(--space-2);
   text-align: left;
   border-bottom: 2px solid var(--color-outline);
 }
 .markdownBody td {
-  padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--color-outline-variant);
+  padding: var(--space-1-5) var(--space-2);
+  border-bottom: 1px solid var(--color-outline);
 }
 .markdownBody tr:last-child td { border-bottom: none; }
 
+/* ────────────────────────────────────────────────────────────
+   Post meta (author + time)
+   ──────────────────────────────────────────────────────────── */
 .postMeta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-}
-
-.metaTime {
+  gap: var(--space-1-5);
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 .authorChip {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-1-5);
+  gap: var(--space-1);
 }
 
 .authorName {
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-secondary);
 }
 
-/* Answers Section */
+.metaTime { color: var(--color-text-muted); }
+
+/* ────────────────────────────────────────────────────────────
+   Owner action bar
+   ──────────────────────────────────────────────────────────── */
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-outline);
+  background-color: var(--color-neutral-50);
+  justify-content: flex-end;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Edit form (inline, below actions)
+   ──────────────────────────────────────────────────────────── */
+.editForm {
+  padding: var(--space-4);
+  border-top: 1px solid var(--color-outline);
+  background-color: var(--color-neutral-50);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Answers / Comments section
+   ──────────────────────────────────────────────────────────── */
 .answersSection {
   padding: var(--space-4);
-  background-color: var(--color-surface);
 }
 
 .answersTitle {
-  font-size: var(--font-size-lg);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
-  margin-bottom: var(--space-3);
+  margin: 0 0 var(--space-3);
 }
 
-.answersList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.answer {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-3);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-outline-variant);
-  background-color: var(--color-surface-container-low);
-  transition: border-color var(--transition-fast);
-}
-
-.answerAccepted {
-  border-color: var(--color-success);
-  background-color: var(--color-success-subtle);
-}
-
-.answerVote {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1-5);
-  flex-shrink: 0;
-}
-
-.answerBody {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.answerText {
-  color: var(--color-text-primary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-relaxed);
-  word-break: break-word;
-}
-
-.answerMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  padding-top: var(--space-1);
-}
-
-.acceptedBtn {
-  color: var(--color-success);
-  font-weight: var(--font-weight-semibold);
-}
-
-/* Answer Form */
-.answerForm {
-  padding: var(--space-4);
-  border-top: 1px solid var(--color-outline);
-  background-color: var(--color-surface-container-lowest);
-}
-
+/* ────────────────────────────────────────────────────────────
+   Error alert
+   ──────────────────────────────────────────────────────────── */
 .submitError {
-  margin-top: var(--space-2);
-  font-size: var(--font-size-xs);
-  color: var(--color-danger);
+  margin: 0 var(--space-4);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-destructive-700);
+  background-color: var(--color-destructive-50);
+  border: 1px solid var(--color-destructive-200);
 }
 
-.formActions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: var(--space-3);
-}
-
+/* ────────────────────────────────────────────────────────────
+   Sign-in prompt (bottom of article, when not logged in)
+   ──────────────────────────────────────────────────────────── */
 .signInPrompt {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   text-align: center;
   border-top: 1px solid var(--color-outline);
-  background-color: var(--color-surface-container-low);
+  background-color: var(--color-neutral-50);
   color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--text-sm);
+  margin: 0;
 }
-
 .signInPrompt a {
-  color: var(--color-primary);
-  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-600);
+  font-weight: var(--weight-semibold);
   text-decoration: underline;
 }
 
+/* ────────────────────────────────────────────────────────────
+   Sticky reply bar — fixed at viewport bottom
+   ──────────────────────────────────────────────────────────── */
+.replyBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-outline);
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-slow), opacity var(--transition-slow);
+}
+
+/* collapsed state: only trigger row visible */
+.replyBar[data-open="false"] .replyFormBody {
+  display: none;
+}
+
+.replyTriggerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1-5) var(--space-4);
+  gap: var(--space-2);
+}
+
+.replyTriggerHint {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  flex: 1;
+  /* look like a fake input field */
+  background-color: var(--color-neutral-100);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-full);
+  padding: var(--space-1) var(--space-2);
+  cursor: text;
+  user-select: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+.replyTriggerHint:hover {
+  background-color: var(--color-neutral-50);
+  border-color: var(--color-primary-400);
+}
+
+.replyFormBody {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.replyFormFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.anonymousLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.replyFormActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+}
+
+/* ────────────────────────────────────────────────────────────
+   Spacer: ensure content isn't hidden behind sticky bar
+   ──────────────────────────────────────────────────────────── */
+.replyBarSpacer {
+  height: 60px; /* matches collapsed bar height */
+}
+.replyBarSpacer[data-open="true"] {
+  height: 240px;
+}
+
+/* ────────────────────────────────────────────────────────────
+   Responsive
+   ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .postBody {
     flex-direction: column;
     gap: var(--space-2);
   }
-
-  .voteCol {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-  }
-
   .title {
-    font-size: var(--font-size-xl);
+    font-size: var(--text-xl);
+  }
+  .replyTriggerRow {
+    padding: var(--space-1) var(--space-2);
+  }
+  .replyFormBody {
+    padding: var(--space-1-5) var(--space-2) var(--space-2-5);
   }
 }

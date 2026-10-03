@@ -4,6 +4,36 @@ Mạng xã hội xây dựng theo kiến trúc **Microservices**, giao tiếp qu
 
 ---
 
+Phạm vi học thuật và ERD: [Academic and Discussion Scope](docs/academic-foundation.md).
+
+## Seed dữ liệu PTIT
+
+Seed PTIT mặc định chỉ thêm catalog học thuật, tag chủ đề mô phỏng và tài khoản
+admin khởi tạo; không tạo bài đăng. Dùng `--clear-discussions` khi chủ động muốn
+xóa toàn bộ bài viết, câu trả lời, bình luận và hoạt động kiểm duyệt liên quan,
+đồng thời giữ tag, phòng, tài khoản và catalog:
+
+```powershell
+node scripts/seed-ptit.mjs --apply --clear-discussions
+```
+
+Xem [hướng dẫn seed PTIT](scripts/SEED-PTIT.md). Có thể bật dữ liệu bài viết mẫu
+bằng `--with-discussions`.
+
+## Dữ liệu cộng đồng mở rộng
+
+Thêm 710 tài khoản, 16 chuyên ngành, 64 môn học, 1.376 bài đăng và hàng nghìn
+câu trả lời/bình luận vào database đang chạy, không xóa dữ liệu hiện có:
+
+```powershell
+node scripts/seed-community.mjs --apply
+```
+
+Admin mới: `admin@campus.acasocial.test`. Mọi tài khoản của bộ seed dùng
+`Password123!`. Xem [hướng dẫn seed PTIT](scripts/SEED-PTIT.md).
+Lệnh `scripts/seed.sql` bên dưới vẫn là bộ seed nhỏ có thao tác reset; không chạy
+lại sau seed mở rộng nếu muốn giữ dữ liệu vừa bổ sung.
+
 ## Cấu trúc thư mục
 
 ```
@@ -17,8 +47,8 @@ AcaSocial/
 │
 ├── services/
 │   ├── identity-service/           # Xác thực & quản lý người dùng (NestJS + PostgreSQL)
-│   ├── community-service/
-│   ├── discussion-service/
+│   ├── academic-service/           # Chuyên ngành, chương trình, môn và topic
+│   ├── discussion-service/         # Room, bài đăng, câu trả lời và kiểm duyệt nội dung
 │   ├── media-service/
 │   └── notification-service/       # Notification history, JetStream consumer và SSE
 │
@@ -40,7 +70,8 @@ API Gateway :8080          ← Điểm duy nhất frontend được gọi
       │
       ├── /api/auth/*   ──►  identity-service:8081
       ├── /api/users/*  ──►  identity-service:8081
-      ├── /api/posts/*  ──►  community-service:8082
+      ├── /api/majors, /api/courses ──► academic-service:8086
+      ├── /api/rooms, /api/discussions ──► discussion-service:8084
       ├── /api/media/*  ──►  media-service:8082
       └── /api/notifications/* ──► notification-service:8085
 
@@ -105,8 +136,10 @@ docker compose up --build
 
 Notification Service sử dụng PostgreSQL để lưu lịch sử, NATS JetStream tại
 `nats:4222` để nhận event và NATS monitoring tại `http://localhost:8222`.
-Database `notification_db` được tạo bởi `scripts/init-db.sql` khi PostgreSQL
-khởi tạo volume lần đầu.
+Các database `discussion_db`, `notification_db` và `academic_db` được tạo idempotent
+bởi `scripts/init-db.sql`. Job `academic-db-init` cũng hỗ trợ volume PostgreSQL đã tồn tại.
+
+Thiết kế domain, ERD và sequence diagram: [Academic community foundation](docs/academic-foundation.md).
 
 **Bước 3 — Kiểm tra Gateway hoạt động:**
 
@@ -115,7 +148,7 @@ curl http://localhost:8080/health
 # Kết quả mong đợi: {"redis":"ok","status":"ok"}
 ```
 
-### Nạp dữ liệu demo
+### Nạp dữ liệu phát triển
 
 Sau khi các service đã khởi động ít nhất một lần để TypeORM tạo schema, chạy:
 
@@ -129,13 +162,24 @@ Trên macOS/Linux:
 docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1 < scripts/seed.sql
 ```
 
-Seed tạo dữ liệu lớn cho frontend và notification demo: 120 users, 120
-discussions, 632 comments, 1.529 votes và 300 notifications. Tất cả tài khoản
-seed dùng mật khẩu `Password123!`; email mẫu có dạng
-`kien.nguyen.d21@ptit.edu.vn` hoặc `demo.user.16@ptit.edu.vn`.
+Seed tạo một cộng đồng học thuật nhất quán gồm 14 tài khoản, 2 chuyên ngành,
+6 môn học, 11 room, 14 bài viết, 7 câu trả lời và dữ liệu báo cáo/nhật ký
+kiểm duyệt. Bài viết môn học luôn mang academic context và tag đúng room;
+không còn user hoặc bài viết sinh tự động kiểu `demo/test`.
+
+Tất cả tài khoản dùng mật khẩu `Password123!`. Một số tài khoản chính:
+
+| Vai trò | Email |
+| --- | --- |
+| Admin | `admin@acasocial.edu.vn` |
+| Moderator | `moderator@acasocial.edu.vn` |
+| Giảng viên | `an.nguyen@acasocial.edu.vn` |
+| Sinh viên | `kien.nguyen@acasocial.edu.vn` |
 
 > Seed có tính destructive: script xóa dữ liệu hiện có trong các bảng seed
 > trước khi insert lại dữ liệu mẫu. Không chạy trên môi trường production.
+
+Đối chiếu phạm vi hiện thực với backlog sản phẩm: [Feature coverage](docs/feature-coverage.md).
 
 ---
 

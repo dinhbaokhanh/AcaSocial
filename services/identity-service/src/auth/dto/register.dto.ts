@@ -11,15 +11,6 @@ import {
 } from 'class-validator';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'john_doe', description: 'Tên đăng nhập (5–20 ký tự, chỉ gồm chữ thường, số và _)' })
-  @IsNotEmpty()
-  @MinLength(5, { message: 'Nice name but Username should have 5-20 characters' })
-  @MaxLength(20, { message: 'Nice name but Username should have 5-20 characters' })
-  @Matches(/^[a-z0-9_]+$/, {
-    message: 'Username should contain letters, numbers and "_".',
-  })
-  username: string;
-
   @ApiProperty({ example: 'Nguyễn Văn A', description: 'Họ và tên đầy đủ' })
   // Strip HTML tags và trim whitespace trước khi validate — ngăn stored XSS và HTML injection.
   @Transform(({ value }) =>

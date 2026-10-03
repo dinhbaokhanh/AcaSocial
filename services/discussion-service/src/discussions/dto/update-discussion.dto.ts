@@ -8,9 +8,18 @@ import {
   Length,
   IsUUID,
   IsBoolean,
+  IsInt,
+  IsEnum,
+  Min,
   ValidateIf,
 } from 'class-validator';
 export class UpdateDiscussionDto {
+  @ValidateIf((_, v) => v !== undefined)
+  @IsInt() @Min(1)
+  expectedVersion?: number;
+  @ValidateIf((_, v) => v !== undefined)
+  @IsEnum(['editorial', 'semantic'])
+  revisionType?: 'editorial' | 'semantic';
   @ValidateIf((_, v) => v !== undefined)
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()

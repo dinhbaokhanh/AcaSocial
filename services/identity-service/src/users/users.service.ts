@@ -14,6 +14,10 @@ import { MailService } from '../mail/mail.service';
 import { OtpService } from '../otp/otp.service';
 import { RefreshToken } from './refresh-token.entity';
 import { User } from './user.entity';
+import { Role } from './user.entity';
+import { UserRoleAudit } from './role-audit.entity';
+import { AdminUserListDto, ChangeUserRoleDto } from './dto/admin-users.dto';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import {
   ConfirmChangeEmailDto,
@@ -60,6 +64,47 @@ export class UsersService {
       createdAt: user.createdAt,
       lastLoginAt: user.lastLoginAt ?? null,
     };
+  }
+
+  async adminList(query: AdminUserListDto) {
+    const qb = this.userRepo.createQueryBuilder('user');
+    if (query.search) qb.andWhere('(user.email ILIKE :q OR user.username ILIKE :q OR user.fullName ILIKE :q)', { q: `%${query.search}%` });
+    if (query.role) qb.andWhere('user.role = :role', { role: query.role });
+    const [data, totalItems] = await qb.orderBy('user.createdAt', 'DESC')
+      .skip((query.page - 1) * query.limit).take(query.limit).getManyAndCount();
+    return {
+      data: data.map((user) => this.getProfile(user)),
+      meta: { page: query.page, limit: query.limit, totalItems, totalPages: Math.ceil(totalItems / query.limit) },
+    };
+  }
+
+  async changeRole(id: string, dto: ChangeUserRoleDto, actor: User) {
+    return this.userRepo.manager.transaction(async (manager) => {
+      const user = await manager.findOne(User, { where: { id }, lock: { mode: 'pessimistic_write' } });
+      if (!user) throw new NotFoundException('User not found');
+      if (user.id === actor.id && dto.role !== Role.ADMIN)
+        throw new ForbiddenException('Administrators cannot demote themselves');
+      if (user.role === dto.role) return this.getProfile(user);
+      if (user.role === Role.ADMIN && dto.role !== Role.ADMIN) {
+        const admins = await manager.count(User, { where: { role: Role.ADMIN } });
+        if (admins <= 1) throw new ForbiddenException('The system must retain at least one admin');
+      }
+      const oldRole = user.role;
+      user.role = dto.role;
+      user.passwordChangedAt = new Date();
+      await manager.save(user);
+      await manager.update(RefreshToken, { userId: user.id }, { revoked: true });
+      await manager.save(UserRoleAudit, manager.create(UserRoleAudit, {
+        userId: user.id, oldRole, newRole: dto.role, changedBy: actor.id, reason: dto.reason.trim(),
+      }));
+      return this.getProfile(user);
+    });
+  }
+
+  roleAudits(userId: string) {
+    return this.userRepo.manager.getRepository(UserRoleAudit).find({
+      where: { userId }, order: { createdAt: 'DESC' }, take: 100,
+    });
   }
 
   async updateProfile(
