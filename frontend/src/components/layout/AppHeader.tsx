@@ -29,7 +29,7 @@ export function AppHeader() {
 
         {/* Search — center */}
         <div className={styles.searchWrap}>
-          <label htmlFor="global-search" className="sr-only">Search</label>
+          <label htmlFor="global-search" className="sr-only">Tìm bài đăng</label>
           <div className={styles.searchBox}>
             <span className={styles.searchIcon} aria-hidden="true">
               <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
@@ -40,7 +40,7 @@ export function AppHeader() {
               id="global-search"
               type="search"
               className={styles.searchInput}
-              placeholder="Search posts, topics, users…"
+              placeholder="Tìm bài đăng theo tiêu đề…"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.currentTarget.value.trim()) {
                   router.push(`/?search=${encodeURIComponent(e.currentTarget.value.trim())}`);
@@ -61,9 +61,9 @@ export function AppHeader() {
                 size="sm"
                 onClick={() => router.push(ROUTES.POST_CREATE)}
               >
-                + Ask
+                + Tạo bài đăng
               </Button>
-              <Link href={ROUTES.PROFILE} className={styles.avatarLink} aria-label="Your profile">
+              <Link href={ROUTES.PROFILE} className={styles.avatarLink} aria-label="Hồ sơ của bạn">
                 <Avatar
                   src={user.avatarUrl}
                   alt={user.fullName}
@@ -73,8 +73,8 @@ export function AppHeader() {
               <button
                 className={styles.logoutBtn}
                 onClick={handleLogout}
-                aria-label="Log out"
-                title="Log out"
+                aria-label="Đăng xuất"
+                title="Đăng xuất"
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                   <path d="M6 3H3a1 1 0 00-1 1v8a1 1 0 001 1h3M10 11l3-3-3-3M13 8H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -84,10 +84,10 @@ export function AppHeader() {
           ) : (
             <>
               <Button variant="ghost" size="sm" className={styles.ghostWhite} onClick={() => router.push(ROUTES.LOGIN)}>
-                Sign in
+                Đăng nhập
               </Button>
               <Button variant="primary" size="sm" onClick={() => router.push(ROUTES.REGISTER)}>
-                Join
+                Đăng ký
               </Button>
             </>
           )}

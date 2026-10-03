@@ -1,4 +1,5 @@
 "use client";
+import { ROOM_TYPE_LABELS } from '@/lib/constants';
 
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -70,7 +71,7 @@ export function Feed({
       });
       setData(result);
     } catch {
-      setError("Failed to load posts. Please try again.");
+      setError("Không thể tải bài đăng. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -106,28 +107,28 @@ export function Feed({
         <div>
           <h1 className={styles.pageTitle}>{selectedRoom.name}</h1>
           {description && <p className={styles.pageDesc}>{description}</p>}
-          <p className={styles.pageDesc}>r/{selectedRoom.slug} · {title}</p>
+          <p className={styles.pageDesc}>{title}</p>
         </div>
         {isAuthenticated && (
           <Button size="sm" onClick={() => router.push(ROUTES.POST_CREATE)}>
-            + Ask a question
+            + Tạo bài đăng
           </Button>
         )}
       </div>
 
       {/* Filter bar */}
-      <div className={styles.filters} role="search" aria-label="Filter posts">
+      <div className={styles.filters} role="search" aria-label="Lọc bài đăng">
         <Select
           id="active-room"
           options={rooms
             .filter((room) => room.status === "active")
-            .map((room) => ({ value: room.id, label: `${room.name} · ${room.roomType}` }))}
+            .map((room) => ({ value: room.id, label: `${room.name} · ${ROOM_TYPE_LABELS[room.roomType]}` }))}
           value={selectedRoom.id}
           onChange={(event) => {
             const room = rooms.find((item) => item.id === event.target.value);
             if (room) selectRoom(room);
           }}
-          aria-label="Active room"
+          aria-label="Phòng đang xem"
         />
         {!fixedPostType && (
           <Select
@@ -137,7 +138,7 @@ export function Feed({
             }
             value={postType}
             onChange={(e) => updateParam("type", e.target.value)}
-            aria-label="Post type"
+            aria-label="Loại bài đăng"
           />
         )}
         <Select
@@ -147,17 +148,17 @@ export function Feed({
           }
           value={sort}
           onChange={(e) => updateParam("sort", e.target.value)}
-          aria-label="Sort by"
+          aria-label="Sắp xếp"
         />
         {search && (
           <div className={styles.searchPill}>
             <span>
-              Search: <strong>{search}</strong>
+              Tìm kiếm: <strong>{search}</strong>
             </span>
             <button
               className={styles.clearBtn}
               onClick={() => updateParam("search", "")}
-              aria-label="Clear search"
+              aria-label="Xóa tìm kiếm"
             >
               ×
             </button>
@@ -166,12 +167,12 @@ export function Feed({
         {tag && (
           <div className={styles.searchPill}>
             <span>
-              Tag: <strong>{tag}</strong>
+              Thẻ: <strong>{tag}</strong>
             </span>
             <button
               className={styles.clearBtn}
               onClick={() => updateParam("tag", "")}
-              aria-label="Clear tag filter"
+              aria-label="Bỏ lọc theo thẻ"
             >
               ×
             </button>
@@ -186,16 +187,16 @@ export function Feed({
 
       {!loading && !error && data && data.data.length === 0 && (
         <EmptyState
-          title={search ? "No results found" : "No posts yet"}
+          title={search ? "Không tìm thấy bài đăng" : "Chưa có bài đăng"}
           description={
             search
-              ? `No posts match "${search}". Try a different search term.`
-              : "Be the first to ask a question or start a discussion."
+              ? `Không có bài đăng phù hợp với "${search}". Hãy thử từ khóa khác.`
+              : "Tạo câu hỏi hoặc bài thảo luận đầu tiên trong phòng."
           }
           action={
             isAuthenticated ? (
               <Button size="sm" onClick={() => router.push(ROUTES.POST_CREATE)}>
-                + Ask a question
+                + Tạo bài đăng
               </Button>
             ) : undefined
           }
@@ -204,7 +205,7 @@ export function Feed({
 
       {!loading && !error && data && data.data.length > 0 && (
         <>
-          <div className={styles.list} role="feed" aria-label="Posts">
+          <div className={styles.list} role="feed" aria-label="Bài đăng">
             {data.data.map((discussion) => (
               <KnowledgePostCard
                 key={discussion.id}
@@ -216,17 +217,17 @@ export function Feed({
 
           {/* Pagination */}
           {data.meta.totalPages > 1 && (
-            <nav className={styles.pagination} aria-label="Pagination">
+            <nav className={styles.pagination} aria-label="Phân trang">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={page <= 1}
                 onClick={() => updateParam("page", String(page - 1))}
               >
-                ← Previous
+                ← Trang trước
               </Button>
               <span className={styles.pageInfo}>
-                Page {page} of {data.meta.totalPages}
+                Trang {page} of {data.meta.totalPages}
               </span>
               <Button
                 variant="outline"
@@ -234,7 +235,7 @@ export function Feed({
                 disabled={page >= data.meta.totalPages}
                 onClick={() => updateParam("page", String(page + 1))}
               >
-                Next →
+                Trang sau →
               </Button>
             </nav>
           )}

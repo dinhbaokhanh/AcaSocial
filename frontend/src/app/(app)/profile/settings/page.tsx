@@ -57,13 +57,13 @@ export default function ProfileSettingsPage() {
   }, [user])
 
   if (authLoading) {
-    return <LoadingState label="Loading settings..." />
+    return <LoadingState label="Đang tải cài đặt…" />
   }
 
   if (!isAuthenticated || !user) {
     return (
       <div className={styles.container}>
-        <p>Please sign in to access settings.</p>
+        <p>Vui lòng đăng nhập để truy cập cài đặt.</p>
       </div>
     )
   }
@@ -81,12 +81,12 @@ export default function ProfileSettingsPage() {
           : undefined,
       })
       await refreshUser()
-      toast.success('Profile updated', 'Your account details have been saved.')
+      toast.success('Đã cập nhật hồ sơ', 'Thông tin tài khoản đã được lưu.')
     } catch (err) {
       setProfileError(
         err instanceof ApiRequestError
           ? err.message
-          : 'Failed to update profile.'
+          : 'Không thể cập nhật hồ sơ.'
       )
     } finally {
       setProfileSaving(false)
@@ -105,10 +105,10 @@ export default function ProfileSettingsPage() {
       const media = await mediaApi.upload(file)
       await usersApi.updateAvatar({ avatarUrl: media.secureUrl })
       await refreshUser()
-      toast.success('Avatar updated', 'Your profile photo has been changed.')
+      toast.success('Đã cập nhật ảnh đại diện', 'Ảnh đại diện đã được thay đổi.')
     } catch (err) {
       setAvatarError(
-        err instanceof Error ? err.message : 'Failed to upload avatar.'
+        err instanceof Error ? err.message : 'Không thể tải ảnh đại diện lên.'
       )
     } finally {
       setAvatarSaving(false)
@@ -120,11 +120,11 @@ export default function ProfileSettingsPage() {
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (newPassword !== confirmPassword) {
-      setPasswordError('New password and confirmation do not match.')
+      setPasswordError('Mật khẩu mới và mật khẩu xác nhận không khớp.')
       return
     }
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters long.')
+      setPasswordError('Mật khẩu phải có ít nhất 8 ký tự.')
       return
     }
 
@@ -137,7 +137,7 @@ export default function ProfileSettingsPage() {
         newPassword,
         confirmPassword,
       })
-      toast.success('Password changed', 'Your new password is now active.')
+      toast.success('Đã đổi mật khẩu', 'Bạn có thể sử dụng mật khẩu mới để đăng nhập.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -145,7 +145,7 @@ export default function ProfileSettingsPage() {
       setPasswordError(
         err instanceof ApiRequestError
           ? err.message
-          : 'Failed to change password.'
+          : 'Không thể đổi mật khẩu.'
       )
     } finally {
       setPasswordSaving(false)
@@ -161,12 +161,12 @@ export default function ProfileSettingsPage() {
     try {
       await usersApi.updatePrivacy({ privacy })
       await refreshUser()
-      toast.success('Privacy updated', 'Your visibility settings have been saved.')
+      toast.success('Đã cập nhật quyền riêng tư', 'Cài đặt hiển thị hồ sơ đã được lưu.')
     } catch (err) {
       setPrivacyError(
         err instanceof ApiRequestError
           ? err.message
-          : 'Failed to update privacy.'
+          : 'Không thể cập nhật quyền riêng tư.'
       )
     } finally {
       setPrivacySaving(false)
@@ -176,20 +176,18 @@ export default function ProfileSettingsPage() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Account Settings</h1>
+        <h1 className={styles.title}>Cài đặt tài khoản</h1>
         <p className={styles.subtitle}>
-          Manage your personal details, academic avatar, security credentials,
-          and visibility.
+          Cập nhật thông tin cá nhân, ảnh đại diện, mật khẩu và quyền riêng tư.
         </p>
       </header>
 
       {/* 1. Avatar Section */}
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Profile Photo</h2>
+          <h2 className={styles.sectionTitle}>Ảnh đại diện</h2>
           <p className={styles.sectionDesc}>
-            Upload a clear photo to help classmates and professors recognize
-            you.
+            Chọn ảnh đại diện để mọi người dễ nhận ra bạn.
           </p>
         </div>
 
@@ -213,7 +211,7 @@ export default function ProfileSettingsPage() {
               loading={avatarSaving}
               onClick={() => fileInputRef.current?.click()}
             >
-              Change Photo
+              Đổi ảnh
             </Button>
             <span
               style={{
@@ -221,7 +219,7 @@ export default function ProfileSettingsPage() {
                 color: 'var(--color-text-muted)',
               }}
             >
-              JPG, PNG or WebP up to 5MB.
+              Ảnh JPG, PNG hoặc WebP, tối đa 5 MB.
             </span>
           </div>
         </div>
@@ -230,9 +228,9 @@ export default function ProfileSettingsPage() {
       {/* 2. Personal Information */}
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Personal Details</h2>
+          <h2 className={styles.sectionTitle}>Thông tin cá nhân</h2>
           <p className={styles.sectionDesc}>
-            Update your display name and birthday.
+            Cập nhật họ tên và ngày sinh.
           </p>
         </div>
 
@@ -246,7 +244,7 @@ export default function ProfileSettingsPage() {
         >
           <Input
             id="full-name"
-            label="Full Name"
+            label="Họ và tên"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
@@ -254,24 +252,24 @@ export default function ProfileSettingsPage() {
 
           <Input
             id="username"
-            label="Username"
+            label="Tên đăng nhập"
             value={user.username ?? ''}
             disabled
-            hint="Usernames are permanent and unique to each academic account."
+            hint="Tên đăng nhập là duy nhất và không thể thay đổi."
           />
 
           <Input
             id="email"
-            label="Institutional Email"
+            label="Email tài khoản"
             type="email"
             value={user.email}
             disabled
-            hint="Email tied to your PTIT account."
+            hint="Email dùng để đăng ký tài khoản."
           />
 
           <Input
             id="dob"
-            label="Date of Birth"
+            label="Ngày sinh"
             type="date"
             value={dateOfBirth}
             onChange={(e) => setDateOfBirth(e.target.value)}
@@ -279,7 +277,7 @@ export default function ProfileSettingsPage() {
 
           <div className={styles.formActions}>
             <Button type="submit" variant="primary" loading={profileSaving}>
-              Save Profile Changes
+              Lưu thông tin
             </Button>
           </div>
         </form>
@@ -288,9 +286,9 @@ export default function ProfileSettingsPage() {
       {/* 3. Security / Change Password */}
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Change Password</h2>
+          <h2 className={styles.sectionTitle}>Đổi mật khẩu</h2>
           <p className={styles.sectionDesc}>
-            Ensure your account is protected with a strong password.
+            Sử dụng mật khẩu đủ mạnh để bảo vệ tài khoản.
           </p>
         </div>
 
@@ -304,7 +302,7 @@ export default function ProfileSettingsPage() {
         >
           <Input
             id="current-password"
-            label="Current Password"
+            label="Mật khẩu hiện tại"
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -313,17 +311,17 @@ export default function ProfileSettingsPage() {
 
           <Input
             id="new-password"
-            label="New Password"
+            label="Mật khẩu mới"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            hint="At least 8 characters long."
+            hint="Ít nhất 8 ký tự."
             required
           />
 
           <Input
             id="confirm-new-password"
-            label="Confirm New Password"
+            label="Xác nhận mật khẩu mới"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -332,7 +330,7 @@ export default function ProfileSettingsPage() {
 
           <div className={styles.formActions}>
             <Button type="submit" variant="outline" loading={passwordSaving}>
-              Update Password
+              Đổi mật khẩu
             </Button>
           </div>
         </form>
@@ -341,9 +339,9 @@ export default function ProfileSettingsPage() {
       {/* 4. Privacy Settings */}
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Privacy & Visibility</h2>
+          <h2 className={styles.sectionTitle}>Quyền riêng tư</h2>
           <p className={styles.sectionDesc}>
-            Control who can view your academic profile and activity.
+            Chọn phạm vi hiển thị hồ sơ của bạn.
           </p>
         </div>
 
@@ -357,18 +355,18 @@ export default function ProfileSettingsPage() {
         >
           <Select
             id="privacy-select"
-            label="Profile Visibility"
+            label="Hiển thị hồ sơ"
             value={privacy}
             onChange={(e) => setPrivacy(e.target.value as Privacy)}
             options={[
-              { value: 'public', label: 'Public — Visible to everyone' },
-              { value: 'private', label: 'Private — Visible only to you' },
+              { value: 'public', label: 'Công khai — mọi người có thể xem' },
+              { value: 'private', label: 'Riêng tư — chỉ bạn có thể xem' },
             ]}
           />
 
           <div className={styles.formActions}>
             <Button type="submit" variant="secondary" loading={privacySaving}>
-              Update Visibility
+              Lưu quyền riêng tư
             </Button>
           </div>
         </form>

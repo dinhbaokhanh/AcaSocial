@@ -5,16 +5,16 @@ import { LoadingState } from '@/components/shared/LoadingState';
 import { SITE_NAME } from '@/lib/constants';
 
 export const metadata: Metadata = {
-  title: `Knowledge Feed — ${SITE_NAME}`,
-  description: 'Browse questions and discussions from the academic community.',
+  title: `Bảng tin — ${SITE_NAME}`,
+  description: 'Câu hỏi và thảo luận trong các phòng học tập.',
 };
 
 export default function HomePage() {
   return (
     <Suspense fallback={<LoadingState variant="feed" count={8} />}>
       <Feed
-        title="Knowledge Feed"
-        description="Questions and discussions from the academic community."
+        title="Bảng tin"
+        description="Theo dõi bài đăng trong phòng bạn chọn."
       />
     </Suspense>
   );

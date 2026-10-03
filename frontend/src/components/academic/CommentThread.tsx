@@ -232,7 +232,7 @@ function CommentEntry({
                         )
                       }
                     >
-                      {accepted ? "Bỏ chấp nhận" : "Chấp nhận câu trả lời"}
+                      {accepted ? "Bỏ chấp nhận" : "Chọn làm lời giải"}
                     </Button>
                   )}
               </>

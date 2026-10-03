@@ -4,8 +4,8 @@ import { Feed } from '../_components/Feed';
 import { LoadingState } from '@/components/shared/LoadingState';
 
 export const metadata: Metadata = {
-  title: 'Questions',
-  description: 'Browse all academic questions and find answers from the community.',
+  title: 'Câu hỏi',
+  description: 'Tìm câu hỏi và trao đổi cách giải cùng cộng đồng.',
 };
 
 export default function QuestionsPage() {
@@ -13,8 +13,8 @@ export default function QuestionsPage() {
     <Suspense fallback={<LoadingState variant="feed" count={8} />}>
       <Feed
         fixedPostType="question"
-        title="Questions"
-        description="Academic questions from the community. Find answers or share your expertise."
+        title="Câu hỏi"
+        description="Đặt câu hỏi hoặc chia sẻ cách giải."
       />
     </Suspense>
   );

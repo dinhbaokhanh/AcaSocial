@@ -35,7 +35,7 @@ export default function ProfilePage() {
       })
       setPosts(res.data)
     } catch {
-      setErrorPosts('Failed to load your posts.')
+      setErrorPosts('Không thể tải bài đăng của bạn.')
     } finally {
       setLoadingPosts(false)
     }
@@ -51,7 +51,7 @@ export default function ProfilePage() {
   }, [user, fetchMyPosts])
 
   if (authLoading) {
-    return <LoadingState label="Loading profile..." />
+    return <LoadingState label="Đang tải hồ sơ…" />
   }
 
   if (!isAuthenticated || !user) {
@@ -61,24 +61,23 @@ export default function ProfilePage() {
           className={styles.profileCard}
           style={{ textAlign: 'center', padding: '48px 24px' }}
         >
-          <h2>Sign in to view your profile</h2>
+          <h2>Đăng nhập để xem hồ sơ</h2>
           <p
             style={{
               color: 'var(--color-text-secondary)',
               margin: '12px 0 24px',
             }}
           >
-            You need to be logged in to view your contributions and manage your
-            academic profile.
+            Đăng nhập để xem bài đăng và quản lý hồ sơ của bạn.
           </p>
           <div
             style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}
           >
             <Link href="/login">
-              <Button variant="primary">Sign In</Button>
+              <Button variant="primary">Đăng nhập</Button>
             </Link>
             <Link href="/register">
-              <Button variant="outline">Create Account</Button>
+              <Button variant="outline">Tạo tài khoản</Button>
             </Link>
           </div>
         </div>
@@ -87,7 +86,7 @@ export default function ProfilePage() {
   }
 
   const joinDate = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+    ? new Date(user.createdAt).toLocaleDateString('vi-VN', {
         month: 'long',
         year: 'numeric',
       })
@@ -105,18 +104,18 @@ export default function ProfilePage() {
                 {user.fullName}
                 <FacultyBadge role={user.role} />
               </h1>
-              <span className={styles.username}>{user.username ? `@${user.username}` : 'Email not verified'}</span>
+              <span className={styles.username}>{user.username ? `@${user.username}` : 'Email chưa được xác minh'}</span>
               <div className={styles.detailsRow}>
                 <span>📧 {user.email}</span>
-                <span>📅 Joined {joinDate}</span>
-                <span>🔒 Privacy: {user.privacy}</span>
+                <span>Tham gia từ {joinDate}</span>
+                <span>Quyền riêng tư: {user.privacy === 'public' ? 'Công khai' : 'Riêng tư'}</span>
               </div>
             </div>
           </div>
 
           <Link href="/profile/settings">
             <Button variant="outline" size="sm">
-              ⚙ Edit Profile & Settings
+              Chỉnh sửa hồ sơ và cài đặt
             </Button>
           </Link>
         </div>
@@ -125,21 +124,21 @@ export default function ProfilePage() {
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
             <span className={styles.statValue}>150</span>
-            <span className={styles.statLabel}>Reputation Score</span>
+            <span className={styles.statLabel}>Điểm uy tín</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statValue}>{posts.length}</span>
-            <span className={styles.statLabel}>Contributions</span>
+            <span className={styles.statLabel}>Bài đăng</span>
           </div>
           <div className={styles.statItem}>
             <span className={styles.statValue}>
-              {user.isVerified ? 'Verified' : 'Pending'}
+              {user.isVerified ? 'Đã xác minh' : 'Chưa xác minh'}
             </span>
-            <span className={styles.statLabel}>Email Status</span>
+            <span className={styles.statLabel}>Trạng thái email</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>Active</span>
-            <span className={styles.statLabel}>Account Status</span>
+            <span className={styles.statValue}>Đang hoạt động</span>
+            <span className={styles.statLabel}>Trạng thái tài khoản</span>
           </div>
         </div>
       </div>
@@ -153,7 +152,7 @@ export default function ProfilePage() {
           className={`${styles.tabBtn} ${activeTab === 'all' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('all')}
         >
-          All Contributions
+          Tất cả bài đăng
         </button>
         <button
           type="button"
@@ -162,7 +161,7 @@ export default function ProfilePage() {
           className={`${styles.tabBtn} ${activeTab === 'question' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('question')}
         >
-          Questions Asked
+          Câu hỏi của tôi
         </button>
         <button
           type="button"
@@ -171,22 +170,22 @@ export default function ProfilePage() {
           className={`${styles.tabBtn} ${activeTab === 'discussion' ? styles.activeTab : ''}`}
           onClick={() => setActiveTab('discussion')}
         >
-          Discussions
+          Thảo luận
         </button>
       </div>
 
       {/* Posts Section */}
-      {loadingPosts && <LoadingState label="Loading your posts..." />}
+      {loadingPosts && <LoadingState label="Đang tải bài đăng…" />}
       {errorPosts && <ErrorState message={errorPosts} onRetry={fetchMyPosts} />}
 
       {!loadingPosts && !errorPosts && posts.length === 0 && (
         <EmptyState
-          title="No posts found"
-          description="You haven't published any questions or discussions in this category yet."
+          title="Chưa có bài đăng"
+          description="Bạn chưa có câu hỏi hoặc bài thảo luận trong mục này."
           action={
             <Link href="/posts/create">
               <Button variant="primary" size="sm">
-                Ask a Question
+                Tạo bài đăng
               </Button>
             </Link>
           }

@@ -4,8 +4,8 @@ import { Feed } from '../_components/Feed';
 import { LoadingState } from '@/components/shared/LoadingState';
 
 export const metadata: Metadata = {
-  title: 'Discussions',
-  description: 'Academic discussions and open-ended conversations.',
+  title: 'Thảo luận',
+  description: 'Trao đổi và chia sẻ kinh nghiệm học tập.',
 };
 
 export default function DiscussionsPage() {
@@ -13,8 +13,8 @@ export default function DiscussionsPage() {
     <Suspense fallback={<LoadingState variant="feed" count={8} />}>
       <Feed
         fixedPostType="discussion"
-        title="Discussions"
-        description="Open-ended academic conversations and knowledge exchange."
+        title="Thảo luận"
+        description="Chia sẻ kiến thức và trao đổi ý kiến."
       />
     </Suspense>
   );

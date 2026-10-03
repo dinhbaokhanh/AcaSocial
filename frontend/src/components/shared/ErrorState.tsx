@@ -8,8 +8,8 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({
-  title = 'Something went wrong',
-  message = 'An unexpected error occurred. Please try again.',
+  title = 'Đã xảy ra lỗi',
+  message = 'Đã xảy ra lỗi. Vui lòng thử lại.',
   onRetry,
 }: ErrorStateProps) {
   return (
@@ -24,7 +24,7 @@ export function ErrorState({
       <p className={styles.message}>{message}</p>
       {onRetry && (
         <Button variant="outline" size="sm" onClick={onRetry}>
-          Try again
+          Thử lại
         </Button>
       )}
     </div>

@@ -16,21 +16,21 @@ export function NotificationPanel() {
       <aside className={styles.panel} onClick={(event) => event.stopPropagation()}>
         <div className={styles.header}>
           <div>
-            <p className={styles.kicker}>Inbox</p>
-            <h3>Notifications</h3>
+            <p className={styles.kicker}>Hộp thông báo</p>
+            <h3>Thông báo</h3>
           </div>
-          <button type="button" className={styles.closeButton} onClick={closePanel} aria-label="Close notifications">
+          <button type="button" className={styles.closeButton} onClick={closePanel} aria-label="Đóng thông báo">
             ×
           </button>
         </div>
 
         <div className={styles.actions}>
-          <Button variant="ghost" size="sm" onClick={markAllRead}>Mark all read</Button>
+          <Button variant="ghost" size="sm" onClick={markAllRead}>Đánh dấu tất cả đã đọc</Button>
         </div>
 
         <div className={styles.list}>
           {notifications.length === 0 ? (
-            <div className={styles.empty}>No notifications yet.</div>
+            <div className={styles.empty}>Chưa có thông báo.</div>
           ) : (
             notifications.map((item) => (
               <button
@@ -49,11 +49,11 @@ export function NotificationPanel() {
                 <div className={styles.content}>
                   <div className={styles.row}>
                     <strong>{item.title}</strong>
-                    {!item.read && <span className={styles.new}>New</span>}
+                    {!item.read && <span className={styles.new}>Mới</span>}
                   </div>
                   <p>{item.body}</p>
                   {item.href && <small className={styles.openPost}>Xem bài viết →</small>}
-                  <small>{new Date(item.createdAt).toLocaleString()}</small>
+                  <small>{new Date(item.createdAt).toLocaleString('vi-VN')}</small>
                 </div>
               </button>
             ))
@@ -61,7 +61,7 @@ export function NotificationPanel() {
         </div>
 
         <div className={styles.footer}>
-          <span>{unreadCount} unread</span>
+          <span>{unreadCount} chưa đọc</span>
         </div>
       </aside>
     </div>

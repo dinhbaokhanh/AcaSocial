@@ -109,10 +109,10 @@ export function VotePill({
           .filter(Boolean)
           .join(" ")}
         onClick={() => handleVote("upvote")}
-        aria-label="Upvote"
+        aria-label="Bình chọn hữu ích"
         aria-pressed={localVote === "upvote"}
         disabled={disabled || isPending}
-        title={disabled ? "Sign in to vote" : "Upvote"}
+        title={disabled ? "Đăng nhập để bình chọn" : "Bình chọn hữu ích"}
       >
         <svg
           width="14"
@@ -146,10 +146,10 @@ export function VotePill({
           .filter(Boolean)
           .join(" ")}
         onClick={() => handleVote("downvote")}
-        aria-label="Downvote"
+        aria-label="Bình chọn không hữu ích"
         aria-pressed={localVote === "downvote"}
         disabled={disabled || isPending}
-        title={disabled ? "Sign in to vote" : "Downvote"}
+        title={disabled ? "Đăng nhập để bình chọn" : "Bình chọn không hữu ích"}
       >
         <svg
           width="14"

@@ -24,10 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body>
         <a href="#main-content" className="sr-only">
-          Skip to main content
+          Chuyển đến nội dung chính
         </a>
         <AuthProvider>
           <ToastProvider>

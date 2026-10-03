@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className={styles.footer}>
-        <p>© {new Date().getFullYear()} {SITE_NAME}. Academic platform for knowledge sharing.</p>
+        <p>© {new Date().getFullYear()} {SITE_NAME}. Cộng đồng học tập và trao đổi kiến thức.</p>
       </footer>
     </div>
   );

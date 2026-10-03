@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (err instanceof ApiRequestError) {
         setError(err.message);
       } else {
-        setError('Something went wrong. Please try again.');
+        setError('Đã xảy ra lỗi. Vui lòng thử lại.');
       }
     } finally {
       setLoading(false);
@@ -40,25 +40,24 @@ export default function LoginPage() {
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <h1 className={styles.title}>Welcome back</h1>
-        <p className={styles.subtitle}>Sign in to AcaSocial to continue.</p>
+        <h1 className={styles.title}>Đăng nhập</h1>
+        <p className={styles.subtitle}>Đăng nhập để tiếp tục sử dụng AcaSocial.</p>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form} noValidate>
         <Input
           id="login-identifier"
-          label="Username or Email"
+          label="Tên đăng nhập hoặc email"
           type="text"
           value={identifier}
           onChange={(e) => setIdentifier(e.target.value)}
-          placeholder="john_doe or john@example.com"
           required
           autoComplete="username"
           autoFocus
         />
         <Input
           id="login-password"
-          label="Password"
+          label="Mật khẩu"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -73,18 +72,18 @@ export default function LoginPage() {
 
         <div className={styles.forgotRow}>
           <Link href={ROUTES.FORGOT_PASSWORD} className={styles.forgotLink}>
-            Forgot password?
+            Quên mật khẩu?
           </Link>
         </div>
 
         <Button type="submit" fullWidth loading={loading} disabled={!identifier || !password}>
-          Sign in
+          Đăng nhập
         </Button>
       </form>
 
       <p className={styles.footer}>
-        Don&apos;t have an account?{' '}
-        <Link href={ROUTES.REGISTER}>Join AcaSocial</Link>
+        Chưa có tài khoản?{' '}
+        <Link href={ROUTES.REGISTER}>Đăng ký AcaSocial</Link>
       </p>
     </div>
   );

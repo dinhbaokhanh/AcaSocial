@@ -1,6 +1,25 @@
 import { API_BASE_URL } from '@/lib/constants';
 import type { ApiError } from '@/types';
 
+const ERROR_MESSAGES: Record<string, string> = {
+  'Email already registered': 'Email này đã được đăng ký.',
+  'User not found': 'Không tìm thấy tài khoản.',
+  'Account already verified': 'Tài khoản đã được xác minh.',
+  'Username already taken': 'Tên đăng nhập đã được sử dụng.',
+  'Invalid or expired OTP': 'Mã xác minh không hợp lệ hoặc đã hết hạn.',
+  'Invalid credentials': 'Tên đăng nhập, email hoặc mật khẩu không đúng.',
+  'Account not verified': 'Bạn cần xác minh email trước khi đăng nhập.',
+  'Invalid or expired refresh token': 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+  'Authentication required': 'Vui lòng đăng nhập để tiếp tục.',
+  'Admin or moderator role required': 'Chỉ quản trị viên hoặc kiểm duyệt viên có quyền thực hiện.',
+  'Post awaits approval': 'Bài đăng đang chờ duyệt.',
+  'Content changed; reload before reviewing': 'Bài đăng đã thay đổi. Vui lòng tải lại trước khi duyệt.',
+};
+
+function displayError(message: string): string {
+  return ERROR_MESSAGES[message] ?? message;
+}
+
 // --------------------------------------------------------------------------
 // Custom error class for API failures
 // --------------------------------------------------------------------------
@@ -10,7 +29,9 @@ export class ApiRequestError extends Error {
     public readonly body: ApiError,
   ) {
     super(
-      Array.isArray(body.message) ? body.message.join(', ') : body.message,
+      Array.isArray(body.message)
+        ? body.message.map(displayError).join(', ')
+        : displayError(body.message),
     );
     this.name = 'ApiRequestError';
   }
@@ -112,7 +133,7 @@ export async function apiFetch<T>(
       return new Promise<T>((resolve, reject) => {
         _pendingQueue.push((newToken) => {
           if (!newToken) {
-            reject(new ApiRequestError(401, { statusCode: 401, message: 'Unauthorized' }));
+            reject(new ApiRequestError(401, { statusCode: 401, message: 'Vui lòng đăng nhập để tiếp tục.' }));
           } else {
             apiFetch<T>(path, { ...options, isRetry: true }).then(resolve).catch(reject);
           }
@@ -129,7 +150,7 @@ export async function apiFetch<T>(
     queue.forEach((cb) => cb(newToken));
 
     if (!newToken) {
-      throw new ApiRequestError(401, { statusCode: 401, message: 'Session expired. Please log in again.' });
+      throw new ApiRequestError(401, { statusCode: 401, message: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.' });
     }
 
     return apiFetch<T>(path, { ...options, isRetry: true });

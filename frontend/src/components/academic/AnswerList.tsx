@@ -84,7 +84,7 @@ export function AnswerList({
                 disabled={busyId === answer.id}
                 onClick={() => void accept(answer)}
               >
-                Chấp nhận câu trả lời
+                Chọn làm lời giải
               </Button>
             )}
           </article>

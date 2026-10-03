@@ -26,7 +26,7 @@ export function AppShell({ children, rightRail }: AppShellProps) {
       <PageContainer>
         <div className={styles.body}>
           {/* Left sidebar */}
-          <aside className={styles.sidebar} aria-label="Site navigation">
+          <aside className={styles.sidebar} aria-label="Điều hướng trang">
             <SidebarNav />
           </aside>
 
@@ -37,7 +37,7 @@ export function AppShell({ children, rightRail }: AppShellProps) {
 
           {/* Right rail — optional */}
           {rightRail && (
-            <aside className={styles.rightRail} aria-label="Additional information">
+            <aside className={styles.rightRail} aria-label="Thông tin bổ sung">
               {rightRail}
             </aside>
           )}

@@ -7,7 +7,7 @@ interface AcceptedAnswerBadgeProps {
 
 export function AcceptedAnswerBadge({ compact = false }: AcceptedAnswerBadgeProps) {
   return (
-    <span className={styles.badge} title="Accepted answer" aria-label="Accepted answer">
+    <span className={styles.badge} title="Lời giải được chọn" aria-label="Lời giải được chọn">
       <svg
         className={styles.icon}
         width="14"
@@ -24,7 +24,7 @@ export function AcceptedAnswerBadge({ compact = false }: AcceptedAnswerBadgeProp
           strokeLinejoin="round"
         />
       </svg>
-      {!compact && <span>Accepted</span>}
+      {!compact && <span>Lời giải được chọn</span>}
     </span>
   );
 }

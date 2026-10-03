@@ -7,9 +7,9 @@ interface StatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<PostStatus, { label: string; variant: 'verified' | 'warning' | 'muted'; icon: string }> = {
-  solved:   { label: 'Solved',   variant: 'verified', icon: '✓' },
-  closed:   { label: 'Closed',   variant: 'warning',  icon: '⊘' },
-  open:     { label: 'Open',     variant: 'muted',    icon: '' },
+  solved:   { label: 'Đã có lời giải',   variant: 'verified', icon: '✓' },
+  closed:   { label: 'Đã đóng',   variant: 'warning',  icon: '⊘' },
+  open:     { label: 'Đang mở',     variant: 'muted',    icon: '' },
 };
 
 export function StatusBadge({ status, size = 'sm' }: StatusBadgeProps) {

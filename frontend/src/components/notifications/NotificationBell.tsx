@@ -10,9 +10,9 @@ export function NotificationBell() {
     <button
       type="button"
       className={styles.bell}
-      aria-label="Notifications"
+      aria-label="Thông báo"
       onClick={() => (unreadCount > 0 ? togglePanel() : openPanel())}
-      title="Notifications"
+      title="Thông báo"
     >
       <span aria-hidden="true">🔔</span>
       {unreadCount > 0 && <span className={styles.badge}>{unreadCount}</span>}

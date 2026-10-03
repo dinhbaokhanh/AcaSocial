@@ -7,24 +7,23 @@ import type { RoomType } from '@/types';
 import styles from './RoomChooser.module.css';
 
 const GROUPS: Array<{ type: RoomType; label: string; description: string }> = [
-  { type: 'major', label: 'Chuyên ngành', description: 'Cộng đồng chính thức theo chuyên ngành.' },
-  { type: 'course', label: 'Môn học', description: 'Hỏi đáp và kiến thức theo từng môn.' },
-  { type: 'event', label: 'Sự kiện', description: 'Seminar, cuộc thi và hoạt động có thời hạn.' },
-  { type: 'forum', label: 'General & ngoài lề', description: 'Cộng đồng chung và các chủ đề tự quản.' },
+  { type: 'major', label: 'Ngành học', description: 'Trao đổi cùng người học trong ngành.' },
+  { type: 'course', label: 'Môn học', description: 'Câu hỏi và thảo luận theo môn học.' },
+  { type: 'event', label: 'Sự kiện', description: 'Hội thảo, cuộc thi và hoạt động có thời hạn.' },
+  { type: 'forum', label: 'Trao đổi chung', description: 'Cộng đồng chung và các chủ đề tự quản.' },
 ];
 
 export function RoomChooser() {
   const { rooms, loading, error, selectRoom, refresh } = useRoom();
-  if (loading) return <LoadingState label="Đang tải room..." />;
+  if (loading) return <LoadingState label="Đang tải phòng thảo luận…" />;
 
   return (
     <section className={styles.wrap} aria-labelledby="room-title">
       <header className={styles.header}>
-        <span className={styles.eyebrow}>AcaSocial communities</span>
-        <h1 id="room-title">Chọn room trước khi tham gia</h1>
+        <span className={styles.eyebrow}>Cộng đồng AcaSocial</span>
+        <h1 id="room-title">Chọn phòng để xem bài đăng</h1>
         <p>
-          Feed chỉ hiển thị nội dung của room bạn chọn, tránh trộn bài học thuật,
-          sự kiện và nội dung ngoài lề vào cùng một nơi.
+          Chọn ngành học, môn học hoặc nhóm trao đổi bạn quan tâm.
         </p>
       </header>
 
@@ -37,7 +36,7 @@ export function RoomChooser() {
 
       {!error && rooms.length === 0 && (
         <div className={styles.empty}>
-          Chưa có room đang hoạt động. Admin cần tạo Major, Course hoặc General room trước.
+          Chưa có phòng thảo luận đang hoạt động.
         </div>
       )}
 
@@ -60,9 +59,9 @@ export function RoomChooser() {
                   className={styles.room}
                   onClick={() => selectRoom(room)}
                 >
-                  <span className={styles.roomType}>{room.roomType}</span>
+                  <span className={styles.roomType}>{group.label}</span>
                   <strong>{room.name}</strong>
-                  <span>{room.description || `r/${room.slug}`}</span>
+                  {room.description && <span>{room.description}</span>}
                 </button>
               ))}
             </div>

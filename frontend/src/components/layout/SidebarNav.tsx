@@ -17,7 +17,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   {
     href: '/',
-    label: 'Feed',
+    label: 'Bảng tin',
     exact: true,
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
@@ -28,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/questions',
-    label: 'Questions',
+    label: 'Câu hỏi',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
         <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
@@ -38,7 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/discussions',
-    label: 'Discussions',
+    label: 'Thảo luận',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
         <path d="M2 3h14a1 1 0 011 1v8a1 1 0 01-1 1H5l-3 2V4a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -47,7 +47,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     href: '/tags',
-    label: 'Tags',
+    label: 'Thẻ chủ đề',
     icon: (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
         <path d="M2 2h7l7 7-7 7-7-7V2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
@@ -69,7 +69,7 @@ export function SidebarNav() {
   }
 
   return (
-    <nav className={styles.nav} aria-label="Primary navigation">
+    <nav className={styles.nav} aria-label="Điều hướng chính">
       <ul role="list" className={styles.list}>
         {NAV_ITEMS.map((item) => (
           <li key={item.href}>
@@ -102,7 +102,7 @@ export function SidebarNav() {
       {user && ['admin', 'moderator'].includes(user.role) && <div className={styles.divider} />}
 
       <div className={styles.section}>
-        <p className={styles.sectionLabel}>Rooms</p>
+        <p className={styles.sectionLabel}>Phòng thảo luận</p>
         <ul role="list" className={styles.list}>
           {rooms.filter((room) => room.status === 'active').slice(0, 8).map((room) => (
             <li key={room.id}>
@@ -125,14 +125,14 @@ export function SidebarNav() {
               </button>
             </li>
           ))}
-          {rooms.length === 0 && <li className={styles.noRooms}>Chưa có room</li>}
+          {rooms.length === 0 && <li className={styles.noRooms}>Chưa có phòng thảo luận</li>}
         </ul>
       </div>
 
       <div className={styles.divider} />
 
       <div className={styles.section}>
-        <p className={styles.sectionLabel}>Account</p>
+        <p className={styles.sectionLabel}>Tài khoản</p>
         <ul role="list" className={styles.list}>
           <li>
             <Link
@@ -148,7 +148,7 @@ export function SidebarNav() {
                   <path d="M2 16c0-3.314 3.134-6 7-6s7 2.686 7 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
               </span>
-              <span className={styles.label}>Profile</span>
+              <span className={styles.label}>Hồ sơ</span>
             </Link>
           </li>
         </ul>

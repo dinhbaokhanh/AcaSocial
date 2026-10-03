@@ -22,7 +22,7 @@ function SkeletonCard() {
 }
 
 export function LoadingState({
-  label = 'Loading…',
+  label = 'Đang tải…',
   variant = 'spinner',
   count = 5,
 }: LoadingStateProps) {

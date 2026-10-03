@@ -13,7 +13,7 @@ export default function TagDetailPage({ params }: TagDetailPageProps) {
   const decodedSlug = decodeURIComponent(slug);
 
   return (
-    <Suspense fallback={<LoadingState label="Loading tag discussions..." />}>
+    <Suspense fallback={<LoadingState label="Đang tải bài đăng theo thẻ…" />}>
       <Feed
         fixedTag={decodedSlug}
         title={`Posts tagged #${decodedSlug}`}

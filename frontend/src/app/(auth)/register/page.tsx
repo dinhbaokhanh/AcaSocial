@@ -33,7 +33,7 @@ export default function RegisterPage() {
       await authApi.register({ fullName, email, password });
       setStep('otp');
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : 'Registration failed.');
+      setError(err instanceof ApiRequestError ? err.message : 'Không thể đăng ký tài khoản.');
     } finally {
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function RegisterPage() {
       await authApi.verifyOtp({ email, otp, username });
       setStep('success');
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : 'OTP verification failed.');
+      setError(err instanceof ApiRequestError ? err.message : 'Mã xác minh không hợp lệ hoặc đã hết hạn.');
     } finally {
       setLoading(false);
     }
@@ -58,7 +58,7 @@ export default function RegisterPage() {
     try {
       await authApi.resendOtp(email);
     } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : 'Failed to resend OTP.');
+      setError(err instanceof ApiRequestError ? err.message : 'Không thể gửi lại mã xác minh.');
     }
   }
 
@@ -67,10 +67,10 @@ export default function RegisterPage() {
       <div className={styles.card}>
         <div className={styles.success}>
           <span className={styles.successIcon} aria-hidden="true">✓</span>
-          <h1 className={styles.title}>Account activated!</h1>
-          <p className={styles.subtitle}>Your account is ready. Sign in to get started.</p>
+          <h1 className={styles.title}>Tài khoản đã được kích hoạt</h1>
+          <p className={styles.subtitle}>Bạn có thể đăng nhập bằng tài khoản vừa tạo.</p>
           <Button fullWidth onClick={() => window.location.replace(ROUTES.LOGIN)}>
-            Go to Sign in
+            Đến trang đăng nhập
           </Button>
         </div>
       </div>
@@ -81,15 +81,15 @@ export default function RegisterPage() {
     return (
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <h1 className={styles.title}>Check your email</h1>
+          <h1 className={styles.title}>Xác minh email</h1>
           <p className={styles.subtitle}>
-            We sent a 6-digit code to <strong>{email}</strong>. Verify your email, then choose your username to activate the account.
+            Mã xác minh gồm 6 chữ số đã được gửi đến <strong>{email}</strong>. Nhập mã và chọn tên đăng nhập để kích hoạt tài khoản.
           </p>
         </div>
         <form onSubmit={handleVerifyOtp} className={styles.form} noValidate>
           <Input
             id="otp-code"
-            label="Verification code"
+            label="Mã xác minh"
             type="text"
             inputMode="numeric"
             pattern="[0-9]*"
@@ -102,24 +102,23 @@ export default function RegisterPage() {
           />
           <Input
             id="verified-username"
-            label="Choose a username"
+            label="Chọn tên đăng nhập"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value.toLowerCase())}
-            placeholder="john_doe"
-            hint="5–20 characters, lowercase letters, numbers and _"
+            hint="Từ 5–20 ký tự, gồm chữ thường, chữ số và dấu gạch dưới (_)."
             required
             autoComplete="username"
           />
           {error && <p className={styles.errorMsg} role="alert">{error}</p>}
           <Button type="submit" fullWidth loading={loading} disabled={otp.length < 6 || username.length < 5}>
-            Verify account
+            Xác minh tài khoản
           </Button>
         </form>
         <p className={styles.footer}>
-          Didn&apos;t receive it?{' '}
+          Chưa nhận được mã?{' '}
           <button className={styles.linkBtn} onClick={handleResendOtp} type="button">
-            Resend code
+            Gửi lại mã
           </button>
         </p>
       </div>
@@ -129,13 +128,13 @@ export default function RegisterPage() {
   return (
     <div className={styles.card}>
       <div className={styles.cardHeader}>
-        <h1 className={styles.title}>Join AcaSocial</h1>
-        <p className={styles.subtitle}>Create your academic account.</p>
+        <h1 className={styles.title}>Đăng ký AcaSocial</h1>
+        <p className={styles.subtitle}>Tạo tài khoản để tham gia các phòng học tập.</p>
       </div>
       <form onSubmit={handleRegister} className={styles.form} noValidate>
         <Input
           id="reg-fullname"
-          label="Full name"
+          label="Họ và tên"
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
@@ -149,18 +148,17 @@ export default function RegisterPage() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="john@example.com"
           required
           autoComplete="email"
         />
         <Input
           id="reg-password"
-          label="Password"
+          label="Mật khẩu"
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          hint="Min 8 characters with uppercase, lowercase, and a number"
+          hint="Ít nhất 8 ký tự, gồm chữ hoa, chữ thường và chữ số."
           required
           autoComplete="new-password"
         />
@@ -171,12 +169,12 @@ export default function RegisterPage() {
           loading={loading}
           disabled={!fullName || !email || !password}
         >
-          Create account
+          Tạo tài khoản
         </Button>
       </form>
       <p className={styles.footer}>
-        Already have an account?{' '}
-        <Link href={ROUTES.LOGIN}>Sign in</Link>
+        Đã có tài khoản?{' '}
+        <Link href={ROUTES.LOGIN}>Đăng nhập</Link>
       </p>
     </div>
   );
