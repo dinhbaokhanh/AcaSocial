@@ -15,6 +15,9 @@ export enum MediaCategory {
 
 @Entity('media_assets')
 export class MediaAsset {
+  @Column({ name: 'scan_status', type: 'varchar', length: 20, default: 'unverified' })
+  scanStatus: 'clean' | 'unverified';
+  @Column({ name: 'scanned_at', type: 'timestamptz', nullable: true }) scannedAt: Date | null;
   // UUID nội bộ — dùng làm path param trong API (/media/:id)
   @PrimaryGeneratedColumn('uuid')
   id: string;

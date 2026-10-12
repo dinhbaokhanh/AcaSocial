@@ -358,10 +358,12 @@
    Sticky reply bar — fixed at viewport bottom
    ──────────────────────────────────────────────────────────── */
 .replyBar {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
+  width: 100%;
+  min-width: 0;
+  max-height: 70dvh;
+  overflow-y: auto;
   z-index: var(--z-sticky);
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-outline);
@@ -434,10 +436,10 @@
    Spacer: ensure content isn't hidden behind sticky bar
    ──────────────────────────────────────────────────────────── */
 .replyBarSpacer {
-  height: 60px; /* matches collapsed bar height */
+  height: 12px;
 }
 .replyBarSpacer[data-open="true"] {
-  height: 240px;
+  height: 12px;
 }
 
 /* ────────────────────────────────────────────────────────────

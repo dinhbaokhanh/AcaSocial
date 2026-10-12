@@ -19,6 +19,8 @@ export class ContentPresenter {
       deletedAt?: Date | null;
       moderationStatus?: string;
       visibility?: string;
+      pendingRevision?: unknown;
+      moderationNote?: string;
     },
   >(items: T[], user: GatewayUser, type: TargetType) {
     const votes =
@@ -63,6 +65,8 @@ export class ContentPresenter {
     }
     return items.map((item) => ({
       ...item,
+      pendingRevision: item.authorId === user.id ? item.pendingRevision : undefined,
+      moderationNote: item.authorId === user.id || ['admin', 'moderator'].includes(user.role ?? '') ? item.moderationNote : undefined,
       authorId: item.isAnonymous || item.deletedAt ? null : item.authorId,
       author:
         item.isAnonymous || item.deletedAt
@@ -70,7 +74,7 @@ export class ContentPresenter {
           : profiles.find((p) => p.id === item.authorId),
       isMine: !!user.id && item.authorId === user.id,
       canManage: !item.deletedAt && canManage(item.authorId, user),
-      canVote: (type !== TargetType.DISCUSSION || (item.moderationStatus === 'approved' && item.visibility === 'visible')) && !!user.id && item.authorId !== user.id && !item.deletedAt,
+      canVote: (type !== TargetType.DISCUSSION || (['pending', 'approved'].includes(item.moderationStatus ?? '') && item.visibility === 'visible')) && !!user.id && item.authorId !== user.id && !item.deletedAt,
       myVote: votes.find((v) => v.targetId === item.id)?.voteType ?? null,
       ...(item.deletedAt
         ? { content: '[Bình luận đã xóa]', isAnonymous: true }

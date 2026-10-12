@@ -32,6 +32,7 @@ type GatewayConfig struct {
 
 // EndpointConfig định nghĩa một API Route mà Gateway sẽ mở ra để Frontend gọi
 type EndpointConfig struct {
+	TimeoutSeconds  int      `json:"timeout_seconds"`
 	Endpoint        string   `json:"endpoint"`
 	Method          string   `json:"method"`
 	AuthRequired    bool     `json:"auth_required"`

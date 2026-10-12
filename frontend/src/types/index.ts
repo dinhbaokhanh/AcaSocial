@@ -67,7 +67,11 @@ export interface RoomAcademicBinding {
 }
 
 export interface Room {
+  reviewPolicy: 'direct' | 'approval';
+  policyLocked: boolean;
+  effectivePostPermission?: 'direct' | 'approval' | 'blocked';
   canManage?: boolean;
+  canConfigurePolicy?: boolean;
   id: string;
   slug: string;
   name: string;
@@ -86,6 +90,8 @@ export interface Room {
 // --------------------------------------------------------------------------
 
 export interface Discussion {
+  pendingRevision?: { title: string; content: string; isAnonymous: boolean; tagIds: string[]; mediaIds: string[] } | null;
+  moderationNote?: string;
   isMine?: boolean;
   canManage?: boolean;
   canVote?: boolean;
@@ -266,6 +272,7 @@ export interface CreateDiscussionPayload {
 }
 
 export interface UpdateDiscussionPayload {
+  expectedVersion?: number;
   mediaIds?: string[];
   isAnonymous?: boolean;
   title?: string;

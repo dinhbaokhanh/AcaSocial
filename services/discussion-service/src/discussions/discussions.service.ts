@@ -59,13 +59,20 @@ export class DiscussionsService {
 
     // Validation: academic context phải khớp với room binding
     if (
-      selectedContext && roomContext?.binding?.majorId &&
+      selectedContext &&
+      roomContext?.binding?.majorId &&
       selectedContext.majorId !== roomContext.binding.majorId
-    ) throw new BadRequestException('Selected course does not belong to the room major');
+    )
+      throw new BadRequestException(
+        'Selected course does not belong to the room major',
+      );
     if (
-      selectedContext && roomContext?.binding?.curriculumCourseId &&
-      selectedContext.curriculumCourseId !== roomContext.binding.curriculumCourseId
-    ) throw new BadRequestException('Course room fixes the academic context');
+      selectedContext &&
+      roomContext?.binding?.curriculumCourseId &&
+      selectedContext.curriculumCourseId !==
+        roomContext.binding.curriculumCourseId
+    )
+      throw new BadRequestException('Course room fixes the academic context');
     const id = await this.db.transaction(async (m) => {
       const tagIds = [...new Set(dto.tagIds ?? [])];
       const tags = await this.tags(m, tagIds);
@@ -73,7 +80,7 @@ export class DiscussionsService {
         Discussion,
         m.create(Discussion, {
           moderationStatus: 'pending',
-          visibility: 'held',
+          visibility: roomContext.requiresApproval ? 'held' : 'visible',
           title: dto.title,
           content: dto.content,
           postType: dto.postType,
@@ -81,23 +88,33 @@ export class DiscussionsService {
           isAnonymous: dto.isAnonymous ?? false,
           tags,
           roomId: resolvedRoomId,
-          majorId: selectedContext?.majorId ?? roomContext?.binding?.majorId ?? null,
-          curriculumId: selectedContext?.curriculumId ?? roomContext?.binding?.curriculumId ?? null,
-          courseId: selectedContext?.courseId ?? roomContext?.binding?.courseId ?? null,
+          majorId:
+            selectedContext?.majorId ?? roomContext?.binding?.majorId ?? null,
+          curriculumId:
+            selectedContext?.curriculumId ??
+            roomContext?.binding?.curriculumId ??
+            null,
+          courseId:
+            selectedContext?.courseId ?? roomContext?.binding?.courseId ?? null,
           curriculumCourseId:
-            selectedContext?.curriculumCourseId ?? roomContext?.binding?.curriculumCourseId ?? null,
+            selectedContext?.curriculumCourseId ??
+            roomContext?.binding?.curriculumCourseId ??
+            null,
         }),
       );
       await this.attach(m, post.id, dto.mediaIds ?? []);
       await this.tagCounts(m, tagIds, 1);
-      await m.save(DiscussionRevision, m.create(DiscussionRevision, {
-        discussionId: post.id,
-        contentVersion: 1,
-        title: post.title,
-        content: post.content,
-        revisionType: 'semantic',
-        editedBy: authorId,
-      }));
+      await m.save(
+        DiscussionRevision,
+        m.create(DiscussionRevision, {
+          discussionId: post.id,
+          contentVersion: 1,
+          title: post.title,
+          content: post.content,
+          revisionType: 'semantic',
+          editedBy: authorId,
+        }),
+      );
 
       await this.outbox.event(m, 'discussion.created', {
         discussionId: post.id,
@@ -124,16 +141,24 @@ export class DiscussionsService {
       .createQueryBuilder('d')
       .leftJoinAndSelect('d.tags', 'tag')
       .leftJoinAndSelect('d.media', 'media');
-    if (!['admin', 'moderator'].includes(user.role ?? '')) qb.andWhere("((d.moderationStatus = 'approved' AND d.visibility = 'visible') OR d.authorId = :reviewViewer)", { reviewViewer: user.id });
-    if (postType) qb.andWhere('d.postType = :postType', { postType });
-    if (filter.roomId) qb.andWhere('d.roomId = :roomId', { roomId: filter.roomId });
     if (!['admin', 'moderator'].includes(user.role ?? ''))
-      qb.andWhere(`(d.roomId IS NULL OR d.authorId = :viewer OR NOT EXISTS (
+      qb.andWhere(
+        "((d.moderationStatus IN ('pending', 'approved') AND d.visibility = 'visible') OR d.authorId = :reviewViewer)",
+        { reviewViewer: user.id },
+      );
+    if (postType) qb.andWhere('d.postType = :postType', { postType });
+    if (filter.roomId)
+      qb.andWhere('d.roomId = :roomId', { roomId: filter.roomId });
+    if (!['admin', 'moderator'].includes(user.role ?? ''))
+      qb.andWhere(
+        `(d.roomId IS NULL OR d.authorId = :viewer OR NOT EXISTS (
         SELECT 1 FROM rooms private_room WHERE private_room.id = d.room_id AND private_room.visibility = 'private'
       ) OR EXISTS (
         SELECT 1 FROM room_memberships rm
         WHERE rm.room_id = d.room_id AND rm.user_id = :viewer AND rm.status = 'active'
-      ))`, { viewer: user.id ?? null });
+      ))`,
+        { viewer: user.id ?? null },
+      );
     if (status) qb.andWhere('d.status = :status', { status });
     if (authorId)
       qb.andWhere('d.authorId = :authorId AND d.isAnonymous = false', {
@@ -185,13 +210,16 @@ export class DiscussionsService {
     if (countView)
       await this.db.getRepository(Discussion).increment({ id }, 'viewCount', 1);
     const acceptedAnswer = post.acceptedAnswerId
-      ? await this.db.getRepository(Answer).findOneBy({ id: post.acceptedAnswerId })
-      : null;
-    const answer = !acceptedAnswer && post.acceptedCommentId
       ? await this.db
-          .getRepository(Comment)
-          .findOneBy({ id: post.acceptedCommentId })
+          .getRepository(Answer)
+          .findOneBy({ id: post.acceptedAnswerId })
       : null;
+    const answer =
+      !acceptedAnswer && post.acceptedCommentId
+        ? await this.db
+            .getRepository(Comment)
+            .findOneBy({ id: post.acceptedCommentId })
+        : null;
     const [result] = await this.presenter.many(
       [post],
       user,
@@ -199,26 +227,91 @@ export class DiscussionsService {
     );
     return {
       ...result,
-      acceptedAnswer: (acceptedAnswer ?
-        (await this.presenter.many([acceptedAnswer], user, TargetType.ANSWER))[0] : null) ?? (answer
-        ? (await this.presenter.many([answer], user, TargetType.COMMENT))[0]
-        : null),
+      acceptedAnswer:
+        (acceptedAnswer
+          ? (
+              await this.presenter.many(
+                [acceptedAnswer],
+                user,
+                TargetType.ANSWER,
+              )
+            )[0]
+          : null) ??
+        (answer
+          ? (await this.presenter.many([answer], user, TargetType.COMMENT))[0]
+          : null),
     };
   }
   async update(id: string, user: GatewayUser, dto: UpdateDiscussionDto) {
     authenticated(user);
     await this.media.validate(dto.mediaIds, user.id!);
-    const tagIds = dto.tagIds === undefined ? undefined : [...new Set(dto.tagIds)];
+    const tagIds =
+      dto.tagIds === undefined ? undefined : [...new Set(dto.tagIds)];
     await this.db.transaction(async (m) => {
       const post = await lockPost(m, id);
       requireManager(post.authorId, user);
       requireOpen(post);
-      if (dto.expectedVersion !== undefined && post.contentVersion !== dto.expectedVersion)
+      const policy = post.roomId
+        ? await this.rooms.assertCanPost(post.roomId, {
+            id: post.authorId,
+            role: user.role,
+          })
+        : null;
+      if (post.pendingRevision && dto.expectedVersion === undefined)
+        throw new ConflictException('Discussion changed; reload');
+      if (
+        dto.expectedVersion !== undefined &&
+        post.contentVersion !== dto.expectedVersion
+      )
         throw new ConflictException('Discussion changed; reload');
       const contentChanged =
         (dto.title !== undefined && dto.title !== post.title) ||
         (dto.content !== undefined && dto.content !== post.content) ||
-        tagIds !== undefined || dto.mediaIds !== undefined;
+        tagIds !== undefined ||
+        dto.mediaIds !== undefined ||
+        (dto.isAnonymous !== undefined &&
+          dto.isAnonymous !== post.isAnonymous) ||
+        (!!post.pendingRevision &&
+          (dto.title !== undefined || dto.content !== undefined));
+      if (
+        contentChanged &&
+        (policy?.requiresApproval || !!post.pendingRevision) &&
+        post.visibility === 'visible'
+      ) {
+        const full = await m.findOneOrFail(Discussion, {
+          where: { id },
+          relations: ['tags', 'media'],
+        });
+        const previous = post.pendingRevision;
+        if (tagIds !== undefined) await this.tags(m, tagIds);
+        post.pendingRevision = {
+          title: dto.title ?? previous?.title ?? post.title,
+          content: dto.content ?? previous?.content ?? post.content,
+          isAnonymous:
+            dto.isAnonymous ?? previous?.isAnonymous ?? post.isAnonymous,
+          tagIds: tagIds ?? previous?.tagIds ?? full.tags.map((t) => t.id),
+          mediaIds:
+            dto.mediaIds ??
+            previous?.mediaIds ??
+            full.media.map((a) => a.mediaId),
+        };
+        post.contentVersion += 1;
+        post.moderationStatus = 'pending';
+        post.moderationNote = '';
+        await m.save(post);
+        await m.save(
+          DiscussionRevision,
+          m.create(DiscussionRevision, {
+            discussionId: id,
+            contentVersion: post.contentVersion,
+            title: post.pendingRevision.title,
+            content: post.pendingRevision.content,
+            revisionType: dto.revisionType ?? 'semantic',
+            editedBy: user.id!,
+          }),
+        );
+        return;
+      }
       if (tagIds !== undefined) {
         const tags = await this.tags(m, tagIds);
         const old = await m.findOneOrFail(Discussion, {
@@ -250,21 +343,34 @@ export class DiscussionsService {
       if (contentChanged) {
         post.contentVersion += 1;
         post.moderationStatus = 'pending';
-        post.visibility = 'held';
-        await m.save(DiscussionRevision, m.create(DiscussionRevision, {
-          discussionId: post.id,
-          contentVersion: post.contentVersion,
-          title: post.title,
-          content: post.content,
-          revisionType: dto.revisionType ?? 'semantic',
-          editedBy: user.id!,
-        }));
-        { // Any edit requires approval again, so active acceptance is revoked.
+        post.visibility =
+          policy?.requiresApproval || post.visibility !== 'visible'
+            ? 'held'
+            : 'visible';
+        post.pendingRevision = null;
+        post.moderationNote = '';
+        await m.save(
+          DiscussionRevision,
+          m.create(DiscussionRevision, {
+            discussionId: post.id,
+            contentVersion: post.contentVersion,
+            title: post.title,
+            content: post.content,
+            revisionType: dto.revisionType ?? 'semantic',
+            editedBy: user.id!,
+          }),
+        );
+        {
+          // Content changes revoke acceptance so the author can reassess the answer.
           if (post.acceptedAnswerId) {
             await m.update(
               AnswerAcceptance,
               { discussionId: post.id, revokedAt: IsNull() },
-              { revokedAt: new Date(), revokedBy: user.id!, revokeReason: 'question_edited' },
+              {
+                revokedAt: new Date(),
+                revokedBy: user.id!,
+                revokeReason: 'question_edited',
+              },
             );
             post.acceptedAnswerId = null;
             post.status = PostStatus.OPEN;
@@ -291,7 +397,9 @@ export class DiscussionsService {
       });
       await m.softDelete(Discussion, { id });
       await this.outbox.event(m, 'content.deleted', {
-        entityType: 'discussion', entityId: id, roomId: post.roomId,
+        entityType: 'discussion',
+        entityId: id,
+        roomId: post.roomId,
       });
       await this.tagCounts(
         m,
@@ -368,7 +476,10 @@ export class DiscussionsService {
   }
   private async tags(m: EntityManager, ids: string[]) {
     const tags = await m.findBy(Tag, { id: In(ids) });
-    if (tags.length !== ids.length || tags.some((tag) => tag.status !== 'active'))
+    if (
+      tags.length !== ids.length ||
+      tags.some((tag) => tag.status !== 'active')
+    )
       throw new BadRequestException('One or more active tags do not exist');
     return tags;
   }

@@ -70,3 +70,6 @@
   color: var(--color-text-muted);
   margin: 0;
 }
+
+.wrapper { min-width: 0; max-width: 100%; }
+.textarea { min-width: 0; max-width: 100%; box-sizing: border-box; }

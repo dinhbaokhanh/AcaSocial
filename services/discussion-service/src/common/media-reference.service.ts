@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 @Injectable()
 export class MediaReferenceService {
   constructor(private readonly config: ConfigService) {}
-  async validate(ids: string[] | undefined, ownerId: string) {
+  async validate(ids: string[] | undefined, ownerId?: string) {
     for (const id of ids ?? []) {
       let response: Response;
       try {
@@ -28,8 +28,15 @@ export class MediaReferenceService {
         throw new BadRequestException('Attachment not found');
       if (!response.ok)
         throw new ServiceUnavailableException('Cannot verify attachment');
-      const asset = (await response.json()) as { uploadedBy?: string };
-      if (asset.uploadedBy !== ownerId)
+      const asset = (await response.json()) as {
+        uploadedBy?: string;
+        scanStatus?: string;
+      };
+      if (asset.scanStatus !== 'clean')
+        throw new BadRequestException(
+          'File chưa được quét virus. Vui lòng tải lại hoặc gỡ file.',
+        );
+      if (ownerId && asset.uploadedBy !== ownerId)
         throw new ForbiddenException('You can only attach your own files');
     }
   }

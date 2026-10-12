@@ -66,3 +66,14 @@ temp/
 *.swp
 *.swo
 ~$*
+
+# AI assistant instructions
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+GEMINI.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.github/copilot-instructions.md

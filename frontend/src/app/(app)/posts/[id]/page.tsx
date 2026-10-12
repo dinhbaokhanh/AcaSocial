@@ -1,4 +1,5 @@
 "use client";
+import { useLinkSafety } from '@/components/shared/LinkSafety';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
@@ -50,6 +51,7 @@ const STATUS_META: Record<
 /* ── Component ──────────────────────────────────────────── */
 export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const confirmLinks = useLinkSafety();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
 
@@ -106,7 +108,7 @@ export default function PostDetailPage() {
 
   const isQuestion = post.postType === "question";
   const statusInfo = STATUS_META[post.status] ?? STATUS_META.open;
-  const canReply = isAuthenticated && post.status !== "closed" && post.moderationStatus === 'approved' && post.visibility === 'visible';
+  const canReply = isAuthenticated && post.status !== "closed" && ['pending', 'approved'].includes(post.moderationStatus ?? '') && post.visibility === 'visible';
 
   const authorName = post.isAnonymous
     ? "Người dùng ẩn danh"
@@ -116,8 +118,8 @@ export default function PostDetailPage() {
 
   return (
     <>
-      {post.moderationStatus === 'pending' && <p role="status">Bài viết đang chờ admin hoặc moderator duyệt.</p>}
-      {post.moderationStatus === 'hidden' && <p role="status">Bài viết chưa được admin hoặc moderator duyệt. Bạn có thể sửa và gửi lại.</p>}
+
+      {post.moderationStatus === 'hidden' && <p role="status">Bài viết đã bị ẩn sau khi kiểm duyệt. Bạn có thể sửa và gửi lại.</p>}
       <article className={styles.wrap}>
         {/* ── Header ── */}
         <header className={styles.header}>
@@ -163,6 +165,10 @@ export default function PostDetailPage() {
           <p className={styles.submitError} role="alert">{error}</p>
         )}
 
+        {(post.visibility === 'held' || post.visibility === 'hidden' || (post.isMine && post.pendingRevision)) && <div className={styles.statusBanner} role="status">
+          {post.pendingRevision ? (post.moderationStatus === 'pending' ? 'Bản sửa đang chờ duyệt. Bản đã đăng vẫn hiển thị.' : 'Bản sửa chưa được chấp nhận. Bạn có thể chỉnh sửa và gửi lại.') : post.visibility === 'held' ? 'Post đang chờ duyệt. Chỉ bạn và người kiểm duyệt có thể xem.' : 'Post chưa được chấp nhận hoặc đã bị ẩn.'}
+          {post.moderationNote && <p>Lý do: {post.moderationNote}</p>}
+        </div>}
         {/* ── Post body ── */}
         <div className={styles.postBody}>
           <VotePill
@@ -216,8 +222,8 @@ export default function PostDetailPage() {
               disabled={busy || post.status === "closed"}
               onClick={() => {
                 setEditing(true);
-                setTitle(post.title);
-                setContent(post.content);
+                setTitle(post.pendingRevision?.title ?? post.title);
+                setContent(post.pendingRevision?.content ?? post.content);
               }}
             >
               Sửa bài
@@ -247,7 +253,8 @@ export default function PostDetailPage() {
             onSubmit={(e) => {
               e.preventDefault();
               void act(async () => {
-                await discussionsApi.update(id, { title, content });
+                if (!(await confirmLinks(title + '\n' + content))) return;
+                await discussionsApi.update(id, { title, content, expectedVersion: post.contentVersion });
                 setEditing(false);
               });
             }}
@@ -301,7 +308,7 @@ export default function PostDetailPage() {
           <p className={styles.signInPrompt}>
             {post.status === "closed"
               ? "Bài viết đã đóng."
-              : <a href="/login">Đăng nhập để tham gia trao đổi</a>}
+              : !isAuthenticated ? <a href="/login">Đăng nhập để tham gia trao đổi</a> : "Bạn có thể trao đổi sau khi post được duyệt."}
           </p>
         )}
 
@@ -338,6 +345,7 @@ export default function PostDetailPage() {
               onSubmit={(e) => {
                 e.preventDefault();
                 void act(async () => {
+                  if (!(await confirmLinks(text))) return;
                   const payload = { content: text.trim(), isAnonymous: anonymous };
                   if (isQuestion) await answersApi.create(id, payload);
                   else await commentsApi.create(id, payload);

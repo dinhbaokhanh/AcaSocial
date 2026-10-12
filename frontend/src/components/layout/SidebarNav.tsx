@@ -89,7 +89,7 @@ export function SidebarNav() {
 
       <div className={styles.divider} />
 
-      {user && ['admin', 'moderator'].includes(user.role) && (
+      {user && (['admin', 'moderator'].includes(user.role) || rooms.some(room => room.canManage)) && (
         <div className={styles.section}>
           <p className={styles.sectionLabel}>Quản trị</p>
           <ul role="list" className={styles.list}>
@@ -99,7 +99,7 @@ export function SidebarNav() {
         </div>
       )}
 
-      {user && ['admin', 'moderator'].includes(user.role) && <div className={styles.divider} />}
+      {user && (['admin', 'moderator'].includes(user.role) || rooms.some(room => room.canManage)) && <div className={styles.divider} />}
 
       <div className={styles.section}>
         <p className={styles.sectionLabel}>Phòng thảo luận</p>

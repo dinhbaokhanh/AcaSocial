@@ -1,3 +1,4 @@
+import { LinkSafety } from '@/components/shared/LinkSafety';
 import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
 import { SidebarNav } from './SidebarNav';
@@ -20,7 +21,7 @@ interface AppShellProps {
  */
 export function AppShell({ children, rightRail }: AppShellProps) {
   return (
-    <div className={styles.shell}>
+    <LinkSafety><div className={styles.shell}>
       <AppHeader />
       <NotificationPanel />
       <PageContainer>
@@ -43,6 +44,6 @@ export function AppShell({ children, rightRail }: AppShellProps) {
           )}
         </div>
       </PageContainer>
-    </div>
+    </div></LinkSafety>
   );
 }

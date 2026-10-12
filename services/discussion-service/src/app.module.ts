@@ -1,3 +1,4 @@
+import { RoomPostPolicy1791200000000 } from './events/room-post-policy.migration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -31,6 +32,8 @@ import { TrustGovernance1790300000000 } from './events/trust-governance.migratio
 import { RemoveAcademicVerification1790800000000 } from './events/remove-academic-verification.migration';
 import { SeedProvenance1790910000000 } from './events/seed-provenance.migration';
 
+import { PostPublication1791000000000 } from './events/post-publication.migration';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -58,7 +61,7 @@ import { SeedProvenance1790910000000 } from './events/seed-provenance.migration'
         synchronize:
           config.get<string>('NODE_ENV') !== 'production' &&
           config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
-        migrations: [DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000],
+        migrations: [DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000],
         migrationsRun: true,
         logging: false,
       }),

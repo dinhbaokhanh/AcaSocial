@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MediaAsset } from './media/media.entity';
 import { MediaModule } from './media/media.module';
+import { MediaScan1791200000001 } from './media/media-scan.migration';
 
 @Module({
   imports: [
@@ -21,6 +22,8 @@ import { MediaModule } from './media/media.module';
         database: config.get<string>('DB_NAME'),
         entities: [MediaAsset],
         synchronize: true,
+        migrations: [MediaScan1791200000001],
+        migrationsRun: true,
         logging: false,
       }),
     }),

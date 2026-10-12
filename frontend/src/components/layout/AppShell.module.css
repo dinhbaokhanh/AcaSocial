@@ -7,7 +7,7 @@
 
 .body {
   display: grid;
-  grid-template-columns: var(--sidebar-width) 1fr var(--right-rail-width);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--right-rail-width);
   gap: var(--space-3);
   align-items: start;
   padding-top: var(--space-3);
@@ -16,7 +16,7 @@
 
 /* When there's no right rail, collapse that column */
 .body:not(:has(.rightRail)) {
-  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
 }
 
 .sidebar {
@@ -44,7 +44,7 @@
 /* Tablet — hide right rail */
 @media (max-width: 1024px) {
   .body {
-    grid-template-columns: var(--sidebar-width) 1fr !important;
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) !important;
   }
   .rightRail { display: none; }
 }

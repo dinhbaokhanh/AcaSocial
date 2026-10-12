@@ -15,7 +15,7 @@ export function authenticated(user: GatewayUser): string {
   return user.id;
 }
 export function approved(content: { moderationStatus: string; visibility: string }): boolean {
-  return content.moderationStatus === 'approved' && content.visibility === 'visible';
+  return ['pending', 'approved'].includes(content.moderationStatus) && content.visibility === 'visible';
 }
 export function requireReadable(
   content: { moderationStatus: string; visibility: string; authorId: string }, user: GatewayUser,

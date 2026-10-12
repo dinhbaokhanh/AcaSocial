@@ -252,7 +252,8 @@
           ],
           "url_pattern": "/media/upload"
         }
-      ]
+      ],
+      "timeout_seconds": 60
     },
     {
       "endpoint": "/api/media/{id}",
@@ -1152,10 +1153,6 @@
       "endpoint": "/api/moderation/pending",
       "method": "GET",
       "auth_required": true,
-      "required_roles": [
-        "admin",
-        "moderator"
-      ],
       "backend": [
         {
           "host": [
@@ -1169,16 +1166,51 @@
       "endpoint": "/api/moderation/{type}/{id}",
       "method": "PATCH",
       "auth_required": true,
-      "required_roles": [
-        "admin",
-        "moderator"
-      ],
       "backend": [
         {
           "host": [
             "${DISCUSSION_SERVICE_URL}"
           ],
           "url_pattern": "/moderation/{type}/{id}"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/members",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/members"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/policy-history",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/policy-history"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/policy",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/policy"
         }
       ]
     }

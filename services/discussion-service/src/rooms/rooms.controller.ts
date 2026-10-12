@@ -1,8 +1,24 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { GatewayUser } from '../common/decorators/current-user.decorator';
 import { GatewayAuthGuard } from '../common/guards/gateway-auth.guard';
-import { CreateRoomDto, CreateRoomRuleDto, UpdateMembershipDto, UpdateRoomStatusDto } from './room.dto';
+import {
+  CreateRoomDto,
+  CreateRoomRuleDto,
+  UpdateMembershipDto,
+  UpdateRoomStatusDto,
+  UpdateRoomPolicyDto,
+} from './room.dto';
 import { RoomType } from './room.entity';
 import { RoomsService } from './rooms.service';
 
@@ -23,7 +39,9 @@ export class RoomsController {
   findOne(
     @Param('idOrSlug') idOrSlug: string,
     @CurrentUser() user: GatewayUser,
-  ) { return this.rooms.findOne(idOrSlug, user); }
+  ) {
+    return this.rooms.findOne(idOrSlug, user);
+  }
 
   @Post()
   @UseGuards(GatewayAuthGuard)
@@ -33,7 +51,10 @@ export class RoomsController {
 
   @Post(':id/join')
   @UseGuards(GatewayAuthGuard)
-  join(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: GatewayUser) {
+  join(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: GatewayUser,
+  ) {
     return this.rooms.join(id, user);
   }
 
@@ -43,7 +64,9 @@ export class RoomsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CreateRoomRuleDto,
     @CurrentUser() user: GatewayUser,
-  ) { return this.rooms.addRule(id, dto, user); }
+  ) {
+    return this.rooms.addRule(id, dto, user);
+  }
 
   @Patch(':id/members/:userId')
   @UseGuards(GatewayAuthGuard)
@@ -52,7 +75,37 @@ export class RoomsController {
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() dto: UpdateMembershipDto,
     @CurrentUser() user: GatewayUser,
-  ) { return this.rooms.updateMembership(id, userId, dto, user); }
+  ) {
+    return this.rooms.updateMembership(id, userId, dto, user);
+  }
+
+  @Get(':id/members')
+  @UseGuards(GatewayAuthGuard)
+  members(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: GatewayUser,
+  ) {
+    return this.rooms.members(id, user);
+  }
+
+  @Get(':id/policy-history')
+  @UseGuards(GatewayAuthGuard)
+  policyHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: GatewayUser,
+  ) {
+    return this.rooms.policyHistory(id, user);
+  }
+
+  @Patch(':id/policy')
+  @UseGuards(GatewayAuthGuard)
+  policy(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateRoomPolicyDto,
+    @CurrentUser() user: GatewayUser,
+  ) {
+    return this.rooms.updatePolicy(id, dto, user);
+  }
 
   @Patch(':id/status')
   @UseGuards(GatewayAuthGuard)
@@ -60,5 +113,7 @@ export class RoomsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateRoomStatusDto,
     @CurrentUser() user: GatewayUser,
-  ) { return this.rooms.updateStatus(id, dto, user); }
+  ) {
+    return this.rooms.updateStatus(id, dto, user);
+  }
 }

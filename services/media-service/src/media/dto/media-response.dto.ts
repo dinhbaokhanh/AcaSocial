@@ -2,6 +2,8 @@ import { ApiProperty } from '@nestjs/swagger';
 import { MediaCategory } from '../media.entity';
 
 export class MediaResponseDto {
+  scanStatus: 'clean' | 'unverified';
+  scannedAt: Date | null;
   @ApiProperty({ example: 'a1b2c3d4-e5f6-...' })
   id: string;
   originalName?: string | null;

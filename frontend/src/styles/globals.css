@@ -200,3 +200,9 @@ ol[role='list'] {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-neutral-400);
 }
+
+/* Keep user content and form controls inside their grid column. */
+main { overflow-wrap: anywhere; }
+fieldset { min-inline-size: 0; }
+textarea { width: 100%; min-width: 0; max-width: 100%; }
+input[type="file"] { max-width: 100%; }

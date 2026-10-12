@@ -1,4 +1,5 @@
 "use client";
+import { useLinkSafety } from '@/components/shared/LinkSafety';
 import { ROOM_TYPE_LABELS } from '@/lib/constants';
 
 import { useState, useEffect } from "react";
@@ -21,6 +22,7 @@ import { RoomChooser } from "@/components/rooms/RoomChooser";
 import { Select } from "@/components/ui/Select";
 
 export default function CreatePostPage() {
+  const confirmLinks = useLinkSafety();
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { rooms, selectedRoom, loading: roomsLoading, selectRoom } = useRoom();
@@ -116,7 +118,7 @@ export default function CreatePostPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploading) return;
+    if (uploading || loading) return;
     if (!title.trim()) {
       setError("Vui lòng nhập tiêu đề.");
       return;
@@ -133,6 +135,7 @@ export default function CreatePostPage() {
       setError("Nội dung phải có ít nhất 20 ký tự.");
       return;
     }
+    if (!(await confirmLinks(title + '\n' + content))) return;
     setLoading(true);
     setError("");
 
@@ -189,7 +192,7 @@ export default function CreatePostPage() {
             }}
           />
           <p className={styles.roomHint}>
-            Bài đăng sẽ hiển thị trong {selectedRoom.name} sau khi được duyệt.
+            {selectedRoom.effectivePostPermission === 'blocked' ? 'Bạn không được đăng post trong room này.' : selectedRoom.effectivePostPermission === 'approval' ? 'Bài đăng sẽ được gửi vào hàng chờ duyệt của room.' : 'Bài đăng sẽ hiển thị sau khi file đính kèm hoàn tất kiểm tra.'}
           </p>
         </div>
 
@@ -346,14 +349,15 @@ export default function CreatePostPage() {
             disabled={
               loading ||
               uploading ||
+              selectedRoom.effectivePostPermission === "blocked" ||
               !title.trim() ||
               !content.trim() ||
               selectedTags.length === 0
             }
           >
             {postType === "question"
-              ? "Gửi câu hỏi để duyệt"
-              : "Gửi bài thảo luận để duyệt"}
+              ? "Đăng câu hỏi"
+              : "Đăng bài thảo luận"}
           </Button>
         </div>
       </form>

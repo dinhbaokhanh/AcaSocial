@@ -88,7 +88,11 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			continue
 		}
 
-		reverseProxy, err := proxy.NewLoadBalancedProxy(targets, endpoint.Endpoint, cfg.TimeoutSeconds)
+		timeoutSeconds := cfg.TimeoutSeconds
+		if endpoint.TimeoutSeconds > 0 {
+			timeoutSeconds = endpoint.TimeoutSeconds
+		}
+		reverseProxy, err := proxy.NewLoadBalancedProxy(targets, endpoint.Endpoint, timeoutSeconds)
 		if err != nil {
 			return nil, fmt.Errorf("URL backend không hợp lệ cho endpoint %s: %w", endpoint.Endpoint, err)
 		}
@@ -140,7 +144,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		if endpoint.MaxRequestsPerMinute > 0 {
 			routeLimit = endpoint.MaxRequestsPerMinute
 		}
-		handler = middleware.RateLimitMiddlewareProvider(routeLimit)(handler)
+		handler = middleware.RateLimitMiddlewareProvider(routeLimit, pattern)(handler)
 
 		mux.Handle(pattern, handler)
 	}

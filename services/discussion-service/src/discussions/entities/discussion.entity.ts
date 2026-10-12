@@ -26,6 +26,9 @@ import { Index } from 'typeorm';
 @Entity('discussions')
 @Index(['roomId'])
 export class Discussion {
+  @Column({ name: 'pending_revision', type: 'jsonb', nullable: true })
+  pendingRevision: { title: string; content: string; isAnonymous: boolean; tagIds: string[]; mediaIds: string[] } | null;
+  @Column({ name: 'moderation_note', type: 'text', default: '' }) moderationNote: string;
   @Column({ name: 'room_id', type: 'uuid', nullable: true })
   roomId: string | null;
 
@@ -92,7 +95,7 @@ export class Discussion {
   @Column({ name: 'content_version', type: 'int', default: 1 })
   contentVersion: number;
 
-  // Manual admin/moderator approval uses moderation fields; AI fields remain reserved.
+  // Posts are visible while pending review; moderators can hide them after publication.
   @Column({ name: 'moderation_status', type: 'varchar', length: 20, default: 'pending' })
   moderationStatus: 'pending' | 'approved' | 'hidden';
 

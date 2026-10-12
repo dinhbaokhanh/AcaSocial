@@ -3,6 +3,8 @@ import { API_BASE_URL } from "@/lib/constants";
 import { getAccessToken } from "./client";
 
 export interface MediaUploadResponse {
+  scanStatus: 'clean' | 'unverified';
+  scannedAt?: string | null;
   id: string;
   secureUrl: string;
   mimeType: string;

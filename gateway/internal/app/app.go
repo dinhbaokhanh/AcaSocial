@@ -43,10 +43,10 @@ func New(cfg *config.GatewayConfig) (*App, error) {
 		server: &http.Server{
 			Addr:              fmt.Sprintf(":%d", cfg.Port),
 			Handler:           handler,
-			ReadHeaderTimeout: 5 * time.Second,  
-			ReadTimeout:       15 * time.Second, 
-			WriteTimeout:      30 * time.Second, 
-			IdleTimeout:       120 * time.Second, 
+			ReadHeaderTimeout: 5 * time.Second,
+			ReadTimeout:       15 * time.Second,
+			WriteTimeout:      90 * time.Second,
+			IdleTimeout:       120 * time.Second,
 		},
 	}, nil
 }

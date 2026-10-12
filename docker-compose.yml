@@ -134,6 +134,14 @@ services:
       - discussion-service
       - academic-service
 
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    volumes:
+      - clamav_data:/var/lib/clamav
+    networks:
+      - internal
+
   media-service:
     build:
       context: ./services/media-service
@@ -149,6 +157,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      CLAMAV_TIMEOUT_MS: 20000
     networks:
       - internal
     depends_on:
@@ -233,6 +244,7 @@ volumes:
   postgres_data:
   redis_data:
   nats_data:
+  clamav_data:
 
 # ===== Networks =====
 networks:

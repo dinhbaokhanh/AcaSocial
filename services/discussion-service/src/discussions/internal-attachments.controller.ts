@@ -29,7 +29,7 @@ export class InternalAttachmentsController {
     )
       throw new ForbiddenException();
     const rows = await this.db.query(
-      'SELECT count(*)::int AS count FROM discussion_media dm JOIN discussions d ON d.id=dm.discussion_id WHERE dm.media_id=$1 AND d.deleted_at IS NULL',
+      `SELECT ((SELECT count(*) FROM discussion_media dm JOIN discussions d ON d.id=dm.discussion_id WHERE dm.media_id=$1 AND d.deleted_at IS NULL) + (SELECT count(*) FROM discussions WHERE deleted_at IS NULL AND pending_revision->'mediaIds' @> to_jsonb(ARRAY[$1::text])))::int AS count`,
       [id],
     );
     return { count: rows[0].count };

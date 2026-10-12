@@ -15,6 +15,7 @@ import { MediaResponseDto } from './dto/media-response.dto';
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { MediaAsset } from './media.entity';
 import { ConfigService } from '@nestjs/config';
+import { VirusScannerService } from './virus-scanner.service';
 
 @Injectable()
 export class MediaService {
@@ -23,6 +24,7 @@ export class MediaService {
     private mediaRepo: Repository<MediaAsset>,
     private cloudinaryService: CloudinaryService,
     private readonly config: ConfigService,
+    private readonly scanner: VirusScannerService,
   ) {}
 
   async upload(
@@ -30,6 +32,7 @@ export class MediaService {
     dto: UploadMediaDto,
     userId: string,
   ): Promise<MediaResponseDto> {
+    await this.scanner.scan(file.buffer);
     // Hash theo content (không phải tên file) để detect duplicate dù đổi tên
     const sha256Hash = crypto
       .createHash('sha256')
@@ -42,6 +45,9 @@ export class MediaService {
       where: { sha256Hash, uploadedBy: userId },
     });
     if (existing && !existing.deletedAt) {
+      existing.scanStatus = 'clean';
+      existing.scannedAt = new Date();
+      await this.mediaRepo.save(existing);
       return this.toDto(existing);
     }
 
@@ -71,6 +77,8 @@ export class MediaService {
       sizeBytes: file.size,
       sha256Hash,
       uploadedBy: userId,
+      scanStatus: 'clean',
+      scannedAt: new Date(),
     });
 
     const saved = await this.mediaRepo.save(asset);
@@ -146,7 +154,9 @@ export class MediaService {
     return {
       id: asset.id,
       originalName: asset.originalName,
-      secureUrl: asset.secureUrl,
+      secureUrl: asset.scanStatus === 'clean' ? asset.secureUrl : '',
+      scanStatus: asset.scanStatus,
+      scannedAt: asset.scannedAt,
       format: asset.format,
       mimeType: asset.mimeType,
       category: asset.category,

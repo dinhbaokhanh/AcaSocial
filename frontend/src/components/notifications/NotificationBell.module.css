@@ -1,35 +1,18 @@
 .bell {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  gap: 8px;
+  min-height: 36px;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: transparent;
   color: white;
+  font: inherit;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
-
-.bell:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
-  min-width: 18px;
-  height: 18px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: #f1c40f;
-  color: #1a1a1a;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 0 4px;
-}
+.bell:hover, .bell[aria-expanded="true"] { background: rgba(255, 255, 255, 0.12); }
+.bell:focus-visible { outline: 2px solid white; outline-offset: 3px; }
+.badge { font-size: 12px; font-weight: 600; padding-left: 8px; border-left: 1px solid rgba(255, 255, 255, 0.35); }
