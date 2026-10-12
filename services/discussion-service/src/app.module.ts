@@ -24,8 +24,7 @@ import {
 } from './answers/answer.entity';
 import { AnswersModule } from './answers/answers.module';
 import { DiscussionRevision, DiscussionTagAssignment } from './discussions/entities/discussion-revision.entity';
-import { AiInferenceRun, ModerationReview } from './ai/ai.entity';
-import { ContentReport, ModerationAuditLog, ModerationCase } from './moderation/moderation.entity';
+import { ContentReport, ModerationAuditLog, ModerationCase, ModerationReview } from './moderation/moderation.entity';
 import { ModerationModule } from './moderation/moderation.module';
 import { TrustGovernance1790300000000 } from './events/trust-governance.migration';
 
@@ -55,7 +54,7 @@ import { PostPublication1791000000000 } from './events/post-publication.migratio
           Room, RoomAcademicBinding, RoomMembership, RoomRule,
           Answer, AnswerRevision, AnswerAcceptance,
           DiscussionRevision, DiscussionTagAssignment,
-          AiInferenceRun, ModerationReview,
+          ModerationReview,
           ContentReport, ModerationCase, ModerationAuditLog,
         ],
         synchronize:

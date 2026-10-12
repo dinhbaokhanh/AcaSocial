@@ -50,3 +50,17 @@ export class ModerationAuditLog {
   @Column({ type: 'jsonb', default: {} }) metadata: Record<string, unknown>;
   @CreateDateColumn({ name: 'created_at' }) createdAt: Date;
 }
+
+@Entity('moderation_reviews')
+export class ModerationReview {
+  @PrimaryGeneratedColumn('uuid') id: string;
+  @Column({ name: 'entity_type', type: 'varchar', length: 20 }) entityType: 'discussion' | 'answer' | 'comment';
+  @Column({ name: 'entity_id', type: 'uuid' }) entityId: string;
+  @Column({ name: 'content_version', type: 'int' }) contentVersion: number;
+  @Column({ type: 'varchar', length: 20 }) decision: 'allow' | 'hold' | 'hide';
+  @Column({ name: 'reason_codes', type: 'jsonb', default: [] }) reasonCodes: string[];
+  @Column({ type: 'text', default: '' }) note: string;
+  @Column({ name: 'reviewer_id', type: 'uuid' }) reviewerId: string;
+  @Column({ name: 'related_ai_run_id', type: 'uuid', nullable: true }) relatedAiRunId: string | null;
+  @CreateDateColumn({ name: 'created_at' }) createdAt: Date;
+}
