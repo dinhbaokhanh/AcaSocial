@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
@@ -15,14 +16,12 @@ import type { Request } from 'express';
 import { AcademicService } from './academic.service';
 import {
   CatalogDto,
-  CurriculumCourseDto,
-  CurriculumDto,
   ListDto,
+  MajorCourseDto,
   SetCourseTopicsDto,
   TopicDto,
   UpdateCatalogDto,
   UpdateTopicDto,
-  CurriculumStatusDto,
 } from './academic.dto';
 import { InternalTokenGuard, requireAdmin, userFromRequest } from './access';
 
@@ -33,10 +32,10 @@ export class AcademicController {
   @Get('majors') majors(@Query() query: ListDto) { return this.service.majors(query); }
   @Get('courses') courses(@Query() query: ListDto) { return this.service.courses(query); }
   @Get('topics') topics(@Query() query: ListDto) { return this.service.topics(query); }
-  @Get('majors/:id/curricula')
-  curricula(@Param('id', ParseUUIDPipe) id: string) { return this.service.curricula(id); }
-  @Get('curricula/:id/courses')
-  curriculumCourses(@Param('id', ParseUUIDPipe) id: string) { return this.service.curriculumCourses(id); }
+  @Get('majors/:id/courses')
+  majorCourses(@Param('id', ParseUUIDPipe) id: string) { return this.service.majorCourses(id); }
+  @Get('courses/:id/majors')
+  courseMajors(@Param('id', ParseUUIDPipe) id: string) { return this.service.courseMajors(id); }
   @Get('courses/:id/topics')
   courseTopics(@Param('id', ParseUUIDPipe) id: string) { return this.service.courseTopics(id); }
 
@@ -52,16 +51,16 @@ export class AcademicController {
     return this.service.createCatalog('course', dto);
   }
 
-  @Post('curricula')
-  createCurriculum(@Req() req: Request, @Body() dto: CurriculumDto) {
+  @Post('major-courses')
+  addMajorCourse(@Req() req: Request, @Body() dto: MajorCourseDto) {
     requireAdmin(userFromRequest(req as never));
-    return this.service.createCurriculum(dto);
+    return this.service.addMajorCourse(dto);
   }
 
-  @Post('curriculum-courses')
-  addCurriculumCourse(@Req() req: Request, @Body() dto: CurriculumCourseDto) {
+  @Delete('major-courses/:id')
+  removeMajorCourse(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string) {
     requireAdmin(userFromRequest(req as never));
-    return this.service.addCurriculumCourse(dto);
+    return this.service.removeMajorCourse(id);
   }
 
   @Post('topics')
@@ -93,11 +92,6 @@ export class AcademicController {
   @Patch('topics/:id')
   updateTopic(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateTopicDto) {
     requireAdmin(userFromRequest(req as never)); return this.service.updateTopic(id, dto);
-  }
-
-  @Patch('curricula/:id/status')
-  updateCurriculumStatus(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string, @Body() dto: CurriculumStatusDto) {
-    requireAdmin(userFromRequest(req as never)); return this.service.updateCurriculumStatus(id, dto.status);
   }
 
   @Get('internal/academic/contexts/:id')

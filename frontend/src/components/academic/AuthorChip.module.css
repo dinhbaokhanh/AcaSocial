@@ -1,0 +1,25 @@
+.chip { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; }
+/* Cùng kiểu với logo "AS" trên header, nhưng đặt trên nền sáng. */
+.anonymousMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-extrabold);
+}
+.sm .anonymousMark { width: 32px; height: 32px; font-size: var(--text-xs); }
+.xs .anonymousMark { width: 24px; height: 24px; font-size: 9px; border-radius: var(--radius-md); }
+.xs .name { font-size: var(--text-xs); }
+.text { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); min-width: 0; }
+.name { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text-primary); overflow-wrap: anywhere; }
+.tag {
+  padding: 0 var(--space-1);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

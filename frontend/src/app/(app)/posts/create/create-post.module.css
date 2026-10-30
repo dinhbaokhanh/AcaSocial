@@ -168,13 +168,99 @@
   color: var(--color-primary);
 }
 
-.anonCheckbox {
+.aiSuggestions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
+}
+
+.aiLabel {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.aiTag {
+  background: var(--color-surface);
+  border: 1px dashed var(--color-primary);
+  border-radius: var(--radius-full);
+  padding: var(--space-0-5) var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.aiTag:hover {
+  border-style: solid;
+}
+
+
+.warningAlert {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-warning-50);
+  border: 1px solid var(--color-warning-500);
+  border-radius: var(--radius-md);
+  color: var(--color-warning-800);
+  font-size: var(--font-size-sm);
+}
+
+.fieldError {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+.fieldInvalid {
+  outline: 1px solid var(--color-danger);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+.emptyHint {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+}
+
+.review {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--space-1-5) var(--space-4);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.review dt {
+  color: var(--color-text-secondary);
+}
+
+.review dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.reviewPost {
+  padding: var(--space-3);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-container-low);
+}
+
+.reviewTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.reviewContent {
+  margin: 0;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  cursor: pointer;
 }
 
 .errorAlert {

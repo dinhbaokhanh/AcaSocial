@@ -5,6 +5,7 @@ import type {
   DiscussionFilterParams,
   CreateDiscussionPayload,
   UpdateDiscussionPayload,
+  TagSuggestionResponse,
 } from '@/types';
 
 function buildQuery(params: DiscussionFilterParams): string {
@@ -29,6 +30,9 @@ export const discussionsApi = {
 
   create: (data: CreateDiscussionPayload) =>
     apiPost<Discussion>('/api/discussions', data, true),
+
+  suggestTags: (data: { title: string; content: string }) =>
+    apiPost<TagSuggestionResponse>('/api/discussions/tag-suggestions', data, true),
 
   update: (id: string, data: UpdateDiscussionPayload) =>
     apiPatch<Discussion>(`/api/discussions/${id}`, data),

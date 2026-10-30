@@ -28,10 +28,15 @@ import { MediaReferenceService } from '../common/media-reference.service';
 import { TargetType } from '../votes/enums/target-type.enum';
 import { OutboxService } from '../events/outbox.service';
 import { RoomsService } from '../rooms/rooms.service';
-import { DiscussionRevision } from './entities/discussion-revision.entity';
+import {
+  DiscussionRevision,
+  DiscussionTagAssignment,
+} from './entities/discussion-revision.entity';
 import { Answer, AnswerAcceptance } from '../answers/answer.entity';
 import { ConflictException } from '@nestjs/common';
 import { AcademicReferenceService } from '../common/academic-reference.service';
+import { AiTaggingService } from '../common/ai-tagging.service';
+import { AiSuggestionDto, SuggestTagsDto } from './dto/tag-suggestion.dto';
 const guest: GatewayUser = { id: null, role: null };
 @Injectable()
 export class DiscussionsService {
@@ -42,20 +47,57 @@ export class DiscussionsService {
     private readonly media: MediaReferenceService,
     private readonly rooms: RoomsService,
     private readonly academic: AcademicReferenceService,
+    private readonly ai: AiTaggingService,
   ) {}
+
+  /**
+   * Gợi ý tag cho bài đang soạn. Slug do ai-service trả về được đối chiếu với tag
+   * đang active trong DB; slug không có tag tương ứng (vd. nhãn cấp môn) bị bỏ qua.
+   */
+  async suggestTags(user: GatewayUser, dto: SuggestTagsDto) {
+    authenticated(user);
+    const result = await this.ai.suggest(dto.title, dto.content);
+    if (!result) return { available: false, model: null, tags: [], candidates: [] };
+    const candidates = result.candidates ?? result.tags;
+    const slugs = [...new Set([...result.tags, ...candidates].map((t) => t.slug))];
+    const found = slugs.length
+      ? await this.db.getRepository(Tag).findBy({ slug: In(slugs), status: 'active' })
+      : [];
+    const bySlug = new Map(found.map((tag) => [tag.slug, tag]));
+    const resolve = (list: typeof result.tags) =>
+      list.flatMap((s) => {
+        const tag = bySlug.get(s.slug);
+        return tag ? [{ tag, score: s.score, source: s.source }] : [];
+      });
+    return {
+      available: true,
+      model: result.model,
+      tags: resolve(result.tags),
+      // Tối đa 5 tag xếp hạng cao nhất (gồm cả gợi ý chính) để người dùng chọn khi gợi ý chính sai hoặc rỗng.
+      candidates: resolve(candidates),
+    };
+  }
 
   async create(user: GatewayUser, dto: CreateDiscussionDto) {
     const authorId = authenticated(user);
     await this.media.validate(dto.mediaIds, authorId);
 
-    // Resolve academic context từ curriculumCourseId (nếu có)
-    const selectedContext = dto.curriculumCourseId
-      ? await this.academic.context(dto.curriculumCourseId)
+    // Resolve academic context từ majorCourseId (nếu có)
+    const selectedContext = dto.majorCourseId
+      ? await this.academic.context(dto.majorCourseId)
       : null;
 
     // New posts always require an explicit room selected by the user.
     const resolvedRoomId = dto.roomId;
     const roomContext = await this.rooms.assertCanPost(resolvedRoomId, user);
+    // Room học thuật (ngành/môn) bắt buộc gắn tag; room diễn đàn/sự kiện thì không.
+    if (
+      ['major', 'course'].includes(roomContext.room.roomType) &&
+      !dto.tagIds?.length
+    )
+      throw new BadRequestException(
+        'At least one tag is required in major and course rooms',
+      );
 
     // Validation: academic context phải khớp với room binding
     if (
@@ -68,9 +110,8 @@ export class DiscussionsService {
       );
     if (
       selectedContext &&
-      roomContext?.binding?.curriculumCourseId &&
-      selectedContext.curriculumCourseId !==
-        roomContext.binding.curriculumCourseId
+      roomContext?.binding?.majorCourseId &&
+      selectedContext.majorCourseId !== roomContext.binding.majorCourseId
     )
       throw new BadRequestException('Course room fixes the academic context');
     const id = await this.db.transaction(async (m) => {
@@ -90,20 +131,18 @@ export class DiscussionsService {
           roomId: resolvedRoomId,
           majorId:
             selectedContext?.majorId ?? roomContext?.binding?.majorId ?? null,
-          curriculumId:
-            selectedContext?.curriculumId ??
-            roomContext?.binding?.curriculumId ??
-            null,
           courseId:
             selectedContext?.courseId ?? roomContext?.binding?.courseId ?? null,
-          curriculumCourseId:
-            selectedContext?.curriculumCourseId ??
-            roomContext?.binding?.curriculumCourseId ??
+          majorCourseId:
+            selectedContext?.majorCourseId ??
+            roomContext?.binding?.majorCourseId ??
             null,
         }),
       );
       await this.attach(m, post.id, dto.mediaIds ?? []);
       await this.tagCounts(m, tagIds, 1);
+      if (dto.aiSuggestion)
+        await this.recordTagChoices(m, post.id, tagIds, dto.aiSuggestion);
       await m.save(
         DiscussionRevision,
         m.create(DiscussionRevision, {
@@ -474,6 +513,46 @@ export class DiscussionsService {
         'Only the question author can accept answers',
       );
   }
+  /**
+   * Lưu tag AI đã gợi ý (accepted nếu tác giả giữ lại, rejected nếu bỏ) và tag
+   * tác giả tự thêm ngoài gợi ý. Gợi ý không trỏ tới tag có thật thì bỏ qua.
+   */
+  private async recordTagChoices(
+    m: EntityManager,
+    discussionId: string,
+    chosenTagIds: string[],
+    suggestion: AiSuggestionDto,
+  ) {
+    const suggested = new Map(suggestion.tags.map((t) => [t.tagId, t.score]));
+    const existing = suggested.size
+      ? await m.findBy(Tag, { id: In([...suggested.keys()]) })
+      : [];
+    const base = { discussionId, contentVersion: 1, topicId: null };
+    const rows = [
+      ...existing.map((tag) =>
+        m.create(DiscussionTagAssignment, {
+          ...base,
+          tagId: tag.id,
+          source: 'ai',
+          status: chosenTagIds.includes(tag.id) ? 'accepted' : 'rejected',
+          confidence: suggested.get(tag.id) ?? null,
+          modelVersion: suggestion.model,
+        }),
+      ),
+      ...chosenTagIds
+        .filter((id) => !suggested.has(id))
+        .map((tagId) =>
+          m.create(DiscussionTagAssignment, {
+            ...base,
+            tagId,
+            source: 'author',
+            status: 'accepted',
+          }),
+        ),
+    ];
+    if (rows.length) await m.save(DiscussionTagAssignment, rows);
+  }
+
   private async tags(m: EntityManager, ids: string[]) {
     const tags = await m.findBy(Tag, { id: In(ids) });
     if (

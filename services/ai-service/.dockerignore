@@ -1,0 +1,4 @@
+ai-lab
+**/__pycache__
+.venv
+*.md

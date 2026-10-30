@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
+import markdownStyles from "@/components/shared/Markdown.module.css";
 import remarkGfm from "remark-gfm";
 import { commentsApi } from "@/lib/api/comments";
 import { discussionsApi } from "@/lib/api/discussions";
 import { useAuth } from "@/lib/auth/context";
+import { useToast } from "@/lib/toast/context";
 import { VotePill } from "./VotePill";
+import { AuthorChip } from "./AuthorChip";
 import { Button } from "@/components/ui/Button";
 import type { Comment, Discussion } from "@/types";
 
@@ -106,18 +109,17 @@ function CommentEntry({
   const [text, setText] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
   const accepted = post.acceptedCommentId === item.id;
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
-    setError("");
     try {
       await fn();
       setMode(null);
       setText("");
       await onChange();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Không thể thực hiện thao tác");
+      toast.error("Không thể thực hiện thao tác", e instanceof Error ? e.message : undefined);
     } finally {
       setBusy(false);
     }
@@ -146,18 +148,26 @@ function CommentEntry({
         )}
         <div style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere" }}>
           {accepted && <strong>✓ Câu trả lời được chấp nhận</strong>}
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {item.content}
-          </ReactMarkdown>
-          <small>
-            {item.deletedAt
-              ? "Bình luận đã xóa"
-              : item.isAnonymous
-                ? "Người dùng ẩn danh"
-                : item.isMine
-                  ? "Bạn"
-                  : (item.author?.fullName ?? "Thành viên")}{" "}
-            · {new Date(item.createdAt).toLocaleString()}
+          <div className={markdownStyles.markdownBody}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {item.content}
+            </ReactMarkdown>
+          </div>
+          <small style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+            {item.deletedAt ? (
+              "Bình luận đã xóa"
+            ) : (
+              <AuthorChip
+                author={item.author}
+                isAnonymous={item.isAnonymous}
+                isMine={item.isMine}
+                seed={item.anonymousKey ?? item.id}
+                anonymousNumber={item.anonymousNumber}
+                size="xs"
+              />
+            )}
+            <span aria-hidden="true">·</span>
+            {new Date(item.createdAt).toLocaleString()}
           </small>
           <div
             style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}
@@ -238,7 +248,6 @@ function CommentEntry({
               </>
             )}
           </div>
-          {error && <p role="alert">{error}</p>}
           {mode && (
             <form
               onSubmit={(e) => {

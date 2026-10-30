@@ -1,6 +1,6 @@
 # Academic Service
 
-Quản lý cấu trúc học thuật `Chuyên ngành → Chương trình đào tạo → Môn học`, taxonomy chủ đề. Academic DB gồm 6 bảng: `majors`, `courses`, `curricula`, `curriculum_courses`, `topics`, `course_topics`.
+Quản lý cấu trúc học thuật `Chuyên ngành ↔ Môn học` (n-n qua `major_courses`), taxonomy chủ đề. Bảng chính: `majors`, `courses`, `major_courses`, `topics`, `course_topics`.
 
 Vai trò `teacher` nhận diện giảng viên, không cấp quyền xác thực học thuật. Quyền quản lý nội dung thuộc admin/moderator hoặc owner/moderator của phòng trong discussion-service.
 

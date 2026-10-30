@@ -66,11 +66,9 @@ export class RoomsService {
       ReturnType<AcademicReferenceService['context']>
     > | null = null;
     if (dto.roomType === RoomType.COURSE) {
-      if (!dto.curriculumCourseId)
-        throw new BadRequestException(
-          'Course room requires curriculumCourseId',
-        );
-      context = await this.academic.context(dto.curriculumCourseId);
+      if (!dto.majorCourseId)
+        throw new BadRequestException('Course room requires majorCourseId');
+      context = await this.academic.context(dto.majorCourseId);
       const parentBinding = await this.binding(parent!.id);
       if (!parentBinding || parentBinding.majorId !== context.majorId)
         throw new BadRequestException(
@@ -97,8 +95,8 @@ export class RoomsService {
         .getRepository(RoomAcademicBinding)
         .createQueryBuilder('binding')
         .innerJoin(Room, 'room', 'room.id = binding.roomId')
-        .where('binding.curriculumCourseId = :id', {
-          id: dto.curriculumCourseId,
+        .where('binding.majorCourseId = :id', {
+          id: dto.majorCourseId,
         })
         .andWhere('room.roomType = :type', { type: RoomType.COURSE })
         .getOne();
@@ -136,17 +134,15 @@ export class RoomsService {
           binding = {
             roomId: room.id,
             majorId: dto.majorId!,
-            curriculumId: null,
             courseId: null,
-            curriculumCourseId: null,
+            majorCourseId: null,
           };
         else if (context)
           binding = {
             roomId: room.id,
             majorId: context.majorId,
-            curriculumId: context.curriculumId,
             courseId: context.courseId,
-            curriculumCourseId: context.curriculumCourseId,
+            majorCourseId: context.majorCourseId,
           };
         else if (parent) {
           const inherited = await manager.findOneBy(RoomAcademicBinding, {
@@ -156,9 +152,8 @@ export class RoomsService {
             binding = {
               roomId: room.id,
               majorId: inherited.majorId,
-              curriculumId: inherited.curriculumId,
               courseId: inherited.courseId,
-              curriculumCourseId: inherited.curriculumCourseId,
+              majorCourseId: inherited.majorCourseId,
             };
         }
         if (binding)
@@ -219,6 +214,19 @@ export class RoomsService {
           .where('b.roomId IN (:...ids)', { ids: rooms.map((room) => room.id) })
           .getMany()
       : [];
+    // Số bài đang hiển thị trong room, để client sắp xếp room theo mức độ hoạt động.
+    const postCounts = new Map<string, number>(
+      rooms.length
+        ? (
+            await this.db.query(
+              `SELECT room_id, count(*)::int AS count FROM discussions
+               WHERE room_id = ANY($1::uuid[]) AND deleted_at IS NULL AND visibility = 'visible'
+               GROUP BY room_id`,
+              [rooms.map((room) => room.id)],
+            )
+          ).map((row: { room_id: string; count: number }) => [row.room_id, row.count])
+        : [],
+    );
     const managedIds = user.id ? await this.managedRoomIds(user) : [];
     const globalManager =
       !!user.id && ['admin', 'moderator'].includes(user.role ?? '');
@@ -242,6 +250,7 @@ export class RoomsService {
             (!m.expiresAt || m.expiresAt > new Date()),
         ),
       academicBinding: bindings.find((b) => b.roomId === room.id) ?? null,
+      postCount: postCounts.get(room.id) ?? 0,
     }));
   }
 
@@ -639,23 +648,21 @@ export class RoomsService {
 
   /**
    * Tìm canonical room cho một academic context.
-   * Ưu tiên: course room (curriculumCourseId) → major room (majorId).
+   * Ưu tiên: course room (majorCourseId) → major room (majorId).
    * Trả về null nếu không tìm thấy room nào phù hợp.
    */
   async findCanonicalRoom(
-    curriculumCourseId: string | null,
+    majorCourseId: string | null,
     majorId: string | null,
   ): Promise<Room | null> {
     const bindingRepo = this.db.getRepository(RoomAcademicBinding);
     const roomRepo = this.db.getRepository(Room);
 
-    if (curriculumCourseId) {
+    if (majorCourseId) {
       const binding = await bindingRepo
         .createQueryBuilder('b')
         .innerJoin(Room, 'room', 'room.id = b.roomId')
-        .where('b.curriculumCourseId = :curriculumCourseId', {
-          curriculumCourseId,
-        })
+        .where('b.majorCourseId = :majorCourseId', { majorCourseId })
         .andWhere('room.roomType = :type', { type: RoomType.COURSE })
         .andWhere('room.status = :status', { status: RoomStatus.ACTIVE })
         .select('b.roomId', 'roomId')

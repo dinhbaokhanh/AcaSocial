@@ -39,7 +39,7 @@ export class CreateRoomDto {
   majorId?: string | null;
   @ValidateIf((_, value) => value !== undefined && value !== null)
   @IsUUID()
-  curriculumCourseId?: string | null;
+  majorCourseId?: string | null;
   @IsOptional() @IsEnum(RoomVisibility) visibility?: RoomVisibility;
   @IsOptional() @IsEnum(PostingPolicy) postingPolicy?: PostingPolicy;
   @IsOptional()

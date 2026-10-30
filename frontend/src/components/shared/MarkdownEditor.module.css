@@ -1,0 +1,104 @@
+.editor {
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.editor:focus-within {
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.12);
+}
+
+.invalid {
+  border-color: var(--color-destructive-600);
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-low);
+}
+
+.tabs,
+.toolbar,
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar {
+  gap: var(--space-1);
+}
+
+.group + .group {
+  padding-left: var(--space-1);
+  border-left: 1px solid var(--color-outline-variant);
+}
+
+.tab,
+.tabActive {
+  padding: var(--space-0-5) var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.tabActive {
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-semibold);
+  box-shadow: var(--shadow-xs);
+}
+
+.tool {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.tool:hover {
+  border-color: var(--color-outline);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+}
+
+/* Viền và bo góc đã nằm ở khung .editor. */
+.textarea {
+  display: block;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  resize: vertical;
+}
+
+.preview {
+  min-height: 200px;
+  padding: var(--space-2) var(--space-3);
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+
+.empty {
+  color: var(--color-text-muted);
+}

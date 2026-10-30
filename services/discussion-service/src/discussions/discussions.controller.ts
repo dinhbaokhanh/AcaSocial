@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -19,6 +20,7 @@ import { GatewayAuthGuard } from '../common/guards/gateway-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { GatewayUser } from '../common/decorators/current-user.decorator';
 import { StatusDiscussionDto } from './dto/status-discussion.dto';
+import { SuggestTagsDto } from './dto/tag-suggestion.dto';
 
 /**
  * Controller cho CRUD bài viết.
@@ -49,6 +51,17 @@ export class DiscussionsController {
   @UseGuards(GatewayAuthGuard)
   create(@CurrentUser() user: GatewayUser, @Body() dto: CreateDiscussionDto) {
     return this.discussionsService.create(user, dto);
+  }
+
+  /**
+   * POST /discussions/tag-suggestions — Gợi ý tag cho bài đang soạn (ai-service).
+   * Trả về available=false khi ai-service không phản hồi, client tự chọn tag.
+   */
+  @Post('tag-suggestions')
+  @HttpCode(200)
+  @UseGuards(GatewayAuthGuard)
+  suggestTags(@CurrentUser() user: GatewayUser, @Body() dto: SuggestTagsDto) {
+    return this.discussionsService.suggestTags(user, dto);
   }
 
   /**

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { votesApi } from "@/lib/api/votes";
+import { useToast } from "@/lib/toast/context";
 import type { TargetType, VoteType } from "@/types";
 import styles from "./VotePill.module.css";
 
@@ -37,6 +38,7 @@ export function VotePill({
   const [localDownvotes, setLocalDownvotes] = useState(downvoteCount);
   const [localVote, setLocalVote] = useState<VoteType | null>(myVote);
   const [isPending, startTransition] = useTransition();
+  const toast = useToast();
 
   const netScore = localUpvotes - localDownvotes;
 
@@ -83,7 +85,8 @@ export function VotePill({
           result.downvoteCount,
           result.voteType,
         );
-      } catch {
+      } catch (e) {
+        toast.error("Không thể bình chọn", e instanceof Error ? e.message : undefined);
         // Revert on failure
         setLocalUpvotes(upvoteCount);
         setLocalDownvotes(downvoteCount);

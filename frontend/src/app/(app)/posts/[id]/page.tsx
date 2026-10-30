@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import markdownStyles from "@/components/shared/Markdown.module.css";
 import { discussionsApi } from "@/lib/api/discussions";
 import { commentsApi } from "@/lib/api/comments";
 import { answersApi } from "@/lib/api/answers";
 import { useAuth } from "@/lib/auth/context";
+import { useToast } from "@/lib/toast/context";
 import { AnswerList } from "@/components/academic/AnswerList";
 import { CommentThread } from "@/components/academic/CommentThread";
 import { AttachmentList } from "@/components/academic/Attachments";
@@ -15,8 +17,8 @@ import { TopicChip } from "@/components/academic/TopicChip";
 import { VotePill } from "@/components/academic/VotePill";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
-import { Avatar } from "@/components/ui/Avatar";
+import { MarkdownEditor } from "@/components/shared/MarkdownEditor";
+import { AuthorChip } from "@/components/academic/AuthorChip";
 import type { Discussion } from "@/types";
 import styles from "./post-detail.module.css";
 
@@ -57,6 +59,7 @@ export default function PostDetailPage() {
 
   const [post, setPost] = useState<Discussion | null>(null);
   const [error, setError] = useState("");
+  const toast = useToast();
   const [text, setText] = useState("");
   const [anonymous, setAnonymous] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -92,12 +95,11 @@ export default function PostDetailPage() {
 
   async function act(fn: () => Promise<unknown>) {
     setBusy(true);
-    setError("");
     try {
       await fn();
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Thao tác thất bại");
+      toast.error("Thao tác thất bại", e instanceof Error ? e.message : undefined);
     } finally {
       setBusy(false);
     }
@@ -109,12 +111,6 @@ export default function PostDetailPage() {
   const isQuestion = post.postType === "question";
   const statusInfo = STATUS_META[post.status] ?? STATUS_META.open;
   const canReply = isAuthenticated && post.status !== "closed" && ['pending', 'approved'].includes(post.moderationStatus ?? '') && post.visibility === 'visible';
-
-  const authorName = post.isAnonymous
-    ? "Người dùng ẩn danh"
-    : post.isMine
-      ? "Bạn"
-      : (post.author?.fullName ?? "Thành viên");
 
   return (
     <>
@@ -161,10 +157,6 @@ export default function PostDetailPage() {
           </div>
         )}
 
-        {error && (
-          <p className={styles.submitError} role="alert">{error}</p>
-        )}
-
         {(post.visibility === 'held' || post.visibility === 'hidden' || (post.isMine && post.pendingRevision)) && <div className={styles.statusBanner} role="status">
           {post.pendingRevision ? (post.moderationStatus === 'pending' ? 'Bản sửa đang chờ duyệt. Bản đã đăng vẫn hiển thị.' : 'Bản sửa chưa được chấp nhận. Bạn có thể chỉnh sửa và gửi lại.') : post.visibility === 'held' ? 'Post đang chờ duyệt. Chỉ bạn và người kiểm duyệt có thể xem.' : 'Post chưa được chấp nhận hoặc đã bị ẩn.'}
           {post.moderationNote && <p>Lý do: {post.moderationNote}</p>}
@@ -182,7 +174,7 @@ export default function PostDetailPage() {
           />
 
           <div className={styles.bodyContent}>
-            <div className={`${styles.postText} ${styles.markdownBody}`}>
+            <div className={`${styles.postText} ${markdownStyles.markdownBody}`}>
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
             </div>
 
@@ -190,12 +182,14 @@ export default function PostDetailPage() {
 
             {/* Author meta */}
             <div className={styles.postMeta}>
-              <span className={styles.authorChip}>
-                {!post.isAnonymous && (
-                  <Avatar src={post.author?.avatarUrl} alt={authorName} size="xs" />
-                )}
-                <span className={styles.authorName}>{authorName}</span>
-              </span>
+              <AuthorChip
+                author={post.author}
+                isAnonymous={post.isAnonymous}
+                isMine={post.isMine}
+                seed={post.anonymousKey ?? post.id}
+                anonymousNumber={post.anonymousNumber}
+                size="xs"
+              />
               <span aria-hidden="true">·</span>
               <time
                 className={styles.metaTime}
@@ -237,7 +231,7 @@ export default function PostDetailPage() {
                   void discussionsApi
                     .remove(post.id)
                     .then(() => router.push("/discussions"))
-                    .catch((e) => { setError(e.message); setBusy(false); });
+                    .catch((e) => { toast.error("Không thể xóa bài viết", e.message); setBusy(false); });
                 }
               }}
             >
@@ -268,14 +262,14 @@ export default function PostDetailPage() {
               onChange={(e) => setTitle(e.target.value)}
               required
             />
-            <Textarea
+            <MarkdownEditor
               id="edit-content"
               label="Nội dung"
               value={content}
               minLength={20}
               maxLength={100000}
               rows={8}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               required
             />
             <div className={styles.formActions} style={{ borderTop: "none", background: "none", padding: 0, justifyContent: "flex-start" }}>
@@ -354,13 +348,14 @@ export default function PostDetailPage() {
                 });
               }}
             >
-              <Textarea
+              <MarkdownEditor
                 id="answer-text"
                 label={isQuestion ? "Câu trả lời của bạn" : "Bình luận"}
-                rows={4}
+                rows={5}
                 maxLength={20000}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={setText}
+                hint="Hỗ trợ Markdown: in đậm, bảng, mã nguồn…"
                 required
               />
               <div className={styles.replyFormFooter}>

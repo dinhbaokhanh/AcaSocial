@@ -34,6 +34,10 @@ export class Tag {
   @Column({ type: 'varchar', length: 20, default: 'active' })
   status: 'active' | 'inactive' | 'merged';
 
+  // Môn học (courses.id ở academic-service) mà tag thuộc về; null với tag chung.
+  @Column({ name: 'course_id', type: 'uuid', nullable: true })
+  courseId: string | null;
+
   @Column({ name: 'merged_into_tag_id', type: 'uuid', nullable: true })
   mergedIntoTagId: string | null;
 

@@ -61,9 +61,8 @@ export interface Tag {
 export interface RoomAcademicBinding {
   roomId: string;
   majorId: string;
-  curriculumId: string | null;
   courseId: string | null;
-  curriculumCourseId: string | null;
+  majorCourseId: string | null;
 }
 
 export interface Room {
@@ -83,6 +82,8 @@ export interface Room {
   postingPolicy: "anyone" | "members" | "approved_contributors";
   status: "draft" | "active" | "read_only" | "archived";
   academicBinding: RoomAcademicBinding | null;
+  /** Số bài đang hiển thị trong room. */
+  postCount?: number;
 }
 
 // --------------------------------------------------------------------------
@@ -104,6 +105,10 @@ export interface Discussion {
   status: PostStatus;
   authorId: string | null;
   isAnonymous: boolean;
+  // Stable per (author, post) when anonymous, used to pick a nickname
+  anonymousKey?: string;
+  // Suffix 1–99, unique among the first 99 anonymous people in a post
+  anonymousNumber?: number;
   upvoteCount: number;
   downvoteCount: number;
   commentCount: number;
@@ -136,6 +141,10 @@ export interface Answer {
   authorId: string | null;
   content: string;
   isAnonymous: boolean;
+  // Stable per (author, post) when anonymous, used to pick a nickname
+  anonymousKey?: string;
+  // Suffix 1–99, unique among the first 99 anonymous people in a post
+  anonymousNumber?: number;
   contentVersion: number;
   moderationStatus: 'pending' | 'approved' | 'hidden';
   visibility: 'visible' | 'held' | 'hidden';
@@ -143,6 +152,8 @@ export interface Answer {
   downvoteCount: number;
   createdAt: string;
   updatedAt: string;
+  // Joined author info (absent when anonymous)
+  author?: UserRef;
 }
 
 // --------------------------------------------------------------------------
@@ -165,6 +176,10 @@ export interface Comment {
   content: string;
   parentCommentId: string | null;
   isAnonymous: boolean;
+  // Stable per (author, post) when anonymous, used to pick a nickname
+  anonymousKey?: string;
+  // Suffix 1–99, unique among the first 99 anonymous people in a post
+  anonymousNumber?: number;
   upvoteCount: number;
   downvoteCount: number;
   replies?: Comment[];
@@ -263,12 +278,39 @@ export interface DiscussionFilterParams {
 
 export interface CreateDiscussionPayload {
   roomId: string;
+  majorCourseId?: string;
   title: string;
   content: string;
   postType: PostType;
   tagIds?: string[];
   mediaIds?: string[];
   isAnonymous?: boolean;
+  /** Tag AI đã gợi ý lúc soạn, để backend ghi nhận tag nào được giữ / bỏ. */
+  aiSuggestion?: { model: string; tags: Array<{ tagId: string; score: number }> };
+}
+
+export interface MajorCourse {
+  id: string;
+  majorId: string;
+  courseId: string;
+  course: { id: string; code: string | null; name: string };
+  courseType: 'required' | 'elective';
+  recommendedSemester: number | null;
+}
+
+export interface TagSuggestion {
+  tag: Tag;
+  score: number;
+  source: 'embedding' | 'keyword';
+}
+
+export interface TagSuggestionResponse {
+  available: boolean;
+  model: string | null;
+  /** Gợi ý chính; rỗng = AI cho rằng bài không thuộc môn nào. */
+  tags: TagSuggestion[];
+  /** Tối đa 5 tag xếp hạng cao nhất (gồm cả gợi ý chính) để người dùng tự chọn. */
+  candidates?: TagSuggestion[];
 }
 
 export interface UpdateDiscussionPayload {

@@ -1,0 +1,675 @@
+{
+  "version": "2.0.0",
+  "generated_at": "2026-10-14",
+  "scope": "CNTT + ATTT + TTTN (MKT deferred)",
+  "labeling_rules": [
+    "Gán tối đa 3 nhãn, chỉ dùng slug.",
+    "Luôn gán nhãn CỤ THỂ NHẤT: khớp topic con thì gán topic con, KHÔNG gán kèm nhãn môn (nhãn môn được suy ra tự động qua 'parent').",
+    "Bài thuộc một môn nhưng không khớp topic con nào thì gán nhãn môn (level=course). Ví dụ: hỏi SQL JOIN -> 'co-so-du-lieu'.",
+    "Bài không thuộc môn nào trong danh sách (ăn uống, chuyện cá nhân, Docker, AI/ML...) -> tags = [].",
+    "Không chắc -> để trống còn hơn gán sai. Gặp ca chồng lấn thì xem trường 'note' của tag."
+  ],
+  "tags": [
+    {
+      "slug": "he-dieu-hanh",
+      "name": "Hệ điều hành",
+      "level": "course",
+      "parent": null,
+      "course_code": "HDH",
+      "topic_code": "ROOT_HDH",
+      "topic_id": "1a36665f-86ed-4a6f-87ab-0b46cc845601",
+      "tag_id": "dddddddd-0004-4001-8001-000000000022",
+      "description": "Các chủ đề Hệ điều hành ngoài deadlock và quản lý bộ nhớ: tiến trình, luồng, lập lịch CPU, đồng bộ (semaphore, mutex), hệ thống file, I/O.",
+      "keywords": [
+        "hệ điều hành",
+        "tiến trình",
+        "luồng",
+        "process",
+        "thread",
+        "lập lịch CPU",
+        "semaphore",
+        "mutex",
+        "system call"
+      ]
+    },
+    {
+      "slug": "deadlock",
+      "name": "Deadlock",
+      "level": "topic",
+      "parent": "he-dieu-hanh",
+      "course_code": "HDH",
+      "topic_code": "CHILD_HDH_DEADLOCK",
+      "topic_id": "7a5b5c9c-9335-4c47-9643-9ba04278ea6d",
+      "tag_id": "dddddddd-0004-4001-8001-000000000001",
+      "description": "Deadlock trong hệ điều hành: điều kiện Coffman, giải thuật Banker, phát hiện, phòng tránh và khôi phục deadlock.",
+      "keywords": [
+        "deadlock",
+        "Coffman",
+        "Banker",
+        "trạng thái an toàn",
+        "circular wait",
+        "livelock"
+      ],
+      "note": "Deadlock giữa các transaction trong DB -> 'giao-dich-dong-thoi'."
+    },
+    {
+      "slug": "quan-ly-bo-nho",
+      "name": "Quản lý bộ nhớ",
+      "level": "topic",
+      "parent": "he-dieu-hanh",
+      "course_code": "HDH",
+      "topic_code": "CHILD_HDH_MEMORY",
+      "topic_id": "9165e1c7-8ab4-42cd-aadc-380bcd9e41bc",
+      "tag_id": "dddddddd-0004-4001-8001-000000000002",
+      "description": "Quản lý bộ nhớ: bộ nhớ ảo, phân trang, phân đoạn, thay thế trang (FIFO, LRU), working set, page fault, thrashing.",
+      "keywords": [
+        "bộ nhớ ảo",
+        "phân trang",
+        "phân đoạn",
+        "page fault",
+        "virtual memory",
+        "thrashing",
+        "LRU",
+        "TLB"
+      ]
+    },
+    {
+      "slug": "ctdl-giai-thuat",
+      "name": "Cấu trúc dữ liệu và giải thuật",
+      "level": "course",
+      "parent": null,
+      "course_code": "CTDL",
+      "topic_code": "ROOT_CTDL",
+      "topic_id": "e9fe45cc-772d-43fd-97f5-84ccdb8968a4",
+      "tag_id": "dddddddd-0004-4001-8001-000000000023",
+      "description": "Các chủ đề CTDL&GT ngoài độ phức tạp và đồ thị: mảng, danh sách liên kết, stack, queue, cây, bảng băm, sắp xếp, đệ quy, quy hoạch động.",
+      "keywords": [
+        "cấu trúc dữ liệu",
+        "linked list",
+        "stack",
+        "queue",
+        "cây nhị phân",
+        "hash table",
+        "sắp xếp",
+        "đệ quy",
+        "quy hoạch động"
+      ],
+      "note": "Bảng băm (hash table) thuộc đây; hàm băm mật mã (SHA, MD5) -> 'ham-bam-mat-ma'."
+    },
+    {
+      "slug": "do-phuc-tap-thuat-toan",
+      "name": "Độ phức tạp thuật toán",
+      "level": "topic",
+      "parent": "ctdl-giai-thuat",
+      "course_code": "CTDL",
+      "topic_code": "CHILD_CTDL_COMPLEXITY",
+      "topic_id": "d460caca-4c76-4dc9-a063-eb64ab14651f",
+      "tag_id": "dddddddd-0004-4001-8001-000000000003",
+      "description": "Phân tích độ phức tạp: Big-O, Big-Theta, Big-Omega, giải phương trình truy hồi, định lý Master, so sánh hiệu năng giải thuật.",
+      "keywords": [
+        "độ phức tạp",
+        "Big-O",
+        "Big-Theta",
+        "truy hồi",
+        "Master theorem",
+        "complexity",
+        "O(n)",
+        "O(log n)"
+      ],
+      "note": "Chỉ gán khi bài hỏi về PHÂN TÍCH độ phức tạp, không phải mọi bài có nhắc O(n)."
+    },
+    {
+      "slug": "giai-thuat-do-thi",
+      "name": "Giải thuật đồ thị",
+      "level": "topic",
+      "parent": "ctdl-giai-thuat",
+      "course_code": "CTDL",
+      "topic_code": "CHILD_CTDL_GRAPH",
+      "topic_id": "5f4f6214-0c72-444d-888f-41080d5c08a4",
+      "tag_id": "dddddddd-0004-4001-8001-000000000004",
+      "description": "Giải thuật trên đồ thị: BFS, DFS, Dijkstra, Bellman-Ford, Floyd-Warshall, cây khung (Prim, Kruskal), sắp xếp topo.",
+      "keywords": [
+        "đồ thị",
+        "BFS",
+        "DFS",
+        "Dijkstra",
+        "đường đi ngắn nhất",
+        "graph",
+        "cây khung",
+        "Kruskal",
+        "Prim"
+      ]
+    },
+    {
+      "slug": "co-so-du-lieu",
+      "name": "Cơ sở dữ liệu",
+      "level": "course",
+      "parent": null,
+      "course_code": "CSDL",
+      "topic_code": "ROOT_CSDL",
+      "topic_id": "767378f8-4ade-46bb-855d-03688a101e17",
+      "tag_id": "dddddddd-0004-4001-8001-000000000024",
+      "description": "Các chủ đề CSDL ngoài chuẩn hóa và giao dịch: viết truy vấn SQL (JOIN, GROUP BY, subquery), mô hình ER, index, stored procedure, NoSQL.",
+      "keywords": [
+        "SQL",
+        "JOIN",
+        "GROUP BY",
+        "truy vấn",
+        "ER",
+        "index",
+        "khóa ngoại",
+        "MySQL",
+        "PostgreSQL",
+        "MongoDB"
+      ]
+    },
+    {
+      "slug": "chuan-hoa-csdl",
+      "name": "Chuẩn hóa CSDL",
+      "level": "topic",
+      "parent": "co-so-du-lieu",
+      "course_code": "CSDL",
+      "topic_code": "CHILD_CSDL_NORMALIZE",
+      "topic_id": "c6091c75-b6e7-432c-af0b-55aa0fefeb03",
+      "tag_id": "dddddddd-0004-4001-8001-000000000005",
+      "description": "Chuẩn hóa CSDL: phụ thuộc hàm, bao đóng, khóa, 1NF, 2NF, 3NF, BCNF, phân rã bảng.",
+      "keywords": [
+        "chuẩn hóa",
+        "phụ thuộc hàm",
+        "bao đóng",
+        "1NF",
+        "2NF",
+        "3NF",
+        "BCNF",
+        "normalization",
+        "phân rã"
+      ]
+    },
+    {
+      "slug": "giao-dich-dong-thoi",
+      "name": "Giao dịch & Đồng thời",
+      "level": "topic",
+      "parent": "co-so-du-lieu",
+      "course_code": "CSDL",
+      "topic_code": "CHILD_CSDL_TRANSACTION",
+      "topic_id": "4fe2cc87-9165-4cad-b1d0-3ca82cea7a82",
+      "tag_id": "dddddddd-0004-4001-8001-000000000006",
+      "description": "Giao dịch trong CSDL: ACID, isolation level, lịch khả tuần tự, khóa 2 pha, MVCC, deadlock giữa các transaction.",
+      "keywords": [
+        "ACID",
+        "transaction",
+        "giao dịch",
+        "isolation level",
+        "khóa 2 pha",
+        "2PL",
+        "MVCC",
+        "serializable",
+        "dirty read"
+      ],
+      "note": "Deadlock giữa tiến trình trong OS -> 'deadlock'."
+    },
+    {
+      "slug": "mang-may-tinh",
+      "name": "Mạng máy tính",
+      "level": "course",
+      "parent": null,
+      "course_code": "MMT",
+      "topic_code": "ROOT_MMT",
+      "topic_id": "efd31d2e-e311-4a8a-895e-c02116955836",
+      "tag_id": "dddddddd-0004-4001-8001-000000000025",
+      "description": "Các chủ đề Mạng ngoài IP và TCP: mô hình OSI/TCP-IP, DNS, HTTP, DHCP, Ethernet, switch, Wi-Fi, Packet Tracer.",
+      "keywords": [
+        "mạng máy tính",
+        "OSI",
+        "DNS",
+        "HTTP",
+        "DHCP",
+        "Ethernet",
+        "switch",
+        "Packet Tracer",
+        "tầng"
+      ]
+    },
+    {
+      "slug": "dia-chi-ip",
+      "name": "Địa chỉ IP & Subnetting",
+      "level": "topic",
+      "parent": "mang-may-tinh",
+      "course_code": "MMT",
+      "topic_code": "CHILD_MMT_IP",
+      "topic_id": "0e733763-bda6-43a1-8450-0721ba243b46",
+      "tag_id": "dddddddd-0004-4001-8001-000000000007",
+      "description": "Địa chỉ IPv4/IPv6, chia mạng con, VLSM, CIDR, subnet mask, định tuyến, NAT.",
+      "keywords": [
+        "IPv4",
+        "IPv6",
+        "subnet",
+        "chia mạng con",
+        "VLSM",
+        "CIDR",
+        "subnet mask",
+        "định tuyến",
+        "NAT"
+      ]
+    },
+    {
+      "slug": "tcp-tac-nghen",
+      "name": "TCP & Tắc nghẽn",
+      "level": "topic",
+      "parent": "mang-may-tinh",
+      "course_code": "MMT",
+      "topic_code": "CHILD_MMT_TCP",
+      "topic_id": "ebc7e7b0-8560-4158-965d-c2bb418a949c",
+      "tag_id": "dddddddd-0004-4001-8001-000000000008",
+      "description": "Tầng giao vận: TCP 3-way handshake, flow control, congestion control, sliding window, retransmission, so sánh TCP và UDP.",
+      "keywords": [
+        "TCP",
+        "UDP",
+        "handshake",
+        "congestion control",
+        "tắc nghẽn",
+        "flow control",
+        "sliding window",
+        "slow start"
+      ]
+    },
+    {
+      "slug": "lap-trinh-oop",
+      "name": "Lập trình hướng đối tượng",
+      "level": "course",
+      "parent": null,
+      "course_code": "OOP",
+      "topic_code": "ROOT_OOP",
+      "topic_id": "3e1e8c37-fd25-42b7-b8d1-044215f8d9eb",
+      "tag_id": "dddddddd-0004-4001-8001-000000000026",
+      "description": "Các chủ đề OOP ngoài khái niệm cơ bản và design pattern: UML class diagram, exception, generic, collection, bài tập OOP bằng Java/C++/C#.",
+      "keywords": [
+        "hướng đối tượng",
+        "UML",
+        "exception",
+        "generic",
+        "collection",
+        "Java",
+        "C++",
+        "C#"
+      ]
+    },
+    {
+      "slug": "oop-co-ban",
+      "name": "OOP cơ bản",
+      "level": "topic",
+      "parent": "lap-trinh-oop",
+      "course_code": "OOP",
+      "topic_code": "CHILD_OOP_BASICS",
+      "topic_id": "fc6e633d-f9c3-4602-834a-2dc99092431e",
+      "tag_id": "dddddddd-0004-4001-8001-000000000009",
+      "description": "Bốn trụ cột OOP: đóng gói, kế thừa, đa hình, trừu tượng; class, object, interface, abstract class, overloading, overriding.",
+      "keywords": [
+        "class",
+        "object",
+        "kế thừa",
+        "đa hình",
+        "đóng gói",
+        "trừu tượng",
+        "interface",
+        "abstract",
+        "override"
+      ],
+      "note": "Bài hỏi về một pattern cụ thể (Singleton, Factory...) -> chỉ 'design-pattern', không gán kèm tag này."
+    },
+    {
+      "slug": "design-pattern",
+      "name": "Design Pattern",
+      "level": "topic",
+      "parent": "lap-trinh-oop",
+      "course_code": "OOP",
+      "topic_code": "CHILD_OOP_PATTERN",
+      "topic_id": "08779631-a6ef-4d1b-8871-ed6179eb30f1",
+      "tag_id": "dddddddd-0004-4001-8001-000000000010",
+      "description": "Mẫu thiết kế và nguyên lý thiết kế: Singleton, Factory, Observer, Strategy, Adapter, MVC, SOLID, dependency injection.",
+      "keywords": [
+        "design pattern",
+        "mẫu thiết kế",
+        "SOLID",
+        "Singleton",
+        "Factory",
+        "Observer",
+        "Strategy",
+        "MVC",
+        "dependency injection"
+      ]
+    },
+    {
+      "slug": "lap-trinh-web",
+      "name": "Lập trình Web",
+      "level": "course",
+      "parent": null,
+      "course_code": "WEB",
+      "topic_code": "ROOT_WEB",
+      "topic_id": "0e3122f2-b215-4c5b-bcca-8433449754c2",
+      "tag_id": "dddddddd-0004-4001-8001-000000000027",
+      "description": "Chủ đề Web chung không rõ frontend hay backend: kiến trúc client-server, deploy, hosting, domain, lộ trình học web.",
+      "keywords": [
+        "lập trình web",
+        "website",
+        "deploy",
+        "hosting",
+        "domain",
+        "full-stack"
+      ],
+      "note": "Bài hỏi rõ cả FE lẫn BE -> gán 2 tag con, không dùng tag này."
+    },
+    {
+      "slug": "lap-trinh-frontend",
+      "name": "Lập trình Frontend",
+      "level": "topic",
+      "parent": "lap-trinh-web",
+      "course_code": "WEB",
+      "topic_code": "CHILD_WEB_FRONTEND",
+      "topic_id": "0e35bc7d-1f6e-4478-adc8-13632ccaaab1",
+      "tag_id": "dddddddd-0004-4001-8001-000000000011",
+      "description": "Phát triển giao diện web: HTML, CSS, JavaScript, React, Vue, responsive, DOM, gọi API từ client.",
+      "keywords": [
+        "HTML",
+        "CSS",
+        "JavaScript",
+        "React",
+        "Vue",
+        "frontend",
+        "responsive",
+        "DOM",
+        "giao diện"
+      ]
+    },
+    {
+      "slug": "lap-trinh-backend",
+      "name": "Lập trình Backend",
+      "level": "topic",
+      "parent": "lap-trinh-web",
+      "course_code": "WEB",
+      "topic_code": "CHILD_WEB_BACKEND",
+      "topic_id": "56249da0-2bcc-4fc5-9c3f-bef3519f6041",
+      "tag_id": "dddddddd-0004-4001-8001-000000000012",
+      "description": "Phát triển server-side: REST API, Node.js, Express, NestJS, Spring Boot, Django, cài đặt xác thực, kết nối database từ server.",
+      "keywords": [
+        "REST API",
+        "Node.js",
+        "Express",
+        "NestJS",
+        "Spring Boot",
+        "Django",
+        "backend",
+        "server",
+        "ORM"
+      ],
+      "note": "Hỏi cách CÀI ĐẶT JWT/đăng nhập -> tag này. Hỏi về LỖ HỔNG/tấn công -> 'an-toan-web'."
+    },
+    {
+      "slug": "ky-nghe-phan-mem",
+      "name": "Kỹ nghệ phần mềm",
+      "level": "course",
+      "parent": null,
+      "course_code": "KNPM",
+      "topic_code": "ROOT_KNPM",
+      "topic_id": "2d6c1f86-d5c4-408a-8495-981395c1a41e",
+      "tag_id": "dddddddd-0004-4001-8001-000000000028",
+      "description": "Các chủ đề KNPM ngoài kiểm thử và quản lý dự án: phân tích yêu cầu, use case, mô hình vòng đời (Waterfall, V-model), tài liệu SRS.",
+      "keywords": [
+        "kỹ nghệ phần mềm",
+        "yêu cầu",
+        "use case",
+        "SRS",
+        "Waterfall",
+        "V-model",
+        "vòng đời phần mềm"
+      ]
+    },
+    {
+      "slug": "kiem-thu-phan-mem",
+      "name": "Kiểm thử phần mềm",
+      "level": "topic",
+      "parent": "ky-nghe-phan-mem",
+      "course_code": "KNPM",
+      "topic_code": "CHILD_KNPM_TEST",
+      "topic_id": "10844e38-366a-4a2f-825f-9da8347962b4",
+      "tag_id": "dddddddd-0004-4001-8001-000000000013",
+      "description": "Kiểm thử phần mềm: unit test, integration test, test case, hộp đen/hộp trắng, TDD, Jest, JUnit, Selenium.",
+      "keywords": [
+        "kiểm thử",
+        "unit test",
+        "test case",
+        "hộp đen",
+        "hộp trắng",
+        "TDD",
+        "Jest",
+        "JUnit",
+        "Selenium"
+      ],
+      "note": "Kiểm thử bảo mật/tấn công thử -> 'bao-cao-pentest'."
+    },
+    {
+      "slug": "quan-ly-du-an-it",
+      "name": "Quản lý dự án IT",
+      "level": "topic",
+      "parent": "ky-nghe-phan-mem",
+      "course_code": "KNPM",
+      "topic_code": "CHILD_KNPM_PM",
+      "topic_id": "47e79ac8-f3c7-41a0-8a8b-ca5a2fef7c75",
+      "tag_id": "dddddddd-0004-4001-8001-000000000014",
+      "description": "Quản lý dự án phần mềm: Agile, Scrum, Kanban, sprint, backlog, ước lượng, phân công nhóm, quy trình làm việc với Git.",
+      "keywords": [
+        "Agile",
+        "Scrum",
+        "Kanban",
+        "sprint",
+        "backlog",
+        "quản lý dự án",
+        "ước lượng",
+        "Jira",
+        "Git flow"
+      ]
+    },
+    {
+      "slug": "mat-ma-hoc",
+      "name": "Mật mã học cơ sở",
+      "level": "course",
+      "parent": null,
+      "course_code": "MMH",
+      "topic_code": "ROOT_MMH",
+      "topic_id": "3b3f6980-4dd5-4bae-b019-d4c12fac0eba",
+      "tag_id": "dddddddd-0004-4001-8001-000000000029",
+      "description": "Các chủ đề Mật mã ngoài mã đối xứng và hàm băm: mật mã cổ điển, RSA, Diffie-Hellman, chữ ký số, PKI, chứng chỉ số.",
+      "keywords": [
+        "mật mã",
+        "RSA",
+        "Diffie-Hellman",
+        "chữ ký số",
+        "PKI",
+        "chứng chỉ số",
+        "Caesar",
+        "Vigenere",
+        "khóa công khai"
+      ]
+    },
+    {
+      "slug": "mat-ma-doi-xung",
+      "name": "Mật mã đối xứng",
+      "level": "topic",
+      "parent": "mat-ma-hoc",
+      "course_code": "MMH",
+      "topic_code": "CHILD_MMH_SYMMETRIC",
+      "topic_id": "b52ca591-9308-406f-a711-07efc27a78ec",
+      "tag_id": "dddddddd-0004-4001-8001-000000000015",
+      "description": "Mật mã khóa đối xứng: DES, 3DES, AES, chế độ ECB/CBC/CTR/GCM, padding, quản lý khóa bí mật.",
+      "keywords": [
+        "AES",
+        "DES",
+        "3DES",
+        "đối xứng",
+        "khóa bí mật",
+        "CBC",
+        "ECB",
+        "GCM",
+        "symmetric"
+      ]
+    },
+    {
+      "slug": "ham-bam-mat-ma",
+      "name": "Hàm băm & MAC",
+      "level": "topic",
+      "parent": "mat-ma-hoc",
+      "course_code": "MMH",
+      "topic_code": "CHILD_MMH_HASH",
+      "topic_id": "2c74690c-b891-4ba6-9ca1-aead1f5821f6",
+      "tag_id": "dddddddd-0004-4001-8001-000000000016",
+      "description": "Hàm băm mật mã: MD5, SHA-1, SHA-256, tính kháng va chạm, HMAC, lưu mật khẩu với salt, bcrypt, rainbow table.",
+      "keywords": [
+        "hàm băm",
+        "hash",
+        "MD5",
+        "SHA-256",
+        "HMAC",
+        "va chạm",
+        "salt",
+        "bcrypt",
+        "rainbow table"
+      ],
+      "note": "Bảng băm trong CTDL -> 'ctdl-giai-thuat'."
+    },
+    {
+      "slug": "kiem-thu-xam-nhap",
+      "name": "Kiểm thử xâm nhập",
+      "level": "course",
+      "parent": null,
+      "course_code": "KTXN",
+      "topic_code": "ROOT_KTXN",
+      "topic_id": "2894f6de-f590-4c91-a2f0-7826c6f7c660",
+      "tag_id": "dddddddd-0004-4001-8001-000000000030",
+      "description": "Các chủ đề KTXN ngoài web và báo cáo: an ninh mạng, scan port, Nmap, Metasploit, Kali Linux, privilege escalation, CTF.",
+      "keywords": [
+        "an ninh mạng",
+        "Nmap",
+        "Metasploit",
+        "Kali",
+        "scan port",
+        "privilege escalation",
+        "CTF",
+        "exploit"
+      ]
+    },
+    {
+      "slug": "an-toan-web",
+      "name": "An toàn ứng dụng web",
+      "level": "topic",
+      "parent": "kiem-thu-xam-nhap",
+      "course_code": "KTXN",
+      "topic_code": "CHILD_KTXN_WEB",
+      "topic_id": "ec6a1c25-82c4-4aa9-98d6-f19ace2174d2",
+      "tag_id": "dddddddd-0004-4001-8001-000000000017",
+      "description": "Lỗ hổng ứng dụng web: OWASP Top 10, SQL injection, XSS, CSRF, SSRF, lỗi xác thực và quản lý phiên, Burp Suite.",
+      "keywords": [
+        "OWASP",
+        "SQL injection",
+        "XSS",
+        "CSRF",
+        "SSRF",
+        "lỗ hổng",
+        "Burp Suite",
+        "quản lý phiên"
+      ]
+    },
+    {
+      "slug": "bao-cao-pentest",
+      "name": "Pentest & Báo cáo",
+      "level": "topic",
+      "parent": "kiem-thu-xam-nhap",
+      "course_code": "KTXN",
+      "topic_code": "CHILD_KTXN_REPORT",
+      "topic_id": "83c74631-2cf3-4720-ad03-b0271f828523",
+      "tag_id": "dddddddd-0004-4001-8001-000000000018",
+      "description": "Quy trình pentest: xác định phạm vi, recon, khai thác, tái hiện lỗi, chấm điểm CVSS, viết báo cáo và khuyến nghị khắc phục.",
+      "keywords": [
+        "pentest",
+        "phạm vi",
+        "recon",
+        "tái hiện",
+        "CVSS",
+        "báo cáo pentest",
+        "khuyến nghị",
+        "khắc phục"
+      ]
+    },
+    {
+      "slug": "thuc-tap-tot-nghiep",
+      "name": "Thực tập tốt nghiệp",
+      "level": "course",
+      "parent": null,
+      "course_code": "TTTN",
+      "topic_code": "ROOT_TTTN",
+      "topic_id": "85f3dc6c-794e-43de-99d6-2cba9b3747fd",
+      "tag_id": "dddddddd-0004-4001-8001-000000000021",
+      "description": "Thực tập tốt nghiệp nói chung: thủ tục, thời gian, viết báo cáo thực tập, đồ án tốt nghiệp, bảo vệ.",
+      "keywords": [
+        "thực tập tốt nghiệp",
+        "đồ án tốt nghiệp",
+        "báo cáo thực tập",
+        "bảo vệ",
+        "khóa luận"
+      ],
+      "note": "'Đồ án môn' của các môn khác KHÔNG thuộc tag này."
+    },
+    {
+      "slug": "chon-thay-co",
+      "name": "Chọn thầy cô hướng dẫn",
+      "level": "topic",
+      "parent": "thuc-tap-tot-nghiep",
+      "course_code": "TTTN",
+      "topic_code": "CHILD_TTTN_THAYCO",
+      "topic_id": "3da196e3-f906-4fdc-9c90-e357f6ff9efa",
+      "tag_id": "dddddddd-0004-4001-8001-000000000019",
+      "description": "Chọn giảng viên hướng dẫn, chọn và đăng ký đề tài, cách liên hệ thầy cô.",
+      "keywords": [
+        "thầy hướng dẫn",
+        "giảng viên hướng dẫn",
+        "GVHD",
+        "đề tài",
+        "đăng ký đề tài"
+      ]
+    },
+    {
+      "slug": "chon-cong-ty",
+      "name": "Chọn công ty thực tập",
+      "level": "topic",
+      "parent": "thuc-tap-tot-nghiep",
+      "course_code": "TTTN",
+      "topic_code": "CHILD_TTTN_CONGTY",
+      "topic_id": "3d1d9434-a3e7-464c-8db0-2e42ebeb61f1",
+      "tag_id": "dddddddd-0004-4001-8001-000000000020",
+      "description": "Tìm công ty thực tập: kênh tìm việc, CV, phỏng vấn, offer, review công ty, kinh nghiệm intern.",
+      "keywords": [
+        "công ty",
+        "intern",
+        "CV",
+        "phỏng vấn",
+        "offer",
+        "TopCV",
+        "LinkedIn",
+        "review cong ty"
+      ]
+    }
+  ],
+  "deferred": {
+    "version": "v3",
+    "reason": "MKT — chờ đủ dữ liệu gán nhãn",
+    "courses": [
+      {
+        "course_code": "MKT1",
+        "name": "Marketing căn bản"
+      },
+      {
+        "course_code": "MKT2",
+        "name": "Marketing truyền thông xã hội"
+      }
+    ]
+  }
+}

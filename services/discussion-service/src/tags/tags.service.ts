@@ -56,8 +56,13 @@ export class TagsService {
     }
     if (!filter.includeInactive) qb.andWhere("t.status = 'active'");
 
-    // Luôn ưu tiên tag được dùng nhiều nhất lên đầu
-    qb.orderBy('t.usageCount', 'DESC').addOrderBy('t.createdAt', 'DESC');
+    // Tag của môn đang chọn lên trước, sau đó ưu tiên tag được dùng nhiều nhất
+    if (filter.courseId)
+      qb.orderBy('CASE WHEN t.course_id = :courseId THEN 0 ELSE 1 END', 'ASC')
+        .setParameter('courseId', filter.courseId)
+        .addOrderBy('t.usageCount', 'DESC');
+    else qb.orderBy('t.usageCount', 'DESC');
+    qb.addOrderBy('t.createdAt', 'DESC');
 
     const totalItems = await qb.getCount();
     const data = await qb

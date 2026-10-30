@@ -9,17 +9,15 @@ import {
   CatalogStatus,
   Course,
   CourseTopic,
-  Curriculum,
-  CurriculumCourse,
   Major,
+  MajorCourse,
   Topic,
 } from './entities';
 import {
   CatalogDto,
   CourseTopicItemDto,
-  CurriculumCourseDto,
-  CurriculumDto,
   ListDto,
+  MajorCourseDto,
   TopicDto,
   UpdateCatalogDto,
   UpdateTopicDto,
@@ -42,18 +40,18 @@ export class AcademicService {
   courses(query: ListDto) { return this.paged(Course, query); }
   topics(query: ListDto) { return this.paged(Topic, query); }
 
-  curricula(majorId: string) {
-    return this.db.getRepository(Curriculum).find({
+  majorCourses(majorId: string) {
+    return this.db.getRepository(MajorCourse).find({
       where: { majorId },
-      order: { effectiveYear: 'DESC', version: 'DESC' },
+      relations: ['course'],
+      order: { displayOrder: 'ASC' },
     });
   }
 
-  curriculumCourses(curriculumId: string) {
-    return this.db.getRepository(CurriculumCourse).find({
-      where: { curriculumId },
-      relations: ['course'],
-      order: { displayOrder: 'ASC' },
+  courseMajors(courseId: string) {
+    return this.db.getRepository(MajorCourse).find({
+      where: { courseId },
+      relations: ['major'],
     });
   }
 
@@ -94,42 +92,30 @@ export class AcademicService {
     return this.db.getRepository(Topic).save(topic);
   }
 
-  async updateCurriculumStatus(id: string, status: 'draft' | 'active' | 'retired') {
-    const curriculum = await this.db.getRepository(Curriculum).findOneBy({ id });
-    if (!curriculum) throw new NotFoundException('Curriculum not found');
-    if (status === 'active') {
-      const other = await this.db.getRepository(Curriculum).findOneBy({ majorId: curriculum.majorId, status: 'active' });
-      if (other && other.id !== id) throw new ConflictException('This major already has an active curriculum');
-    }
-    curriculum.status = status;
-    return this.db.getRepository(Curriculum).save(curriculum);
-  }
-
-  async createCurriculum(dto: CurriculumDto) {
-    await this.exists(Major, dto.majorId, 'Major');
-    return this.db.getRepository(Curriculum).save(
-      this.db.getRepository(Curriculum).create({ ...dto, status: dto.status ?? 'draft' }),
-    );
-  }
-
-  async addCurriculumCourse(dto: CurriculumCourseDto) {
+  async addMajorCourse(dto: MajorCourseDto) {
     await Promise.all([
-      this.exists(Curriculum, dto.curriculumId, 'Curriculum'),
+      this.exists(Major, dto.majorId, 'Major'),
       this.exists(Course, dto.courseId, 'Course'),
     ]);
     try {
-      return await this.db.getRepository(CurriculumCourse).save(
-        this.db.getRepository(CurriculumCourse).create({
+      return await this.db.getRepository(MajorCourse).save(
+        this.db.getRepository(MajorCourse).create({
           ...dto,
           recommendedSemester: dto.recommendedSemester ?? null,
           displayOrder: dto.displayOrder ?? 0,
+          credits: dto.credits ?? null,
         }),
       );
     } catch (error) {
       if ((error as { code?: string }).code === '23505')
-        throw new ConflictException('Course already belongs to this curriculum');
+        throw new ConflictException('Course already belongs to this major');
       throw error;
     }
+  }
+
+  async removeMajorCourse(id: string) {
+    const result = await this.db.getRepository(MajorCourse).delete({ id });
+    if (!result.affected) throw new NotFoundException('Major course not found');
   }
 
   async createTopic(dto: TopicDto) {
@@ -161,25 +147,23 @@ export class AcademicService {
     });
   }
 
-  async context(curriculumCourseId: string) {
-    const item = await this.db.getRepository(CurriculumCourse).findOne({
-      where: { id: curriculumCourseId },
-      relations: ['course', 'curriculum', 'curriculum.major'],
+  async context(majorCourseId: string) {
+    const item = await this.db.getRepository(MajorCourse).findOne({
+      where: { id: majorCourseId },
+      relations: ['course', 'major'],
     });
-    if (!item) throw new NotFoundException('Curriculum course not found');
-    if (item.course.status !== CatalogStatus.ACTIVE || item.curriculum.status !== 'active' || item.curriculum.major.status !== CatalogStatus.ACTIVE)
+    if (!item) throw new NotFoundException('Major course not found');
+    if (item.course.status !== CatalogStatus.ACTIVE || item.major.status !== CatalogStatus.ACTIVE)
       throw new NotFoundException('Active academic context not found');
     const topicRows = await this.db.getRepository(CourseTopic).find({
       where: { courseId: item.courseId },
       relations: ['topic'],
     });
     return {
-      curriculumCourseId: item.id,
-      majorId: item.curriculum.majorId,
-      curriculumId: item.curriculumId,
+      majorCourseId: item.id,
+      majorId: item.majorId,
       courseId: item.courseId,
-      major: item.curriculum.major,
-      curriculum: item.curriculum,
+      major: item.major,
       course: item.course,
       allowedTopics: topicRows.filter((row) => row.topic.status === CatalogStatus.ACTIVE),
     };

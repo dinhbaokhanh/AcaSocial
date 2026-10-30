@@ -35,14 +35,11 @@ export class Discussion {
   @Column({ name: 'major_id', type: 'uuid', nullable: true })
   majorId: string | null;
 
-  @Column({ name: 'curriculum_id', type: 'uuid', nullable: true })
-  curriculumId: string | null;
-
   @Column({ name: 'course_id', type: 'uuid', nullable: true })
   courseId: string | null;
 
-  @Column({ name: 'curriculum_course_id', type: 'uuid', nullable: true })
-  curriculumCourseId: string | null;
+  @Column({ name: 'major_course_id', type: 'uuid', nullable: true })
+  majorCourseId: string | null;
 
   @PrimaryGeneratedColumn('uuid')
   id: string;

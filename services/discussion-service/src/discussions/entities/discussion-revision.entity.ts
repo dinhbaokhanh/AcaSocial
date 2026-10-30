@@ -14,7 +14,7 @@ export class DiscussionRevision {
   @CreateDateColumn({ name: 'created_at' }) createdAt: Date;
 }
 
-// Schema retained for future topic suggestions; no module is currently registered.
+// Ledger of tag choices: AI suggestions (accepted/rejected by the author) and author-added tags.
 @Entity('discussion_tag_assignments')
 export class DiscussionTagAssignment {
   @PrimaryGeneratedColumn('uuid') id: string;

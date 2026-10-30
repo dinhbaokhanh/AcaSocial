@@ -309,6 +309,20 @@
       ]
     },
     {
+      "endpoint": "/api/discussions/tag-suggestions",
+      "method": "POST",
+      "auth_required": true,
+      "max_requests_per_minute": 30,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/discussions/tag-suggestions"
+        }
+      ]
+    },
+    {
       "endpoint": "/api/discussions/{id}",
       "method": "GET",
       "auth_required": false,
@@ -644,7 +658,7 @@
       ]
     },
     {
-      "endpoint": "/api/majors/{id}/curricula",
+      "endpoint": "/api/majors/{id}/courses",
       "method": "GET",
       "auth_required": false,
       "backend": [
@@ -652,7 +666,7 @@
           "host": [
             "${ACADEMIC_SERVICE_URL}"
           ],
-          "url_pattern": "/majors/{id}/curricula"
+          "url_pattern": "/majors/{id}/courses"
         }
       ]
     },
@@ -715,8 +729,8 @@
       ]
     },
     {
-      "endpoint": "/api/curricula",
-      "method": "POST",
+      "endpoint": "/api/major-courses/{id}",
+      "method": "DELETE",
       "auth_required": true,
       "required_roles": [
         "admin"
@@ -726,12 +740,12 @@
           "host": [
             "${ACADEMIC_SERVICE_URL}"
           ],
-          "url_pattern": "/curricula"
+          "url_pattern": "/major-courses/{id}"
         }
       ]
     },
     {
-      "endpoint": "/api/curricula/{id}/courses",
+      "endpoint": "/api/courses/{id}/majors",
       "method": "GET",
       "auth_required": false,
       "backend": [
@@ -739,12 +753,12 @@
           "host": [
             "${ACADEMIC_SERVICE_URL}"
           ],
-          "url_pattern": "/curricula/{id}/courses"
+          "url_pattern": "/courses/{id}/majors"
         }
       ]
     },
     {
-      "endpoint": "/api/curriculum-courses",
+      "endpoint": "/api/major-courses",
       "method": "POST",
       "auth_required": true,
       "required_roles": [
@@ -755,7 +769,7 @@
           "host": [
             "${ACADEMIC_SERVICE_URL}"
           ],
-          "url_pattern": "/curriculum-courses"
+          "url_pattern": "/major-courses"
         }
       ]
     },
@@ -1130,22 +1144,6 @@
             "${ACADEMIC_SERVICE_URL}"
           ],
           "url_pattern": "/topics/{id}"
-        }
-      ]
-    },
-    {
-      "endpoint": "/api/curricula/{id}/status",
-      "method": "PATCH",
-      "auth_required": true,
-      "required_roles": [
-        "admin"
-      ],
-      "backend": [
-        {
-          "host": [
-            "${ACADEMIC_SERVICE_URL}"
-          ],
-          "url_pattern": "/curricula/{id}/status"
         }
       ]
     },

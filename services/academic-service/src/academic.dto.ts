@@ -32,20 +32,15 @@ export class CatalogDto {
   @IsOptional() @IsEnum(CatalogStatus) status?: CatalogStatus;
 }
 
-export class CurriculumDto {
+export class MajorCourseDto {
   @IsUUID() majorId: string;
-  @Transform(trim) @IsString() @Length(1, 40) version: string;
-  @IsInt() @Min(2000) @Max(2200) effectiveYear: number;
-  @IsOptional() @IsEnum(['draft', 'active', 'retired']) status?: 'draft' | 'active' | 'retired';
-}
-
-export class CurriculumCourseDto {
-  @IsUUID() curriculumId: string;
   @IsUUID() courseId: string;
   @IsEnum(['required', 'elective']) courseType: 'required' | 'elective';
   @ValidateIf((_, value) => value !== undefined && value !== null)
   @IsInt() @Min(1) @Max(20) recommendedSemester?: number | null;
   @IsOptional() @IsInt() @Min(0) displayOrder?: number;
+  @ValidateIf((_, value) => value !== undefined && value !== null)
+  @IsInt() @Min(0) @Max(50) credits?: number | null;
 }
 
 export class TopicDto {
@@ -74,8 +69,4 @@ export class UpdateCatalogDto {
 export class UpdateTopicDto extends UpdateCatalogDto {
   @ValidateIf((_, value) => value !== undefined && value !== null) @IsUUID()
   parentTopicId?: string | null;
-}
-
-export class CurriculumStatusDto {
-  @IsEnum(['draft', 'active', 'retired']) status: 'draft' | 'active' | 'retired';
 }

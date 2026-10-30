@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   ArrayMinSize,
@@ -10,14 +10,16 @@ import {
   IsBoolean,
   IsEnum,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import { PostType } from '../enums/post-type.enum';
+import { AiSuggestionDto } from './tag-suggestion.dto';
 export class CreateDiscussionDto {
   @IsUUID('all')
   roomId: string;
   @ValidateIf((_, v) => v !== undefined)
   @IsUUID('all')
-  curriculumCourseId?: string;
+  majorCourseId?: string;
   @Transform(({ value }) => (typeof value === 'string' ? value.trim() : value))
   @IsString()
   @Length(10, 300)
@@ -40,4 +42,8 @@ export class CreateDiscussionDto {
   @IsUUID('all', { each: true })
   mediaIds?: string[];
   @ValidateIf((_, v) => v !== undefined) @IsBoolean() isAnonymous?: boolean;
+  @ValidateIf((_, v) => v !== undefined)
+  @ValidateNested()
+  @Type(() => AiSuggestionDto)
+  aiSuggestion?: AiSuggestionDto;
 }

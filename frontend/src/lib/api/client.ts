@@ -13,6 +13,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   'Authentication required': 'Vui lòng đăng nhập để tiếp tục.',
   'Admin or moderator role required': 'Chỉ quản trị viên hoặc kiểm duyệt viên có quyền thực hiện.',
   'Post awaits approval': 'Bài đăng đang chờ duyệt.',
+  'At least one tag is required in major and course rooms': 'Bài trong không gian ngành/môn học cần ít nhất một tag.',
+  'You cannot post in this room': 'Bạn không có quyền đăng bài trong không gian này.',
+  'Room is not accepting new posts': 'Không gian này hiện không nhận bài mới.',
+  'Active membership required': 'Bạn cần là thành viên của không gian này để đăng bài.',
+  'Approved contributor role required': 'Chỉ người đóng góp được duyệt mới đăng bài trong không gian này.',
   'Content changed; reload before reviewing': 'Bài đăng đã thay đổi. Vui lòng tải lại trước khi duyệt.',
 };
 

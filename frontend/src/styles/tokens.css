@@ -101,6 +101,8 @@
   --color-surface-raised:#ffffff;
   --color-outline:       var(--color-neutral-200);
   --color-outline-focus: var(--color-primary-400);
+  --color-primary:       var(--color-primary-500);
+  --color-danger:        var(--color-destructive-600);
 
   /* -------------------------------------------------------------------------
      COLOR — Text Hierarchy

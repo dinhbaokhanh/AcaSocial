@@ -9,13 +9,13 @@ import { DiscussionsService } from './discussions.service';
 import { NatsModule } from '../common/nats/nats.module';
 import { InternalAttachmentsController } from './internal-attachments.controller';
 import { RoomsModule } from '../rooms/rooms.module';
-import { DiscussionRevision } from './entities/discussion-revision.entity';
+import { DiscussionRevision, DiscussionTagAssignment } from './entities/discussion-revision.entity';
 import { Answer, AnswerAcceptance } from '../answers/answer.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Discussion, DiscussionMedia, Tag, Comment, DiscussionRevision,
+      Discussion, DiscussionMedia, Tag, Comment, DiscussionRevision, DiscussionTagAssignment,
       Answer, AnswerAcceptance,
     ]),
     NatsModule,

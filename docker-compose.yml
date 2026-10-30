@@ -180,6 +180,7 @@ services:
       MEDIA_SERVICE_URL: http://media-service:8082
       IDENTITY_SERVICE_URL: http://identity-service:8081
       ACADEMIC_SERVICE_URL: http://academic-service:8086
+      AI_SERVICE_URL: http://ai-service:8087
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
@@ -212,6 +213,24 @@ services:
     depends_on:
       academic-db-init:
         condition: service_completed_successfully
+
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: acasocial-ai
+    restart: unless-stopped
+    environment:
+      PORT: 8087
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+    networks:
+      - internal
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://localhost:8087/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
 
   notification-service:
     build:

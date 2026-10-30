@@ -6,9 +6,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 
 export interface AcademicContext {
-  curriculumCourseId: string;
+  majorCourseId: string;
   majorId: string;
-  curriculumId: string;
   courseId: string;
   allowedTopics: Array<{ topicId: string; relevanceWeight: number }>;
 }
@@ -17,9 +16,9 @@ export interface AcademicContext {
 export class AcademicReferenceService {
   constructor(private readonly config: ConfigService) {}
 
-  async context(curriculumCourseId: string): Promise<AcademicContext> {
+  async context(majorCourseId: string): Promise<AcademicContext> {
     const response = await this.get(
-      `/internal/academic/contexts/${encodeURIComponent(curriculumCourseId)}`,
+      `/internal/academic/contexts/${encodeURIComponent(majorCourseId)}`,
     );
     if (response.status === 404)
       throw new BadRequestException('Academic context does not exist');

@@ -85,31 +85,13 @@ export class Course {
   @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' }) updatedAt: Date;
 }
 
-@Entity('curricula')
-export class Curriculum {
+@Entity('major_courses')
+@Unique(['majorId', 'courseId'])
+export class MajorCourse {
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column({ name: 'major_id', type: 'uuid' }) majorId: string;
-  @Column({ name: 'training_program_id', type: 'uuid', nullable: true }) trainingProgramId: string | null;
-  @ManyToOne(() => TrainingProgram, { nullable: true, onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'training_program_id' }) trainingProgram: TrainingProgram | null;
-  @ManyToOne(() => Major, { onDelete: 'RESTRICT' })
+  @ManyToOne(() => Major, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'major_id' }) major: Major;
-  @Column({ length: 40 }) version: string;
-  @Column({ name: 'effective_year', type: 'int' }) effectiveYear: number;
-  @Column({ type: 'varchar', length: 20, default: 'draft' }) status: 'draft' | 'active' | 'retired';
-  @Column({ type: 'varchar', length: 20, default: 'SIMULATED' }) provenance: Provenance;
-  @Column({ name: 'source_url', type: 'varchar', length: 500, nullable: true }) sourceUrl: string | null;
-  @CreateDateColumn({ name: 'created_at', type: 'timestamptz' }) createdAt: Date;
-  @UpdateDateColumn({ name: 'updated_at', type: 'timestamptz' }) updatedAt: Date;
-}
-
-@Entity('curriculum_courses')
-@Unique(['curriculumId', 'courseId'])
-export class CurriculumCourse {
-  @PrimaryGeneratedColumn('uuid') id: string;
-  @Column({ name: 'curriculum_id', type: 'uuid' }) curriculumId: string;
-  @ManyToOne(() => Curriculum, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'curriculum_id' }) curriculum: Curriculum;
   @Column({ name: 'course_id', type: 'uuid' }) courseId: string;
   @ManyToOne(() => Course, { onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'course_id' }) course: Course;

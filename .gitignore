@@ -22,6 +22,9 @@ out/
 *.tsbuildinfo
 .nest/
 
+__pycache__/
+*.py[cod]
+
 coverage/
 .nyc_output/
 .junit/
@@ -48,6 +51,19 @@ pnpm-debug.log*
 .docker/
 docker-data/
 docker-volumes/
+
+# Generated database dumps
+*.dump
+*.bak
+*.backup
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+*.sql.gz
+dumps/
+backups/
+snapshots/
 
 .vscode/
 
@@ -77,3 +93,6 @@ GEMINI.md
 .cursorrules
 .windsurfrules
 .github/copilot-instructions.md
+
+# AI service experiments
+/services/ai-service/ai-lab/

@@ -8,7 +8,7 @@ modules are not currently deployed; their schema is retained for future implemen
 
 ## Academic ERD
 
-The academic catalog has nine domain tables. Legacy community sample rows remain
+The academic catalog has eight domain tables. Legacy community sample rows remain
 separate from the PTIT catalogue and retain their simulated nature. User accounts
 belong to identity-service; rooms and discussions belong to discussion-service.
 
@@ -16,10 +16,8 @@ belong to identity-service; rooms and discussions belong to discussion-service.
 erDiagram
     universities ||--o{ majors : offers
     majors ||--o{ training_programs : has
-    training_programs ||--o{ curricula : versions
-    majors ||--o{ curricula : legacy_curricula
-    curricula ||--o{ curriculum_courses : contains
-    courses ||--o{ curriculum_courses : appears_in
+    majors ||--o{ major_courses : includes
+    courses ||--o{ major_courses : belongs_to
     courses ||--o{ course_topics : covers
     topics ||--o{ course_topics : relates_to
     topics o|--o{ topics : parent_of
@@ -51,19 +49,9 @@ erDiagram
         string provenance
         string source_url
     }
-    curricula {
+    major_courses {
         uuid id PK
         uuid major_id FK
-        uuid training_program_id FK "nullable for legacy curricula"
-        string version
-        int effective_year
-        string status
-        string provenance
-        string source_url
-    }
-    curriculum_courses {
-        uuid id PK
-        uuid curriculum_id FK
         uuid course_id FK
         string course_type
         int recommended_semester
@@ -106,20 +94,12 @@ erDiagram
     }
 ```
 
-Curriculum versions are unique within a training program; legacy curricula with
-no program remain unique within a major. Other unique pairs are
-`(curriculum_id, course_id)` and `(course_id, topic_id)`. Course codes are nullable
+Majors and courses are many-to-many through `major_courses`; unique pairs are
+`(major_id, course_id)` and `(course_id, topic_id)`. Course codes are nullable
 so an unpublished code is not invented. Provenance values are `OFFICIAL`,
 `DERIVED` and `SIMULATED`; a source URL is stored on catalog rows. The diagram
 omits descriptions and timestamps for clarity.
 
-The seed currently uses one current snapshot for IT and curricula explicitly
-applied from 2025 for Cybersecurity and Marketing. The IT page does not state an
-application year in its title, so its version is named a 2026 access snapshot,
-not an official “2026 curriculum”. Course codes are absent from these pages and
-remain null. The major pages do not provide separate program/admission codes
-for the standard programs; those also remain null. Course-topic outlines and
-discussion content are simulated.
 No Document/RAG module exists in this repository, so none is fabricated.
 
 ## Discussion Decisions

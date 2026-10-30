@@ -1,4 +1,8 @@
 import { RoomPostPolicy1791200000000 } from './events/room-post-policy.migration';
+import { MajorCourseContext1791300000000 } from './events/major-course-context.migration';
+import { TagCourse1791400000000 } from './events/tag-course.migration';
+import { AnonymousAlias1791500000000 } from './events/anonymous-alias.migration';
+import { AnonymousAlias } from './common/anonymous-alias.entity';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -56,11 +60,12 @@ import { PostPublication1791000000000 } from './events/post-publication.migratio
           DiscussionRevision, DiscussionTagAssignment,
           ModerationReview,
           ContentReport, ModerationCase, ModerationAuditLog,
+          AnonymousAlias,
         ],
         synchronize:
           config.get<string>('NODE_ENV') !== 'production' &&
           config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
-        migrations: [DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000],
+        migrations: [DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000, MajorCourseContext1791300000000, TagCourse1791400000000, AnonymousAlias1791500000000],
         migrationsRun: true,
         logging: false,
       }),

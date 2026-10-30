@@ -1,0 +1,126 @@
+.root {
+  position: relative;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: none;
+  border-color: var(--color-primary-400);
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.12);
+}
+
+.invalid {
+  border-color: var(--color-danger);
+}
+
+.triggerName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-semibold);
+}
+
+.caret {
+  color: var(--color-text-secondary);
+}
+
+.meta {
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  padding: var(--space-2);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-raised);
+  box-shadow: var(--shadow-lg);
+}
+
+.search {
+  width: 100%;
+  padding: var(--space-1-5) var(--space-2);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.search:focus {
+  outline: none;
+  border-color: var(--color-primary-400);
+}
+
+.list {
+  margin: var(--space-1-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.optionActive {
+  background: var(--color-surface-hover);
+}
+
+.optionSelected .optionName {
+  color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.optionName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+
+.blocked {
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+.empty,
+.more {
+  margin: 0;
+  padding: var(--space-1-5) var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
+.error {
+  margin: var(--space-1) 0 0;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}

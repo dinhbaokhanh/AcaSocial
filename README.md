@@ -6,34 +6,6 @@ Mạng xã hội xây dựng theo kiến trúc **Microservices**, giao tiếp qu
 
 Phạm vi học thuật và ERD: [Academic and Discussion Scope](docs/academic-foundation.md).
 
-## Seed dữ liệu PTIT
-
-Seed PTIT mặc định chỉ thêm catalog học thuật, tag chủ đề mô phỏng và tài khoản
-admin khởi tạo; không tạo bài đăng. Dùng `--clear-discussions` khi chủ động muốn
-xóa toàn bộ bài viết, câu trả lời, bình luận và hoạt động kiểm duyệt liên quan,
-đồng thời giữ tag, phòng, tài khoản và catalog:
-
-```powershell
-node scripts/seed-ptit.mjs --apply --clear-discussions
-```
-
-Xem [hướng dẫn seed PTIT](scripts/SEED-PTIT.md). Có thể bật dữ liệu bài viết mẫu
-bằng `--with-discussions`.
-
-## Dữ liệu cộng đồng mở rộng
-
-Thêm 710 tài khoản, 16 chuyên ngành, 64 môn học, 1.376 bài đăng và hàng nghìn
-câu trả lời/bình luận vào database đang chạy, không xóa dữ liệu hiện có:
-
-```powershell
-node scripts/seed-community.mjs --apply
-```
-
-Admin mới: `admin@campus.acasocial.test`. Mọi tài khoản của bộ seed dùng
-`Password123!`. Xem [hướng dẫn seed PTIT](scripts/SEED-PTIT.md).
-Lệnh `scripts/seed.sql` bên dưới vẫn là bộ seed nhỏ có thao tác reset; không chạy
-lại sau seed mở rộng nếu muốn giữ dữ liệu vừa bổ sung.
-
 ## Cấu trúc thư mục
 
 ```
@@ -147,37 +119,6 @@ Thiết kế domain, ERD và sequence diagram: [Academic community foundation](d
 curl http://localhost:8080/health
 # Kết quả mong đợi: {"redis":"ok","status":"ok"}
 ```
-
-### Nạp dữ liệu phát triển
-
-Sau khi các service đã khởi động ít nhất một lần để TypeORM tạo schema, chạy:
-
-```powershell
-Get-Content scripts\seed.sql -Raw | docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1
-```
-
-Trên macOS/Linux:
-
-```bash
-docker exec -i acasocial-postgres psql -U postgres -v ON_ERROR_STOP=1 < scripts/seed.sql
-```
-
-Seed tạo một cộng đồng học thuật nhất quán gồm 14 tài khoản, 2 chuyên ngành,
-6 môn học, 11 room, 14 bài viết, 7 câu trả lời và dữ liệu báo cáo/nhật ký
-kiểm duyệt. Bài viết môn học luôn mang academic context và tag đúng room;
-không còn user hoặc bài viết sinh tự động kiểu `demo/test`.
-
-Tất cả tài khoản dùng mật khẩu `Password123!`. Một số tài khoản chính:
-
-| Vai trò | Email |
-| --- | --- |
-| Admin | `admin@acasocial.edu.vn` |
-| Moderator | `moderator@acasocial.edu.vn` |
-| Giảng viên | `an.nguyen@acasocial.edu.vn` |
-| Sinh viên | `kien.nguyen@acasocial.edu.vn` |
-
-> Seed có tính destructive: script xóa dữ liệu hiện có trong các bảng seed
-> trước khi insert lại dữ liệu mẫu. Không chạy trên môi trường production.
 
 Đối chiếu phạm vi hiện thực với backlog sản phẩm: [Feature coverage](docs/feature-coverage.md).
 
