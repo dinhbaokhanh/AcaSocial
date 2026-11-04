@@ -13,7 +13,11 @@
 .skeletonList {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .skeletonCard {
@@ -22,6 +26,10 @@
   padding: var(--space-2) var(--space-2-5);
   background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-outline);
+}
+
+.skeletonCard:last-child {
+  border-bottom: none;
 }
 
 .skeletonVote {
@@ -42,6 +50,16 @@
   padding-top: 4px;
 }
 
+.skeletonBadge {
+  height: 18px;
+  width: 70px;
+  border-radius: var(--radius-full);
+  /* same shimmer animation */
+  background: linear-gradient(90deg, var(--color-neutral-100) 25%, var(--color-neutral-200) 50%, var(--color-neutral-100) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+}
+
 .skeletonTitle {
   height: 18px;
   width: 70%;
@@ -49,6 +67,24 @@
   background: linear-gradient(90deg, var(--color-neutral-100) 25%, var(--color-neutral-200) 50%, var(--color-neutral-100) 75%);
   background-size: 600px 100%;
   animation: shimmer 1.4s infinite linear;
+}
+
+.skeletonPreview {
+  height: 13px;
+  width: 85%;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-neutral-100) 25%, var(--color-neutral-200) 50%, var(--color-neutral-100) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s 0.05s infinite linear;
+}
+
+.skeletonTags {
+  height: 20px;
+  width: 45%;
+  border-radius: var(--radius-md);
+  background: linear-gradient(90deg, var(--color-neutral-100) 25%, var(--color-neutral-200) 50%, var(--color-neutral-100) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s 0.1s infinite linear;
 }
 
 .skeletonLine {

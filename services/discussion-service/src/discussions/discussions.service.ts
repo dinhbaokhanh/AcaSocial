@@ -57,9 +57,9 @@ export class DiscussionsService {
   async suggestTags(user: GatewayUser, dto: SuggestTagsDto) {
     authenticated(user);
     const result = await this.ai.suggest(dto.title, dto.content);
-    if (!result) return { available: false, model: null, tags: [], candidates: [] };
-    const candidates = result.candidates ?? result.tags;
-    const slugs = [...new Set([...result.tags, ...candidates].map((t) => t.slug))];
+    if (!result)
+      return { available: false, model: null, status: null, tags: [], related: [] };
+    const slugs = [...new Set([...result.tags, ...result.related].map((t) => t.slug))];
     const found = slugs.length
       ? await this.db.getRepository(Tag).findBy({ slug: In(slugs), status: 'active' })
       : [];
@@ -72,9 +72,10 @@ export class DiscussionsService {
     return {
       available: true,
       model: result.model,
+      status: result.status,
       tags: resolve(result.tags),
-      // Tối đa 5 tag xếp hạng cao nhất (gồm cả gợi ý chính) để người dùng chọn khi gợi ý chính sai hoặc rỗng.
-      candidates: resolve(candidates),
+      // Vài tag sát nút tag chính; rỗng khi không có gợi ý chính.
+      related: resolve(result.related),
     };
   }
 

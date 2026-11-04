@@ -13,8 +13,10 @@ function SkeletonCard() {
     <div className={styles.skeletonCard} aria-hidden="true">
       <div className={styles.skeletonVote} />
       <div className={styles.skeletonBody}>
+        <div className={styles.skeletonBadge} />
         <div className={styles.skeletonTitle} />
-        <div className={styles.skeletonLine} />
+        <div className={styles.skeletonPreview} />
+        <div className={styles.skeletonTags} />
         <div className={styles.skeletonMeta} />
       </div>
     </div>

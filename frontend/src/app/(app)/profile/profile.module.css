@@ -1,92 +1,125 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
   padding: var(--space-2) 0;
 }
 
+/* ── Profile Card ─────────────────────────────────── */
 .profileCard {
   background-color: var(--color-surface);
   border: 1px solid var(--color-outline);
   border-radius: var(--radius-2xl);
-  padding: var(--space-5);
+  padding: var(--space-4);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
+/* Card top row: user info + edit button */
 .cardHeader {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .userInfo {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-3);
   align-items: center;
 }
 
 .userMeta {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-0-5);
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  flex-wrap: wrap;
 }
 
 .fullName {
-  font-size: var(--font-size-2xl);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  margin: 0;
+  line-height: 1.25;
 }
 
 .username {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
+  line-height: 1.4;
 }
 
-.bio {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
-  line-height: var(--line-height-normal);
-  max-width: 600px;
-}
-
+/* Details row: email, join date, privacy */
 .detailsRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.detailItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 }
 
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--color-outline-variant);
+.privacyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  background-color: var(--color-surface-container-low);
 }
 
-.statItem {
+/* Divider between profile info and stats */
+.statsDivider {
+  height: 1px;
+  background-color: var(--color-outline-variant);
+}
+
+/* Stats row */
+.statsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Numeric stats (reputation, post count) */
+.numericStats {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.numericStat {
   display: flex;
   flex-direction: column;
-  gap: var(--space-0-5);
-  padding: var(--space-2-5);
-  background-color: var(--color-surface-container-low);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--color-outline-variant);
+  gap: 2px;
 }
 
 .statValue {
-  font-size: var(--font-size-xl);
+  font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-primary);
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .statLabel {
@@ -95,7 +128,58 @@
   font-weight: var(--font-weight-medium);
 }
 
-/* Tabs */
+/* Status badges */
+.statusBadges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  flex-wrap: wrap;
+}
+
+.badgeVerified {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-verified-700);
+  background-color: var(--color-verified-50);
+  border: 1px solid var(--color-verified-300);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+}
+
+.badgeUnverified {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-neutral-600);
+  background-color: var(--color-neutral-50);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+}
+
+.badgeActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-verified-700);
+  background-color: var(--color-verified-50);
+  border: 1px solid var(--color-verified-300);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+}
+
+.badgeActive svg {
+  color: var(--color-verified-600);
+}
+
+/* ── Tabs ─────────────────────────────────────────── */
 .tabs {
   display: flex;
   gap: var(--space-1);
@@ -103,7 +187,7 @@
 }
 
 .tabBtn {
-  padding: var(--space-2) var(--space-3-5);
+  padding: var(--space-2) var(--space-3);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
@@ -124,6 +208,71 @@
   font-weight: var(--font-weight-semibold);
 }
 
+/* ── Filter Toolbar ───────────────────────────────── */
+.filterToolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.searchInputWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--space-2) 0 32px;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.searchInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+.sortSelect {
+  height: 36px;
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-lg);
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  white-space: nowrap;
+}
+
+.sortSelect:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-100);
+}
+
+/* ── Posts List ───────────────────────────────────── */
 .postsList {
   display: flex;
   flex-direction: column;
@@ -133,12 +282,24 @@
   overflow: hidden;
 }
 
+/* ── Responsive ───────────────────────────────────── */
 @media (max-width: 640px) {
   .cardHeader {
     flex-direction: column;
   }
   .userInfo {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .statsRow {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .filterToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .sortSelect {
+    width: 100%;
   }
 }

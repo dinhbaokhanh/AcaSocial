@@ -3,11 +3,12 @@
   flex-direction: column;
 }
 
+/* ── Page Header ───────────────────────────────────────────── */
 .pageHeader {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding-bottom: var(--space-2);
   margin-bottom: var(--space-2);
   border-bottom: 2px solid var(--color-outline);
@@ -19,10 +20,17 @@
   position: absolute;
   bottom: -2px;
   left: 0;
-  width: 48px;
+  width: 36px;
   height: 2px;
   background: var(--color-primary-500);
   border-radius: var(--radius-full);
+}
+
+.pageHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 .pageTitle {
@@ -32,56 +40,112 @@
   color: var(--color-text-primary);
   letter-spacing: var(--tracking-tight);
   margin: 0;
+  line-height: var(--leading-tight);
 }
 
 .pageDesc {
   font-size: var(--text-sm);
-  color: var(--color-text-secondary);
-  margin: 3px 0 0;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: var(--leading-normal);
 }
 
+/* ── Filter Bar ───────────────────────────────────────────── */
 .filters {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--space-1);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-2);
-  padding: var(--space-1) var(--space-1-5);
+  margin-bottom: var(--space-1-5);
+  padding: var(--space-1-5) var(--space-2);
   background-color: var(--color-surface);
   border: 1px solid var(--color-outline);
   border-radius: var(--radius-xl);
 }
 
-.filters select {
-  max-width: 160px;
+.filterControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
 }
 
-.searchPill {
-  display: inline-flex;
+/* Make sure selects in filter bar are compact */
+.filterControls > * {
+  flex-shrink: 0;
+}
+
+.filterControls select {
+  max-width: 180px;
+  min-width: 110px;
+}
+
+/* Active filter chips row */
+.filterChips {
+  display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap;
+  padding-top: var(--space-0-5);
+  border-top: 1px solid var(--color-outline);
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   background-color: var(--color-primary-50);
   border: 1px solid var(--color-primary-200);
   border-radius: var(--radius-full);
-  padding: 3px 10px;
+  padding: 3px 10px 3px 10px;
   font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-primary-700);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+}
+
+.filterChipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0 0 0 2px;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: var(--color-primary-400);
+  line-height: 1;
+  transition: color var(--transition-base);
+  border-radius: var(--radius-full);
+}
+
+.filterChipRemove:hover {
   color: var(--color-primary-700);
 }
 
-.clearBtn {
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  color: var(--color-primary-500);
+.clearAllBtn {
   display: inline-flex;
   align-items: center;
-  line-height: 1;
-  transition: color var(--transition-base);
+  background: none;
+  border: 1px solid var(--color-outline);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color var(--transition-base), border-color var(--transition-base);
+  white-space: nowrap;
 }
-.clearBtn:hover { color: var(--color-primary-700); }
 
+.clearAllBtn:hover {
+  color: var(--color-primary-600);
+  border-color: var(--color-primary-300);
+}
+
+/* ── Post List ────────────────────────────────────────────── */
 .list {
   display: flex;
   flex-direction: column;
@@ -98,16 +162,47 @@
   border-top: none !important;
 }
 
+/* ── Pagination ───────────────────────────────────────────── */
 .pagination {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: var(--space-3) 0;
+  padding: var(--space-2-5) 0 var(--space-1-5);
 }
 
 .pageInfo {
   font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   color: var(--color-text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .filters {
+    padding: var(--space-1) var(--space-1-5);
+    border-radius: var(--radius-lg);
+  }
+
+  .filterControls select {
+    max-width: 150px;
+    min-width: 100px;
+  }
+
+  .pageTitle {
+    font-size: var(--text-lg);
+  }
+}
+
+@media (max-width: 430px) {
+  .filterControls {
+    gap: 6px;
+  }
+
+  .filterControls select {
+    max-width: 130px;
+    min-width: 90px;
+    font-size: 13px;
+  }
 }

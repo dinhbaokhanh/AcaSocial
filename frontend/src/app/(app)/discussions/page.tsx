@@ -14,7 +14,7 @@ export default function DiscussionsPage() {
       <Feed
         fixedPostType="discussion"
         title="Thảo luận"
-        description="Chia sẻ kiến thức và trao đổi ý kiến."
+        description="Chia sẻ kiến thức và trao đổi cùng cộng đồng."
       />
     </Suspense>
   );

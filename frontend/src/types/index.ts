@@ -307,10 +307,12 @@ export interface TagSuggestion {
 export interface TagSuggestionResponse {
   available: boolean;
   model: string | null;
-  /** Gợi ý chính; rỗng = AI cho rằng bài không thuộc môn nào. */
+  /** ok: có gợi ý; low_confidence: nội dung chưa đủ rõ (vd. gõ linh tinh); off_topic: không thuộc môn chuyên ngành. */
+  status: 'ok' | 'low_confidence' | 'off_topic' | null;
+  /** Gợi ý chính. */
   tags: TagSuggestion[];
-  /** Tối đa 5 tag xếp hạng cao nhất (gồm cả gợi ý chính) để người dùng tự chọn. */
-  candidates?: TagSuggestion[];
+  /** Vài tag sát nút tag chính; rỗng khi không có gợi ý chính. */
+  related: TagSuggestion[];
 }
 
 export interface UpdateDiscussionPayload {

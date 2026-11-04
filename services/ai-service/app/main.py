@@ -4,6 +4,7 @@
 """
 import hmac
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -46,8 +47,9 @@ class SuggestedTag(BaseModel):
 
 
 class TagResponse(BaseModel):
+    status: Literal["ok", "low_confidence", "off_topic"]
     tags: list[SuggestedTag]
-    candidates: list[SuggestedTag]
+    related: list[SuggestedTag]
     model: str
 
 
@@ -59,11 +61,12 @@ def health():
 @app.post("/internal/ai/tag", response_model=TagResponse, dependencies=[Depends(require_internal_token)])
 def suggest_tags(req: TagRequest):
     tagger: PrototypeTagger = state["tagger"]
-    primary, candidates = tagger.analyze(req.title, req.content)
+    result = tagger.analyze(req.title, req.content)
 
     def to_dto(s):
         tag = tagger.tags[s.slug]
         return SuggestedTag(slug=s.slug, name=tag["name"], level=tag["level"], tagId=tag["tag_id"],
                             topicId=tag["topic_id"], score=s.score, source=s.source)
 
-    return TagResponse(model=MODEL_NAME, tags=[to_dto(s) for s in primary], candidates=[to_dto(s) for s in candidates])
+    return TagResponse(model=MODEL_NAME, status=result.status, tags=[to_dto(s) for s in result.tags],
+                       related=[to_dto(s) for s in result.related])

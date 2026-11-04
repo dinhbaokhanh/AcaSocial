@@ -119,7 +119,26 @@ export function SidebarNav() {
                 }}
               >
                 <span className={styles.roomGlyph} aria-hidden="true">
-                  {room.roomType === 'course' ? 'C' : room.roomType === 'major' ? 'M' : room.roomType === 'event' ? 'E' : 'F'}
+                  {room.roomType === 'course' ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M2 2h8a1 1 0 011 1v7a1 1 0 01-1 1H2a1 1 0 01-1-1V3a1 1 0 011-1z" stroke="currentColor" strokeWidth="1.3"/>
+                      <path d="M1 5h10" stroke="currentColor" strokeWidth="1.3"/>
+                    </svg>
+                  ) : room.roomType === 'major' ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <rect x="2" y="1" width="8" height="10" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+                      <path d="M4 4h4M4 6.5h4M4 9h2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    </svg>
+                  ) : room.roomType === 'event' ? (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <rect x="1" y="2" width="10" height="9" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+                      <path d="M1 5h10M4 1v2M8 1v2" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    </svg>
+                  ) : (
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M1 2h10a.5.5 0 01.5.5v6a.5.5 0 01-.5.5H3.5L1 11V2.5A.5.5 0 011 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                    </svg>
+                  )}
                 </span>
                 <span className={styles.label}>{room.name}</span>
               </button>

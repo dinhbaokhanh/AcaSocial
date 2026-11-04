@@ -14,7 +14,7 @@ export default function HomePage() {
     <Suspense fallback={<LoadingState variant="feed" count={8} />}>
       <Feed
         title="Bảng tin"
-        description="Theo dõi bài đăng trong phòng bạn chọn."
+        description="Khám phá các bài đăng mới từ cộng đồng."
       />
     </Suspense>
   );

@@ -6,8 +6,8 @@
 
 .vertical {
   flex-direction: column;
-  gap: 3px;
-  width: 40px;
+  gap: 4px;
+  width: 44px;
 }
 
 .horizontal {
@@ -20,28 +20,38 @@
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid var(--color-outline);
+  border: 1.5px solid var(--color-outline);
   border-radius: var(--radius-md);
   color: var(--color-text-muted);
   cursor: pointer;
-  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition:
+    background-color var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    transform var(--transition-fast);
   padding: 0;
+  flex-shrink: 0;
 }
 
 .vertical .btn {
-  width: 32px;
-  height: 26px;
+  width: 36px;
+  height: 30px;
 }
 
 .horizontal .btn {
-  width: 26px;
-  height: 22px;
+  width: 28px;
+  height: 24px;
 }
 
 .btn:hover:not(:disabled) {
   background-color: var(--color-primary-50);
   border-color: var(--color-primary-300);
   color: var(--color-primary-600);
+  transform: scale(1.08);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .btn:disabled {
@@ -64,11 +74,12 @@
 .score {
   font-family: var(--font-body);
   font-size: var(--text-sm);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
   text-align: center;
-  min-width: 24px;
+  min-width: 28px;
+  line-height: 1;
 }
 
 .positive { color: var(--color-primary-700); }
@@ -78,5 +89,5 @@
 
 .disabled {
   pointer-events: none;
-  opacity: 0.6;
+  opacity: 0.55;
 }

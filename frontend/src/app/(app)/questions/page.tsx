@@ -14,7 +14,7 @@ export default function QuestionsPage() {
       <Feed
         fixedPostType="question"
         title="Câu hỏi"
-        description="Đặt câu hỏi hoặc chia sẻ cách giải."
+        description="Đặt câu hỏi, tìm kiếm kiến thức và cùng nhau giải quyết vấn đề."
       />
     </Suspense>
   );

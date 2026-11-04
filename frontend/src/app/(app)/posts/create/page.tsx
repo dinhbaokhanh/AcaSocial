@@ -251,21 +251,20 @@ function PostComposer({
         setAiMessage({ kind: "error", text: "AI gợi ý tag đang gặp lỗi. Nội dung của bạn vẫn được giữ nguyên, hãy chọn tag từ danh mục bên dưới." });
         return;
       }
-      // Ứng viên ngoài gợi ý chính. Bài bị coi là lạc đề thì chỉ hiện ứng viên trong room ngành/môn,
-      // nơi bài gần như chắc chắn thuộc một môn; ở room diễn đàn chúng thường là nhiễu.
-      const others = (res.candidates ?? []).filter((c) => !res.tags.some((t) => t.tag.id === c.tag.id));
-      const shownCandidates = res.tags.length > 0 || tagsRequired ? others : [];
       setAiTags(res.tags);
-      setAiCandidates(shownCandidates);
+      setAiCandidates(res.related);
       if (res.tags.length === 0) {
         setAiMessage({
           kind: "info",
-          text: shownCandidates.length
-            ? "AI chưa chắc bài thuộc môn nào. Bạn xem các tag có thể liên quan bên dưới hoặc chọn từ danh mục."
-            : "AI không tìm thấy tag phù hợp với nội dung này. Bạn hãy chọn tag từ danh mục.",
+          text:
+            res.status === "low_confidence"
+              ? "Nội dung chưa đủ rõ để AI gợi ý tag. Hãy mô tả cụ thể hơn vấn đề hoặc chọn tag từ danh mục."
+              : res.status === "off_topic"
+                ? "AI thấy bài không thuộc môn chuyên ngành nào. Nếu bài thuộc một môn, hãy chọn tag từ danh mục."
+                : "AI không tìm thấy tag phù hợp với nội dung này. Bạn hãy chọn tag từ danh mục.",
         });
       }
-      const shown = [...res.tags, ...shownCandidates];
+      const shown = [...res.tags, ...res.related];
       if (!shown.length) return;
       const model = res.model;
       setAiShown((prev) => ({

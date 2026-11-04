@@ -7,6 +7,9 @@ export interface AiTagSuggestion {
   source: string;
 }
 
+/** ok: có gợi ý; low_confidence: nội dung chưa đủ rõ (vd. gõ linh tinh); off_topic: không thuộc môn chuyên ngành. */
+export type AiTagStatus = 'ok' | 'low_confidence' | 'off_topic';
+
 @Injectable()
 export class AiTaggingService {
   private readonly logger = new Logger(AiTaggingService.name);
@@ -22,8 +25,9 @@ export class AiTaggingService {
     content: string,
   ): Promise<{
     model: string;
+    status: AiTagStatus;
     tags: AiTagSuggestion[];
-    candidates?: AiTagSuggestion[];
+    related: AiTagSuggestion[];
   } | null> {
     try {
       const response = await fetch(

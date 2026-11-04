@@ -31,6 +31,17 @@ function formatRelativeTime(dateStr: string): string {
   return `${Math.floor(months / 12)} năm trước`;
 }
 
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s/g, '')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\n+/g, ' ')
+    .trim()
+}
+
 export function KnowledgePostCard({
   discussion,
   variant = 'default',
@@ -39,6 +50,7 @@ export function KnowledgePostCard({
   const {
     id,
     title,
+    content,
     postType,
     status,
     upvoteCount,
@@ -84,7 +96,11 @@ export function KnowledgePostCard({
             disabled={!isAuthenticated}
           />
           <div
-            className={[styles.answerCount, isResolved ? styles.answerCountResolved : '']
+            className={[
+              styles.answerCount,
+              isResolved ? styles.answerCountResolved : '',
+              responseCount === 0 ? styles.answerCountEmpty : '',
+            ]
               .filter(Boolean)
               .join(' ')}
             title={`${responseCount} câu trả lời`}
@@ -134,6 +150,13 @@ export function KnowledgePostCard({
           </Link>
         </h2>
 
+        {/* Content preview */}
+        {!isCompact && content && (
+          <p className={styles.preview}>
+            {stripMarkdown(content.slice(0, 400))}
+          </p>
+        )}
+
         {/* Tags */}
         {tags.length > 0 && (
           <div className={styles.tags} aria-label="Thẻ chủ đề">
@@ -171,6 +194,13 @@ export function KnowledgePostCard({
                   <circle cx="6" cy="6" r="1.5" fill="currentColor"/>
                 </svg>
                 {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}k` : viewCount}
+              </span>
+              <span className={styles.metaDot} aria-hidden="true">·</span>
+              <span className={styles.replyCount} title={`${responseCount} câu trả lời`}>
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                  <path d="M1 2h10a.5.5 0 01.5.5v6a.5.5 0 01-.5.5H3.5L1 10V2.5A.5.5 0 011 2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/>
+                </svg>
+                {responseCount}
               </span>
             </>
           )}
