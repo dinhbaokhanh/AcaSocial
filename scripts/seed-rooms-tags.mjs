@@ -4,7 +4,7 @@
 //   node scripts/seed-rooms-tags.mjs --apply   # ghi vào DB
 //
 // Chạy lại nhiều lần an toàn: mọi INSERT đều ON CONFLICT DO NOTHING / cập nhật theo slug.
-// Cần: container Postgres đang chạy, academic_db đã có majors/courses, identity DB có một admin.
+// Cần: container Postgres đang chạy, academic_db đã có majors/courses (scripts/seed-academic.mjs), identity DB có một admin.
 //
 // - academic_db.major_courses: gán môn vào ngành (MÔ PHỎNG, provenance SIMULATED).
 // - discussion_db.tags: 30 nhãn trong services/ai-service/taxonomy.json + tag Marketing, gắn course_id theo course_code.
