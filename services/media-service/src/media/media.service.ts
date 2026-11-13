@@ -68,6 +68,7 @@ export class MediaService {
       originalName: file.originalname.slice(0, 255),
       publicId: cloudinaryResult.public_id,
       secureUrl: cloudinaryResult.secure_url,
+      resourceType: cloudinaryResult.resource_type,
       format:
         cloudinaryResult.format ||
         extname(file.originalname).slice(1, 21).toLowerCase() ||
@@ -139,7 +140,11 @@ export class MediaService {
       throw new BadRequestException(
         'Remove this file from its posts before deleting it',
       );
-    await this.cloudinaryService.destroy(asset.publicId, asset.category);
+    await this.cloudinaryService.destroy(
+      asset.publicId,
+      asset.category,
+      asset.resourceType,
+    );
 
     // Soft delete: ghi lại ai xóa và lúc nào thay vì xóa bản ghi
     asset.deletedAt = new Date();
