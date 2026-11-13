@@ -32,7 +32,7 @@ func main() {
 	// Kết nối Redis cho cơ chế blacklist token
 	redisAddr := os.Getenv("REDIS_URL")
 	if redisAddr == "" {
-		redisAddr = "localhost:6379"
+		log.Fatal("Thiếu biến môi trường REDIS_URL")
 	}
 	middleware.InitRedis(redisAddr)
 

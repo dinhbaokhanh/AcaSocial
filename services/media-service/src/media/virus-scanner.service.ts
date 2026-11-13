@@ -12,7 +12,7 @@ export class VirusScannerService {
   constructor(private readonly config: ConfigService) {}
 
   async scan(buffer: Buffer): Promise<void> {
-    const host = this.config.get<string>('CLAMAV_HOST', 'localhost');
+    const host = this.config.getOrThrow<string>('CLAMAV_HOST');
     const port = Number(this.config.get('CLAMAV_PORT', 3310));
     const timeout = Number(this.config.get('CLAMAV_TIMEOUT_MS', 20000));
     const result = await new Promise<string>((resolve, reject) => {

@@ -20,7 +20,7 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   async onModuleInit() {
-    const url = this.config.get<string>("NATS_URL", "nats://localhost:4222")
+    const url = this.config.getOrThrow<string>("NATS_URL")
     const stream = this.config.get<string>("NATS_STREAM", "ACASOCIAL_EVENTS")
     const consumer = this.config.get<string>(
       "NATS_CONSUMER",

@@ -13,10 +13,10 @@ export class MediaReferenceService {
       let response: Response;
       try {
         response = await fetch(
-          `${this.config.get('MEDIA_SERVICE_URL', 'http://localhost:8082')}/internal/media/${encodeURIComponent(id)}`,
+          `${this.config.getOrThrow<string>('MEDIA_SERVICE_URL')}/internal/media/${encodeURIComponent(id)}`,
           {
             headers: {
-              'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+              'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
             },
             signal: AbortSignal.timeout(3000),
           },

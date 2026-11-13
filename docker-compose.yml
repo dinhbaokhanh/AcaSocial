@@ -96,7 +96,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     networks:
       - internal
     depends_on:
@@ -123,7 +123,7 @@ services:
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
       ACADEMIC_SERVICE_URL: http://academic-service:8086
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     ports:
       - '8080:8080'
     networks:
@@ -155,7 +155,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
       CLAMAV_HOST: clamav
       CLAMAV_PORT: 3310
@@ -181,7 +181,7 @@ services:
       IDENTITY_SERVICE_URL: http://identity-service:8081
       ACADEMIC_SERVICE_URL: http://academic-service:8086
       AI_SERVICE_URL: http://ai-service:8087
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
@@ -206,7 +206,7 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: academic_db
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       IDENTITY_SERVICE_URL: http://identity-service:8081
     networks:
       - internal
@@ -222,7 +222,7 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8087
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     networks:
       - internal
     healthcheck:
@@ -247,9 +247,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       NATS_URL: nats://nats:4222
       IDENTITY_SERVICE_URL: http://identity-service:8081
-      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:-your_internal_service_token}
-    ports:
-      - '8085:8085'
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     networks:
       - internal
     depends_on:

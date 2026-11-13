@@ -121,10 +121,10 @@ export class MediaService {
     let usage: Response;
     try {
       usage = await fetch(
-        `${this.config.get('DISCUSSION_SERVICE_URL', 'http://localhost:8084')}/internal/attachments/${id}/usage`,
+        `${this.config.getOrThrow<string>('DISCUSSION_SERVICE_URL')}/internal/attachments/${id}/usage`,
         {
           headers: {
-            'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+            'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
           },
           signal: AbortSignal.timeout(3000),
         },

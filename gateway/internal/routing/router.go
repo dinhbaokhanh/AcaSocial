@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -107,7 +108,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		for _, t := range targets {
 			targetHosts = append(targetHosts, t.Host)
 		}
-		fmt.Printf("[Router] %-35s -> %s\n", pattern, strings.Join(targetHosts, ", "))
+		log.Printf("[Router] %-35s -> %s", pattern, strings.Join(targetHosts, ", "))
 
 		// Middleware chain per-route (ngoài vào trong):
 		// RateLimit → Auth → Cache → sanitize → proxy

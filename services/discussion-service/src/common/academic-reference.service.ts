@@ -37,10 +37,10 @@ export class AcademicReferenceService {
   private async get(path: string) {
     try {
       return await fetch(
-        `${this.config.get('ACADEMIC_SERVICE_URL', 'http://localhost:8086')}${path}`,
+        `${this.config.getOrThrow<string>('ACADEMIC_SERVICE_URL')}${path}`,
         {
           headers: {
-            'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+            'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
           },
           signal: AbortSignal.timeout(3000),
         },
