@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -52,4 +53,29 @@ func isBlacklisted(jti string) bool {
 	// identity-service lưu value "1" khi revoke token (logout, đổi mật khẩu, xóa tài khoản)
 	// Kiểm tra key tồn tại là đủ — không cần so sánh value cụ thể
 	return val != ""
+}
+
+// isRevokedForUser kiểm tra mốc thu hồi theo user do identity-service ghi vào
+// "revoked_before:<userID>" (Unix giây) khi đổi role, đổi/reset mật khẩu hoặc xóa tài khoản.
+// Blacklist theo jti chỉ thu hồi được token đang cầm trong tay; mốc này thu hồi
+// mọi access token phát hành trước đó, kể cả token trên thiết bị khác.
+// Lỗi Redis hoặc dữ liệu hỏng → fail-closed, giống isBlacklisted.
+func isRevokedForUser(userID string, issuedAt time.Time) bool {
+	if RedisClient == nil || userID == "" {
+		return false
+	}
+	val, err := RedisClient.Get(context.Background(), "revoked_before:"+userID).Result()
+	if err == redis.Nil {
+		return false
+	} else if err != nil {
+		log.Printf("[LỖI BẢO MẬT] Redis revoked_before lookup failed for user %s: %v. Báo cáo failed-closed.", userID, err)
+		return true
+	}
+	revokedBefore, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		log.Printf("[LỖI BẢO MẬT] Giá trị revoked_before không hợp lệ cho user %s. Báo cáo failed-closed.", userID)
+		return true
+	}
+	// Token thiếu iat không chứng minh được nó phát hành sau mốc thu hồi.
+	return issuedAt.IsZero() || issuedAt.Unix() < revokedBefore
 }

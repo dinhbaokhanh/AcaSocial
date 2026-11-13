@@ -19,6 +19,7 @@ import { Repository } from 'typeorm';
 import type { StringValue } from 'ms';
 import { REDIS_CLIENT } from '../common/redis.provider';
 import { parseTtl } from '../common/parse-ttl.util';
+import { TokenRevocationService } from '../common/token-revocation.service';
 import { MailService } from '../mail/mail.service';
 import { OtpService } from '../otp/otp.service';
 import { RefreshToken } from '../users/refresh-token.entity';
@@ -44,6 +45,7 @@ export class AuthService implements OnModuleInit {
     private config: ConfigService,
     private mailService: MailService,
     private otpService: OtpService,
+    private tokenRevocation: TokenRevocationService,
   ) {}
 
   async onModuleInit() {
@@ -177,38 +179,41 @@ export class AuthService implements OnModuleInit {
   async refreshToken(dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenHash = createHash('sha256').update(dto.refreshToken).digest('hex');
 
-    const stored = await this.refreshTokenRepo.findOne({
-      where: { tokenHash },
-      relations: ['user'],
-    });
+    // Giành quyền dùng token bằng một câu UPDATE nguyên tử: hai request đồng thời
+    // với cùng một token thì chỉ một request cập nhật được dòng này.
+    const claim = await this.refreshTokenRepo
+      .createQueryBuilder()
+      .update(RefreshToken)
+      .set({ revoked: true })
+      .where('token_hash = :tokenHash AND revoked = false', { tokenHash })
+      .returning('user_id, expires_at')
+      .execute();
+    const claimed = (claim.raw as { user_id: string; expires_at: Date }[])[0];
 
-    // Token không tồn tại trong DB — hash sai hoặc đã bị xóa
-    if (!stored) {
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
-
-    // Token đã bị revoke mà vẫn được dùng lại → dấu hiệu token bị đánh cắp.
-    // Thu hồi toàn bộ session để giới hạn thiệt hại — user sẽ cần đăng nhập lại.
-    if (stored.revoked) {
+    if (!claimed) {
+      const stored = await this.refreshTokenRepo.findOne({ where: { tokenHash } });
+      // Token không tồn tại trong DB (giả mạo hoặc đã bị xóa)
+      if (!stored) {
+        throw new UnauthorizedException('Invalid or expired refresh token');
+      }
+      // Token tồn tại nhưng đã dùng rồi → reuse detected, thu hồi mọi session của user
       await this.refreshTokenRepo.update(
         { userId: stored.userId, revoked: false },
         { revoked: true },
       );
+      await this.tokenRevocation.revokeAccessTokens(stored.userId);
       throw new UnauthorizedException(
         'Security alert: refresh token reuse detected. All sessions have been revoked. Please login again.',
       );
     }
 
-    // Token hết hạn tự nhiên
-    if (stored.expiresAt < new Date()) {
+    if (new Date(claimed.expires_at) < new Date()) {
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Token hợp lệ — revoke ngay trước khi cấp token mới (rotation)
-    stored.revoked = true;
-    await this.refreshTokenRepo.save(stored);
-
-    return this.generateTokens(stored.user);
+    const user = await this.userRepo.findOne({ where: { id: claimed.user_id } });
+    if (!user) throw new UnauthorizedException('Invalid or expired refresh token');
+    return this.generateTokens(user);
   }
 
   /**
@@ -267,6 +272,7 @@ export class AuthService implements OnModuleInit {
 
     // Buộc đăng nhập lại trên tất cả thiết bị sau khi đổi mật khẩu
     await this.refreshTokenRepo.update({ userId: user.id }, { revoked: true });
+    await this.tokenRevocation.revokeAccessTokens(user.id);
 
     return { message: 'Password reset successfully. Please login again.' };
   }
