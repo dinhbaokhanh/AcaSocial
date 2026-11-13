@@ -7,6 +7,7 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/dinhbaokhanh/AcaSocial/gateway/internal/config"
 	"github.com/golang-jwt/jwt/v5"
@@ -129,6 +130,21 @@ func AuthMiddlewareProvider(requiredRoles []string) func(http.Handler) http.Hand
 
 			if strings.TrimSpace(userIDStr) == "" {
 				http.Error(w, "Unauthorized - Invalid or Empty User ID in Token", http.StatusUnauthorized)
+				return
+			}
+
+			// Từ chối token phát hành trước mốc thu hồi của user (đổi role, đổi mật khẩu...).
+			var issuedAt time.Time
+			if iat, err := claims.GetIssuedAt(); err == nil && iat != nil {
+				issuedAt = iat.Time
+			}
+			if isRevokedForUser(userIDStr, issuedAt) {
+				if info := GetAuthInfo(r); info != nil {
+					info.JTI = jti
+					info.UserID = userIDStr
+					info.Reason = ReasonBlacklistedToken
+				}
+				http.Error(w, "Unauthorized - Token đã bị thu hồi", http.StatusUnauthorized)
 				return
 			}
 			r.Header.Set("X-User-ID", userIDStr)

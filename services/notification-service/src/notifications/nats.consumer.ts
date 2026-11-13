@@ -9,6 +9,9 @@ import { connect, consumerOpts, createInbox, JsMsg, StringCodec } from "nats"
 import { DomainEvent, NotificationsService } from "./notifications.service"
 import { InvalidDomainEventError, validateDomainEvent } from './domain-event'
 
+// Sau chừng này lần giao mà vẫn lỗi thì dừng giao lại, tránh một event hỏng lặp vô hạn.
+const MAX_DELIVERIES = 10
+
 @Injectable()
 export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NatsConsumer.name)
@@ -76,9 +79,18 @@ export class NatsConsumer implements OnModuleInit, OnModuleDestroy {
         if (notification) this.service.publish(notification)
         message.ack()
       } catch (error) {
-        this.logger.error(`Failed to process NATS message: ${String(error)}`)
+        const deliveries = message.info.deliveryCount
+        this.logger.error(
+          `Failed to process NATS message seq=${message.seq} (delivery ${deliveries}): ${String(error)}`,
+        )
         if (error instanceof InvalidDomainEventError) message.term()
-        else message.nak(5000)
+        else if (deliveries >= MAX_DELIVERIES) {
+          // Message vẫn nằm trong stream (tra theo seq) để xử lý tay sau khi sửa nguyên nhân.
+          this.logger.error(
+            `Giving up on NATS message seq=${message.seq} subject=${message.subject} after ${deliveries} deliveries`,
+          )
+          message.term()
+        } else message.nak(5000)
       }
     }
   }

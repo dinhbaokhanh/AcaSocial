@@ -39,9 +39,16 @@ export class CloudinaryService {
     });
   }
 
-  // resource_type phải đúng theo loại file, không thì Cloudinary trả 404 khi destroy
-  async destroy(publicId: string, category: MediaCategory): Promise<void> {
-    const resourceType = category === MediaCategory.IMAGE ? 'image' : 'raw';
-    await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
+  // resource_type phải khớp với loại Cloudinary đã gán lúc upload, nếu không destroy
+  // trả "not found" mà không báo lỗi và file vẫn nằm trên CDN.
+  // Bản ghi cũ chưa lưu resource_type thì suy ra từ category.
+  async destroy(
+    publicId: string,
+    category: MediaCategory,
+    resourceType?: string | null,
+  ): Promise<void> {
+    const type =
+      resourceType ?? (category === MediaCategory.IMAGE ? 'image' : 'raw');
+    await cloudinary.uploader.destroy(publicId, { resource_type: type });
   }
 }

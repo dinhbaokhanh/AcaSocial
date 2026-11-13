@@ -35,73 +35,77 @@ export class OtpService {
    */
   async createOtp(key: string, ttlSeconds = 300): Promise<string> {
     const otp = this.generateCode();
-    // Pipeline để thực hiện atomic — tránh race condition
+
+    // MULTI/EXEC: ba lệnh chạy như một khối, không lệnh nào của client khác chen vào giữa
     await this.redis
-      .pipeline()
+      .multi()
       .set(`otp:${key}`, otp, 'EX', ttlSeconds)
-      .del(`otp_fail:${key}`)   // reset fail counter khi OTP mới được tạo
-      .del(`otp_lock:${key}`)   // xóa lock cũ nếu có
+      .del(`otp_fail:${key}`) // reset fail counter khi OTP mới được tạo
+      .del(`otp_lock:${key}`) // xóa lock cũ nếu có
       .exec();
+
     return otp;
   }
 
   /**
+   * Kiểm tra lock → so OTP → đếm lần sai → khóa, tất cả trong một script Lua.
+   * Redis chạy script nguyên tử nên nhiều request song song không thể cùng đọc
+   * OTP trước khi bộ đếm tăng (vượt giới hạn MAX_ATTEMPTS).
+   *
+   * Trả về {mã, ttl}: 1 = đúng, 0 = sai hoặc hết hạn, -1 = đang bị khóa (kèm TTL),
+   * -2 = vừa đạt giới hạn và bị khóa.
+   */
+  private static readonly VERIFY_SCRIPT = `
+    if redis.call('EXISTS', KEYS[3]) == 1 then
+      return {-1, redis.call('TTL', KEYS[3])}
+    end
+    local stored = redis.call('GET', KEYS[1])
+    if not stored then return {0, 0} end
+    if stored == ARGV[1] then
+      redis.call('DEL', KEYS[1], KEYS[2])
+      return {1, 0}
+    end
+    local fails = redis.call('INCR', KEYS[2])
+    redis.call('EXPIRE', KEYS[2], ARGV[3])
+    if fails >= tonumber(ARGV[2]) then
+      redis.call('SET', KEYS[3], '1', 'EX', ARGV[3])
+      redis.call('DEL', KEYS[1], KEYS[2])
+      return {-2, 0}
+    end
+    return {0, 0}
+  `;
+
+  /**
    * Xác minh OTP người dùng nhập vào với bảo vệ brute-force.
+   * OTP đúng bị xóa ngay (one-time use); sai MAX_ATTEMPTS lần thì khóa và hủy OTP.
    *
-   * Luồng:
-   * 1. Kiểm tra có đang bị lock không → 429 nếu có
-   * 2. Lấy OTP đúng từ Redis
-   * 3. Nếu sai → tăng fail counter → lock nếu đạt MAX_ATTEMPTS
-   * 4. Nếu đúng → xóa OTP + fail counter → one-time use
-   *
-   * @throws TooManyRequestsException khi bị lockout
+   * @throws HttpException 429 khi bị lockout
    * @returns true nếu OTP đúng, false nếu sai hoặc hết hạn
    */
   async verifyOtp(key: string, otp: string): Promise<boolean> {
-    // Bước 1: Kiểm tra lock
-    const locked = await this.redis.exists(`otp_lock:${key}`);
-    if (locked) {
-      const ttl = await this.redis.ttl(`otp_lock:${key}`);
+    const [code, ttl] = (await this.redis.eval(
+      OtpService.VERIFY_SCRIPT,
+      3,
+      `otp:${key}`,
+      `otp_fail:${key}`,
+      `otp_lock:${key}`,
+      otp,
+      OtpService.MAX_ATTEMPTS,
+      OtpService.LOCKOUT_SECONDS,
+    )) as [number, number];
+
+    if (code === -1) {
       throw new HttpException(
         `Quá nhiều lần thử sai. Vui lòng thử lại sau ${ttl} giây.`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
-
-    // Bước 2: Lấy OTP từ Redis
-    const stored = await this.redis.get(`otp:${key}`);
-
-    // OTP hết hạn hoặc không tồn tại
-    if (!stored) return false;
-
-    // Bước 3: OTP sai — tăng fail counter
-    if (stored !== otp) {
-      const fails = await this.redis.incr(`otp_fail:${key}`);
-      // Set TTL cho fail counter bằng TTL của OTP để tự dọn dẹp
-      await this.redis.expire(`otp_fail:${key}`, OtpService.LOCKOUT_SECONDS);
-
-      if (fails >= OtpService.MAX_ATTEMPTS) {
-        // Khóa key và xóa OTP — buộc người dùng phải request OTP mới
-        await this.redis
-          .pipeline()
-          .set(`otp_lock:${key}`, '1', 'EX', OtpService.LOCKOUT_SECONDS)
-          .del(`otp:${key}`)
-          .del(`otp_fail:${key}`)
-          .exec();
-        throw new HttpException(
-          `Quá nhiều lần thử sai. Vui lòng yêu cầu mã OTP mới sau ${OtpService.LOCKOUT_SECONDS / 60} phút.`,
-          HttpStatus.TOO_MANY_REQUESTS,
-        );
-      }
-      return false;
+    if (code === -2) {
+      throw new HttpException(
+        `Quá nhiều lần thử sai. Vui lòng yêu cầu mã OTP mới sau ${OtpService.LOCKOUT_SECONDS / 60} phút.`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
-
-    // Bước 4: OTP đúng — xóa sạch, one-time use
-    await this.redis
-      .pipeline()
-      .del(`otp:${key}`)
-      .del(`otp_fail:${key}`)
-      .exec();
-    return true;
+    return code === 1;
   }
 }

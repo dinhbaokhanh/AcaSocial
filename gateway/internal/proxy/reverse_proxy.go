@@ -1,12 +1,14 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -50,6 +52,56 @@ func (rr *RoundRobinProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rr.proxies[idx].ServeHTTP(w, r)
 }
 
+// Breaker và Transport được dùng chung giữa mọi route trỏ về cùng một backend.
+// Một service lỗi thì toàn bộ route của nó ngắt mạch cùng lúc (thay vì mỗi route
+// tự đếm đủ lỗi), và các route chia sẻ một connection pool.
+var (
+	registryMu sync.Mutex
+	breakers   = map[string]*gobreaker.CircuitBreaker[*http.Response]{}
+	transports = map[string]*http.Transport{}
+)
+
+// breakerFor trả về Circuit Breaker của một backend host, tạo mới nếu chưa có.
+// Mở CB khi tỉ lệ lỗi >= 50% trên tối thiểu 10 request.
+func breakerFor(host string) *gobreaker.CircuitBreaker[*http.Response] {
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	if cb, ok := breakers[host]; ok {
+		return cb
+	}
+	cb := gobreaker.NewCircuitBreaker[*http.Response](gobreaker.Settings{
+		Name:        "CB-" + host,
+		MaxRequests: 5,
+		Interval:    10 * time.Second,
+		Timeout:     15 * time.Second,
+		ReadyToTrip: func(counts gobreaker.Counts) bool {
+			failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
+			return counts.Requests >= 10 && failureRatio >= 0.5
+		},
+	})
+	breakers[host] = cb
+	return cb
+}
+
+// transportFor trả về Transport dùng chung theo (host, timeout). Timeout nằm trong key
+// vì ResponseHeaderTimeout là thuộc tính của Transport, còn route upload cần timeout dài hơn.
+func transportFor(host string, timeout time.Duration) *http.Transport {
+	key := host + "|" + timeout.String()
+	registryMu.Lock()
+	defer registryMu.Unlock()
+	if t, ok := transports[key]; ok {
+		return t
+	}
+	t := &http.Transport{
+		ResponseHeaderTimeout: timeout,
+		MaxIdleConns:          5000,
+		MaxIdleConnsPerHost:   1000,
+		IdleConnTimeout:       120 * time.Second,
+	}
+	transports[key] = t
+	return t
+}
+
 // NewLoadBalancedProxy tạo reverse proxy có load balancing và circuit breaker cho danh sách backend.
 func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeoutSec int) (http.Handler, error) {
 	if len(targets) == 0 {
@@ -60,14 +112,6 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 		timeoutSec = 15
 	}
 	timeout := time.Duration(timeoutSec) * time.Second
-
-	// Dùng chung một Transport để tận dụng connection pool giữa các backend.
-	transport := &http.Transport{
-		ResponseHeaderTimeout: timeout,
-		MaxIdleConns:          5000,
-		MaxIdleConnsPerHost:   1000,
-		IdleConnTimeout:       120 * time.Second,
-	}
 
 	proxies := make([]*httputil.ReverseProxy, 0, len(targets))
 
@@ -81,20 +125,10 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 
 		p := httputil.NewSingleHostReverseProxy(targetURL)
 
-		// Mỗi backend có Circuit Breaker riêng.
-		// Mở CB khi tỉ lệ lỗi >= 50% trên tối thiểu 10 request.
-		cb := gobreaker.NewCircuitBreaker[*http.Response](gobreaker.Settings{
-			Name:        "CB-" + targetURL.Host,
-			MaxRequests: 5,
-			Interval:    10 * time.Second,
-			Timeout:     15 * time.Second,
-			ReadyToTrip: func(counts gobreaker.Counts) bool {
-				failureRatio := float64(counts.TotalFailures) / float64(counts.Requests)
-				return counts.Requests >= 10 && failureRatio >= 0.5
-			},
-		})
-
-		p.Transport = &breakerTransport{cb: cb, transport: transport}
+		p.Transport = &breakerTransport{
+			cb:        breakerFor(targetURL.Host),
+			transport: transportFor(targetURL.Host, timeout),
+		}
 
 		backendPattern := target.URLPattern
 		if backendPattern == "" {
@@ -124,6 +158,12 @@ func NewLoadBalancedProxy(targets []BackendTarget, endpointPattern string, timeo
 		}
 
 		p.ErrorHandler = func(w http.ResponseWriter, r *http.Request, proxyErr error) {
+			// Mạch đang mở: từ chối ngay, không chạm tới backend.
+			if errors.Is(proxyErr, gobreaker.ErrOpenState) || errors.Is(proxyErr, gobreaker.ErrTooManyRequests) {
+				w.Header().Set("Retry-After", "15")
+				http.Error(w, "Dịch vụ backend đang tạm ngắt do lỗi liên tiếp, vui lòng thử lại sau", http.StatusServiceUnavailable)
+				return
+			}
 			http.Error(w, "Dịch vụ backend hiện không khả dụng do lỗi kết nối", http.StatusBadGateway)
 		}
 
@@ -187,6 +227,9 @@ func splitPath(path string) []string {
 	return strings.Split(trimmed, "/")
 }
 
+// errBackendServerError đánh dấu response 5xx là thất bại đối với Circuit Breaker.
+var errBackendServerError = errors.New("backend trả về 5xx")
+
 // breakerTransport bọc RoundTripper với Circuit Breaker.
 // HTTP 5xx được tính là lỗi để CB có thể đếm và ngắt mạch khi cần.
 type breakerTransport struct {
@@ -201,11 +244,15 @@ func (b *breakerTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 			return nil, err
 		}
 		// Coi 5xx là failure: network OK nhưng backend đang có vấn đề.
+		// Vẫn trả response để client nhận đúng status/body gốc và body được đóng đúng cách.
 		if r.StatusCode >= 500 {
-			return nil, fmt.Errorf("backend trả về %d", r.StatusCode)
+			return r, errBackendServerError
 		}
 		return r, nil
 	})
+	if errors.Is(err, errBackendServerError) && resp != nil {
+		return resp, nil
+	}
 	if err != nil {
 		return nil, err
 	}

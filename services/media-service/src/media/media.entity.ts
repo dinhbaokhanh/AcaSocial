@@ -34,6 +34,12 @@ export class MediaAsset {
   @Column({ name: 'public_id', unique: true })
   publicId: string;
 
+  // resource_type Cloudinary trả về khi upload (image | raw | video). Upload dùng 'auto' nên
+  // loại thực tế do Cloudinary quyết định (vd. PDF là 'image'); xóa phải dùng đúng giá trị này.
+  // NULL với bản ghi cũ, khi đó suy ra từ category.
+  @Column({ name: 'resource_type', type: 'varchar', length: 10, nullable: true })
+  resourceType: string | null;
+
   // HTTPS URL từ Cloudinary — trả về cho client
   @Column({ name: 'secure_url' })
   secureUrl: string;

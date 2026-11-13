@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MediaAsset } from './media/media.entity';
 import { MediaModule } from './media/media.module';
 import { MediaScan1791200000001 } from './media/media-scan.migration';
+import { MediaResourceType1791600000000 } from './media/media-resource-type.migration';
 
 @Module({
   imports: [
@@ -22,7 +23,7 @@ import { MediaScan1791200000001 } from './media/media-scan.migration';
         database: config.get<string>('DB_NAME'),
         entities: [MediaAsset],
         synchronize: true,
-        migrations: [MediaScan1791200000001],
+        migrations: [MediaScan1791200000001, MediaResourceType1791600000000],
         migrationsRun: true,
         logging: false,
       }),
