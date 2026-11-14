@@ -1,4 +1,6 @@
 ai-lab
 **/__pycache__
 .venv
+venv
+.env
 *.md

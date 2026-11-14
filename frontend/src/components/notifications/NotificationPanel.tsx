@@ -53,7 +53,7 @@ export function NotificationPanel() {
                   <p>{item.body}</p>
                   <div className={styles.meta}>
                     <time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>
-                    {item.href && <span className={styles.openPost}>Xem bài đăng</span>}
+                    {item.href && <span className={styles.openPost}>Xem chi tiết</span>}
                   </div>
                 </div>
               </button>

@@ -8,7 +8,7 @@ modules are not currently deployed; their schema is retained for future implemen
 
 ## Academic ERD
 
-The academic catalog has eight domain tables. Legacy community sample rows remain
+The academic catalog has nine domain tables. Legacy community sample rows remain
 separate from the PTIT catalogue and retain their simulated nature. User accounts
 belong to identity-service; rooms and discussions belong to discussion-service.
 
@@ -16,8 +16,10 @@ belong to identity-service; rooms and discussions belong to discussion-service.
 erDiagram
     universities ||--o{ majors : offers
     majors ||--o{ training_programs : has
-    majors ||--o{ major_courses : includes
-    courses ||--o{ major_courses : belongs_to
+    training_programs ||--o{ curricula : versions
+    majors ||--o{ curricula : legacy_curricula
+    curricula ||--o{ curriculum_courses : contains
+    courses ||--o{ curriculum_courses : appears_in
     courses ||--o{ course_topics : covers
     topics ||--o{ course_topics : relates_to
     topics o|--o{ topics : parent_of
@@ -49,9 +51,19 @@ erDiagram
         string provenance
         string source_url
     }
-    major_courses {
+    curricula {
         uuid id PK
         uuid major_id FK
+        uuid training_program_id FK "nullable for legacy curricula"
+        string version
+        int effective_year
+        string status
+        string provenance
+        string source_url
+    }
+    curriculum_courses {
+        uuid id PK
+        uuid curriculum_id FK
         uuid course_id FK
         string course_type
         int recommended_semester
@@ -94,26 +106,34 @@ erDiagram
     }
 ```
 
-Majors and courses are many-to-many through `major_courses`; unique pairs are
-`(major_id, course_id)` and `(course_id, topic_id)`. Course codes are nullable
+Curriculum versions are unique within a training program; legacy curricula with
+no program remain unique within a major. Other unique pairs are
+`(curriculum_id, course_id)` and `(course_id, topic_id)`. Course codes are nullable
 so an unpublished code is not invented. Provenance values are `OFFICIAL`,
 `DERIVED` and `SIMULATED`; a source URL is stored on catalog rows. The diagram
 omits descriptions and timestamps for clarity.
 
+The seed currently uses one current snapshot for IT and curricula explicitly
+applied from 2025 for Cybersecurity and Marketing. The IT page does not state an
+application year in its title, so its version is named a 2026 access snapshot,
+not an official “2026 curriculum”. Course codes are absent from these pages and
+remain null. The major pages do not provide separate program/admission codes
+for the standard programs; those also remain null. Course-topic outlines and
+discussion content are simulated.
 No Document/RAG module exists in this repository, so none is fabricated.
 
 ## Discussion Decisions
 
-| Feature | Current scope |
-| --- | --- |
-| Answers and revisions | Retained, including anonymous answers |
-| Answer acceptances | Retained with question/answer versions and revocation history |
-| Academic staff assignments | Removed |
-| Academic answer reviews and disputes | Removed; users discuss corrections in comments |
-| Verification state and knowledge tier | Removed |
-| Reports, moderation cases and audit logs | Schema retained; module and API not deployed |
-| Manual post approval | Admin/moderator queue and allow/hide decisions; review history retained |
-| AI moderation and topic suggestions | Schema retained; module and API not deployed |
+| Feature                                  | Current scope                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------- |
+| Answers and revisions                    | Retained, including anonymous answers                                   |
+| Answer acceptances                       | Retained with question/answer versions and revocation history           |
+| Academic staff assignments               | Removed                                                                 |
+| Academic answer reviews and disputes     | Removed; users discuss corrections in comments                          |
+| Verification state and knowledge tier    | Removed                                                                 |
+| Reports, moderation cases and audit logs | Schema retained; module and API not deployed                            |
+| Manual post approval                     | Admin/moderator queue and allow/hide decisions; review history retained |
+| AI moderation and topic suggestions      | Schema retained; module and API not deployed                            |
 
 The question author or an admin may accept an answer. Authors cannot accept their
 own answers. Teacher status and room moderator status do not grant acceptance
@@ -123,13 +143,13 @@ edits to the accepted answer revoke acceptance without requiring answer approval
 
 ## Permissions
 
-| Actor | Content management |
-| --- | --- |
-| Student or teacher | Own content, subject to discussion rules |
-| Global moderator or admin | Existing content edit/delete permissions |
-| Admin or global moderator | Manual post approval |
-| Active room owner or moderator | Room management; moderation queue and comment locking not deployed |
-| Expired, muted, banned or pending room membership | No room management authority |
+| Actor                                             | Content management                                                 |
+| ------------------------------------------------- | ------------------------------------------------------------------ |
+| Student or teacher                                | Own content, subject to discussion rules                           |
+| Global moderator or admin                         | Existing content edit/delete permissions                           |
+| Admin or global moderator                         | Manual post approval                                               |
+| Active room owner or moderator                    | Room management; moderation queue and comment locking not deployed |
+| Expired, muted, banned or pending room membership | No room management authority                                       |
 
 Room roles are assigned through `room_memberships`, independently of the account
 role. AI result, topic-feedback, report and comment-locking endpoints are not exposed.

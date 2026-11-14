@@ -74,7 +74,7 @@ export function AnswerList({
                 upvoteCount={answer.upvoteCount}
                 downvoteCount={answer.downvoteCount}
                 myVote={answer.myVote}
-                disabled={!answer.canVote || post.status === 'closed'}
+                disabled={post.canInteract === false || !answer.canVote || post.status === 'closed'}
               />
             </div>
             <div className={styles.body}>
@@ -93,7 +93,7 @@ export function AnswerList({
               <div className={`${styles.content} ${markdownStyles.markdownBody}`}>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{answer.content}</ReactMarkdown>
               </div>
-              {answer.canAcceptAnswer && !accepted && post.status !== 'closed' && (
+              {post.canInteract !== false && answer.canAcceptAnswer && !accepted && post.status !== 'closed' && (
                 <div className={styles.actions}>
                   <Button
                     size="sm"

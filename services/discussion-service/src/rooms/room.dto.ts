@@ -82,6 +82,28 @@ export class UpdateRoomPolicyDto {
 }
 
 export class UpdateRoomStatusDto {
+  @IsInt() @Min(1) expectedVersion: number;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(3, 1000) reason: string;
   @IsEnum(['active', 'read_only', 'archived']) status:
     'active' | 'read_only' | 'archived';
+}
+
+export class UpdateRoomDto {
+  @IsInt() @Min(1) expectedVersion: number;
+  @ValidateIf((_, v) => v !== undefined) @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(3, 200) name?: string;
+  @ValidateIf((_, v) => v !== undefined) @IsString() @Length(0, 10000) description?: string;
+}
+
+export class ClosureScheduleDto {
+  @Type(() => Date) @IsDate() closeAt: Date;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(3, 1000) reason: string;
+  @ValidateIf((_, v) => v !== undefined) @IsInt() @Min(1) expectedVersion?: number;
+}
+export class CancelClosureDto {
+  @IsInt() @Min(1) expectedVersion: number;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  @IsString() @Length(3, 1000) reason: string;
 }

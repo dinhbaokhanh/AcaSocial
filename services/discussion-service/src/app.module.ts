@@ -1,3 +1,5 @@
+import { RoomLifecycle1791700000000 } from './room-lifecycle.migration';
+import { RoomAdministration1791600000000 } from './room-administration.migration';
 import { RoomPostPolicy1791200000000 } from './events/room-post-policy.migration';
 import { MajorCourseContext1791300000000 } from './events/major-course-context.migration';
 import { TagCourse1791400000000 } from './events/tag-course.migration';
@@ -65,7 +67,7 @@ import { PostPublication1791000000000 } from './events/post-publication.migratio
         synchronize:
           config.get<string>('NODE_ENV') !== 'production' &&
           config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
-        migrations: [DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000, MajorCourseContext1791300000000, TagCourse1791400000000, AnonymousAlias1791500000000],
+        migrations: [RoomLifecycle1791700000000, RoomAdministration1791600000000, DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000, MajorCourseContext1791300000000, TagCourse1791400000000, AnonymousAlias1791500000000],
         migrationsRun: true,
         logging: false,
       }),

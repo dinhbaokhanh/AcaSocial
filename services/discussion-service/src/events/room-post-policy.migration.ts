@@ -2,18 +2,26 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class RoomPostPolicy1791200000000 implements MigrationInterface {
   async up(q: QueryRunner): Promise<void> {
-    await q.query(
-      `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS review_policy varchar(20) NOT NULL DEFAULT 'direct', ADD COLUMN IF NOT EXISTS policy_locked boolean NOT NULL DEFAULT false`,
-    );
-    await q.query(
-      `ALTER TABLE room_memberships ADD COLUMN IF NOT EXISTS post_permission varchar(20) NOT NULL DEFAULT 'inherit'`,
-    );
-    await q.query(
-      `ALTER TABLE discussions ADD COLUMN IF NOT EXISTS pending_revision jsonb, ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT ''`,
-    );
-    await q.query(
-      `CREATE TABLE IF NOT EXISTS room_policy_audits (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), room_id uuid NOT NULL REFERENCES rooms(id), actor_id uuid NOT NULL, member_id uuid, before jsonb NOT NULL, after jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`,
-    );
+    if (await q.hasTable('rooms')) {
+      await q.query(
+        `ALTER TABLE rooms ADD COLUMN IF NOT EXISTS review_policy varchar(20) NOT NULL DEFAULT 'direct', ADD COLUMN IF NOT EXISTS policy_locked boolean NOT NULL DEFAULT false`,
+      );
+    }
+    if (await q.hasTable('room_memberships')) {
+      await q.query(
+        `ALTER TABLE room_memberships ADD COLUMN IF NOT EXISTS post_permission varchar(20) NOT NULL DEFAULT 'inherit'`,
+      );
+    }
+    if (await q.hasTable('discussions')) {
+      await q.query(
+        `ALTER TABLE discussions ADD COLUMN IF NOT EXISTS pending_revision jsonb, ADD COLUMN IF NOT EXISTS moderation_note text NOT NULL DEFAULT ''`,
+      );
+    }
+    if (await q.hasTable('rooms')) {
+      await q.query(
+        `CREATE TABLE IF NOT EXISTS room_policy_audits (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), room_id uuid NOT NULL REFERENCES rooms(id), actor_id uuid NOT NULL, member_id uuid, before jsonb NOT NULL, after jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`,
+      );
+    }
   }
   async down(q: QueryRunner): Promise<void> {
     await q.query('DROP TABLE IF EXISTS room_policy_audits');

@@ -1211,6 +1211,96 @@
           "url_pattern": "/rooms/{id}/policy"
         }
       ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/closure-schedule",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/closure-schedule"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/closure-schedule",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/closure-schedule"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/closure-schedule",
+      "method": "PATCH",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/closure-schedule"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/rooms/{id}/closure-schedule/cancel",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/rooms/{id}/closure-schedule/cancel"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/room-announcements",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/room-announcements"
+        }
+      ]
     }
   ]
 }

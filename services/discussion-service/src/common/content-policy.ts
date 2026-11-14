@@ -41,16 +41,18 @@ export function requireOpen(post: Discussion) {
   if (post.status === PostStatus.CLOSED)
     throw new BadRequestException('This discussion is closed');
 }
-// All mutations lock the post first, then its children. A single lock order prevents
-// accept/delete/vote races and keeps counters in the same transaction as content.
-export async function lockPost(
-  manager: EntityManager,
-  id: string,
-): Promise<Discussion> {
-  const post = await manager.findOne(Discussion, {
-    where: { id },
-    lock: { mode: 'pessimistic_write' },
-  });
+// Lock order is room -> post -> children. Lifecycle operations only lock the room.
+export async function lockRoomForWrite(manager: EntityManager, roomId: string | null, check = true) {
+  if (!roomId) return;
+  const [room] = await manager.query<{ status: string; expired: boolean }[]>(`SELECT status, (closure_at IS NOT NULL AND closure_at <= clock_timestamp()) AS expired FROM rooms WHERE id=$1 FOR SHARE`, [roomId]);
+  if (!room) throw new NotFoundException('Room not found');
+  if (check && (room.status !== 'active' || room.expired)) throw new ForbiddenException('Room is not accepting new posts');
+}
+export async function lockPost(manager: EntityManager, id: string, writable = true): Promise<Discussion> {
+  const found = await manager.findOneBy(Discussion, { id });
+  if (!found) throw new NotFoundException('Discussion not found');
+  await lockRoomForWrite(manager, found.roomId, writable);
+  const post = await manager.findOne(Discussion, { where: { id }, lock: { mode: 'pessimistic_write' } });
   if (!post) throw new NotFoundException('Discussion not found');
   return post;
 }

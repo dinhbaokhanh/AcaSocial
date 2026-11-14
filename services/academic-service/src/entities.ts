@@ -73,6 +73,7 @@ export class TrainingProgram {
 
 @Entity('courses')
 export class Course {
+  @Column({ name: 'metadata_version', default: 1 }) metadataVersion: number;
   @PrimaryGeneratedColumn('uuid') id: string;
   @Column({ type: 'varchar', length: 40, unique: true, nullable: true }) code: string | null;
   @Column({ name: 'official_code', type: 'varchar', length: 60, nullable: true }) officialCode: string | null;

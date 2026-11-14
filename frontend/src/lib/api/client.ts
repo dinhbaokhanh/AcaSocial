@@ -2,6 +2,15 @@ import { API_BASE_URL } from '@/lib/constants';
 import type { ApiError } from '@/types';
 
 const ERROR_MESSAGES: Record<string, string> = {
+  'Content changed; reload before editing': 'Dữ liệu đã được người khác thay đổi. Hãy tải lại trước khi sửa.',
+  'Schedule changed; reload before editing': 'Lịch đã thay đổi. Hãy tải lại trước khi sửa.',
+  'Course code already exists': 'Mã môn học đã tồn tại.',
+  'Canonical room already exists': 'Ngữ cảnh học thuật này đã có room. Hãy sử dụng hoặc mở lại room đó.',
+  'Cancel the pending schedule before changing status': 'Hãy hủy lịch đang chờ trước khi đổi trạng thái.',
+  'Closure deadline has passed': 'Đã tới hạn ngừng hoạt động. Hãy tải lại dữ liệu.',
+  'Invalid room status transition': 'Không thể chuyển sang trạng thái này.',
+  'Admin role required': 'Chỉ quản trị viên được thực hiện thao tác này.',
+
   'Email already registered': 'Email này đã được đăng ký.',
   'User not found': 'Không tìm thấy tài khoản.',
   'Account already verified': 'Tài khoản đã được xác minh.',
@@ -22,6 +31,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 
 function displayError(message: string): string {
+  const notice = /^Room closure requires at least ([\d.]+) hours notice$/.exec(message);
+  if (notice) return `Thời điểm ngừng hoạt động cần cách hiện tại ít nhất ${notice[1]} giờ.`;
   return ERROR_MESSAGES[message] ?? message;
 }
 

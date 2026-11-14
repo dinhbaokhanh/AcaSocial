@@ -2,6 +2,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class PostPublication1791000000000 implements MigrationInterface {
   async up(q: QueryRunner): Promise<void> {
+    if (!(await q.hasTable('discussions'))) return;
     // Release posts held for initial review, preserving moderator-hidden content.
     await q.query(`UPDATE discussions SET visibility = 'visible'
       WHERE moderation_status = 'pending' AND visibility = 'held'`);
