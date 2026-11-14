@@ -31,7 +31,7 @@ Banner đọc trực tiếp từ DB qua API và cập nhật mỗi 30 giây. Ban
 
 Nếu rollback ứng dụng, giữ các bảng/cột bổ sung và audit, không chạy down migration trên dữ liệu đang dùng. Worker, lịch DB và kiểm tra deadline phải được xử lý nhất quán; tắt giao diện không hủy lịch.
 
-## Kiểm thử
+## Kiểm tra build
 
 Tại thư mục gốc, sau khi cài dependency của các package:
 
@@ -40,13 +40,9 @@ npm --prefix services/academic-service run build
 npm --prefix services/discussion-service run build
 npm --prefix services/notification-service run build
 npm --prefix frontend run build
-
-# Dùng PostgreSQL test riêng; tài khoản cần quyền CREATE SCHEMA/extension.
-$env:ROOM_ADMIN_TEST_DATABASE_URL = 'postgres://USER:PASSWORD@localhost:5432/TEST_DB'
-node --test services/discussion-service/test/room-administration.integration.cjs
 ```
 
-Test tạo schema ngẫu nhiên và dọn schema đó trong `finally`, không dùng tên bảng trong schema ứng dụng. Bao phủ HTTP validation/phân quyền, cập nhật đồng thời, transaction rollback khi audit thất bại, tạo canonical room trùng, thay đổi/hủy lịch, banner private, deadline trước khi worker chạy, worker chạy lại/đồng thời và inbox chống notification trùng.
+File test tích hợp của discussion-service và script `test:administration` đã được xóa theo yêu cầu. Các lệnh trên chỉ kiểm tra build, không chạy test nghiệp vụ.
 
 Đã kiểm tra bằng PostgreSQL 17 tạm riêng trên máy phát triển. Chưa thay thế nghiệm thu trình duyệt và chạy cả chuỗi gateway → NATS → SSE trong môi trường staging.
 
