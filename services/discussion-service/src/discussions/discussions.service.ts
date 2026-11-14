@@ -20,6 +20,7 @@ import {
   requireReadable,
   requireApproved,
   lockPost,
+  lockRoomForWrite,
   requireManager,
   requireOpen,
 } from '../common/content-policy';
@@ -116,6 +117,7 @@ export class DiscussionsService {
     )
       throw new BadRequestException('Course room fixes the academic context');
     const id = await this.db.transaction(async (m) => {
+      await lockRoomForWrite(m, resolvedRoomId);
       const tagIds = [...new Set(dto.tagIds ?? [])];
       const tags = await this.tags(m, tagIds);
       const post = await m.save(

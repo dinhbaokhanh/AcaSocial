@@ -143,7 +143,7 @@ function CommentEntry({
             upvoteCount={item.upvoteCount}
             downvoteCount={item.downvoteCount}
             myVote={item.myVote}
-            disabled={!item.canVote || post.status === "closed"}
+            disabled={post.canInteract === false || !item.canVote || post.status === "closed"}
           />
         )}
         <div style={{ minWidth: 0, flex: 1, overflowWrap: "anywhere" }}>
@@ -181,7 +181,7 @@ function CommentEntry({
                 ? "Ẩn trao đổi"
                 : `Xem trao đổi${item.replyCount === undefined ? "" : ` (${item.replyCount})`}`}
             </Button>
-            {!item.deletedAt && post.status !== "closed" && (
+            {post.canInteract !== false && !item.deletedAt && post.status !== "closed" && (
               <>
                 {isAuthenticated && (
                   <Button

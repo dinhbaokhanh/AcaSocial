@@ -148,7 +148,7 @@ export class ModerationService {
     if (dto.decision !== 'allow' && !dto.note?.trim())
       throw new BadRequestException('Vui lòng nhập lý do xử lý');
     return this.db.transaction(async (manager) => {
-      const post = await lockPost(manager, id);
+      const post = await lockPost(manager, id, dto.decision === 'allow');
       if (scope && (!post.roomId || !scope.includes(post.roomId)))
         throw new ForbiddenException('Room manager role required');
       if (

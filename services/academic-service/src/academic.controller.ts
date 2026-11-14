@@ -15,6 +15,7 @@ import {
 import type { Request } from 'express';
 import { AcademicService } from './academic.service';
 import {
+  UpdateCourseDto,
   CatalogDto,
   ListDto,
   MajorCourseDto,
@@ -47,8 +48,8 @@ export class AcademicController {
 
   @Post('courses')
   createCourse(@Req() req: Request, @Body() dto: CatalogDto) {
-    requireAdmin(userFromRequest(req as never));
-    return this.service.createCatalog('course', dto);
+    const actor = requireAdmin(userFromRequest(req as never));
+    return this.service.createCourse(dto, actor);
   }
 
   @Post('major-courses')
@@ -85,8 +86,8 @@ export class AcademicController {
   }
 
   @Patch('courses/:id')
-  updateCourse(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCatalogDto) {
-    requireAdmin(userFromRequest(req as never)); return this.service.updateCatalog('course', id, dto);
+  updateCourse(@Req() req: Request, @Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateCourseDto) {
+    const actor = requireAdmin(userFromRequest(req as never)); return this.service.updateCourse(id, dto, actor);
   }
 
   @Patch('topics/:id')

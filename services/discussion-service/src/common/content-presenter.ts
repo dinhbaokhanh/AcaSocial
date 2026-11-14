@@ -92,6 +92,11 @@ export class ContentPresenter {
       const seq = anonymousSeqs.get(`${threadOf(item)}:${item.authorId}`);
       return seq === undefined ? undefined : ((seq - 1) % MAX_ANONYMOUS_NUMBER) + 1;
     };
+    const threadIds = [...new Set(items.map(item => type === TargetType.DISCUSSION ? item.id : item.discussionId).filter(Boolean))];
+    type RoomContentState = { id: string; writable: boolean; closure_at: Date | null };
+    const roomStates = threadIds.length ? await this.db.query<RoomContentState[]>(`SELECT d.id, r.closure_at, (r.id IS NULL OR (r.status='active' AND (r.closure_at IS NULL OR r.closure_at>clock_timestamp()))) AS writable FROM discussions d LEFT JOIN rooms r ON r.id=d.room_id WHERE d.id=ANY($1::uuid[])`, [threadIds]) : [];
+    const statesByThread = new Map(roomStates.map(state => [state.id, state]));
+    const stateOf = (item: T) => statesByThread.get(type === TargetType.DISCUSSION ? item.id : item.discussionId ?? '');
     return items.map((item) => ({
       ...item,
       pendingRevision: item.authorId === user.id ? item.pendingRevision : undefined,
@@ -106,8 +111,10 @@ export class ContentPresenter {
       anonymousNumber:
         item.isAnonymous && !item.deletedAt ? anonymousNumber(item) : undefined,
       isMine: !!user.id && item.authorId === user.id,
-      canManage: !item.deletedAt && canManage(item.authorId, user),
-      canVote: (type !== TargetType.DISCUSSION || (['pending', 'approved'].includes(item.moderationStatus ?? '') && item.visibility === 'visible')) && !!user.id && item.authorId !== user.id && !item.deletedAt,
+      canInteract: stateOf(item)?.writable !== false,
+      roomClosesAt: stateOf(item)?.closure_at ?? null,
+      canManage: stateOf(item)?.writable !== false && !item.deletedAt && canManage(item.authorId, user),
+      canVote: stateOf(item)?.writable !== false && (type !== TargetType.DISCUSSION || (['pending', 'approved'].includes(item.moderationStatus ?? '') && item.visibility === 'visible')) && !!user.id && item.authorId !== user.id && !item.deletedAt,
       myVote: votes.find((v) => v.targetId === item.id)?.voteType ?? null,
       ...(item.deletedAt
         ? { content: '[Bình luận đã xóa]', isAnonymous: true }

@@ -1,3 +1,4 @@
+import { enqueueRoomNotification } from './room-notifications';
 import {
   BadRequestException,
   ConflictException,
@@ -12,6 +13,7 @@ import { authenticated } from '../common/content-policy';
 import { AcademicReferenceService } from '../common/academic-reference.service';
 import { OutboxService } from '../events/outbox.service';
 import {
+  UpdateRoomDto,
   CreateRoomDto,
   CreateRoomRuleDto,
   UpdateMembershipDto,
@@ -106,6 +108,12 @@ export class RoomsService {
 
     try {
       const roomId = await this.db.transaction(async (manager) => {
+        if ([RoomType.MAJOR, RoomType.COURSE].includes(dto.roomType)) {
+          const key = dto.roomType === RoomType.MAJOR ? dto.majorId : dto.majorCourseId;
+          await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`canonical:${dto.roomType}:${key}`]);
+          const existing = await manager.query(`SELECT r.id FROM rooms r JOIN room_academic_bindings b ON b.room_id = r.id WHERE r.room_type = $1 AND ${dto.roomType === RoomType.MAJOR ? 'b.major_id' : 'b.major_course_id'} = $2`, [dto.roomType, key]);
+          if (existing.length) throw new ConflictException('Canonical room already exists');
+        }
         const room = await manager.save(
           Room,
           manager.create(Room, {
@@ -172,6 +180,7 @@ export class RoomsService {
             expiresAt: null,
           }),
         );
+        await manager.query('INSERT INTO catalog_audits(entity_id,actor_id,action,after) VALUES($1,$2,$3,$4)', [room.id, actor, 'room.created', JSON.stringify(room)]);
         await this.outbox.event(manager, 'room.created', {
           roomId: room.id,
           roomType: room.roomType,
@@ -188,6 +197,21 @@ export class RoomsService {
     }
   }
 
+  async update(id: string, dto: UpdateRoomDto, user: GatewayUser) {
+    const actor = authenticated(user);
+    if (user.role !== 'admin') throw new ForbiddenException('Admin role required');
+    if (dto.name === undefined && dto.description === undefined) throw new BadRequestException('No changes supplied');
+    await this.db.transaction(async m => {
+      const before = await m.findOne(Room, { where: { id }, lock: { mode: 'pessimistic_write' } });
+      if (!before) throw new NotFoundException('Room not found');
+      const changes = { ...(dto.name !== undefined ? { name: dto.name } : {}), ...(dto.description !== undefined ? { description: dto.description } : {}) };
+      const result = await m.createQueryBuilder().update(Room).set({ ...changes, metadataVersion: () => 'metadata_version + 1' }).where('id = :id AND metadata_version = :version', { id, version: dto.expectedVersion }).execute();
+      if (!result.affected) throw new ConflictException('Content changed; reload before editing');
+      await m.query('INSERT INTO catalog_audits(entity_id,actor_id,action,before,after) VALUES($1,$2,$3,$4,$5)', [id, actor, 'room.updated', JSON.stringify(before), JSON.stringify({ ...before, ...changes, metadataVersion: before.metadataVersion + 1 })]);
+    });
+    return this.findOne(id, user);
+  }
+
   async list(
     type?: RoomType,
     parentRoomId?: string,
@@ -201,7 +225,7 @@ export class RoomsService {
       qb.andWhere(
         `(room.visibility != :private OR EXISTS (
         SELECT 1 FROM room_memberships membership
-        WHERE membership.room_id = room.id AND membership.user_id = :viewer AND membership.status = 'active'
+        WHERE membership.room_id = room.id AND membership.user_id = :viewer AND membership.status = 'active' AND (membership.expires_at IS NULL OR membership.expires_at > now())
       ))`,
         { private: RoomVisibility.PRIVATE, viewer: user.id ?? null },
       );
@@ -276,7 +300,7 @@ export class RoomsService {
             .getRepository(RoomMembership)
             .findOneBy({ roomId: room.id, userId: user.id, status: 'active' })
         : null;
-      if (!membership) throw new NotFoundException('Room not found');
+      if (!membership || (membership.expiresAt && membership.expiresAt <= new Date())) throw new NotFoundException('Room not found');
     }
     return { ...room, academicBinding: await this.binding(room.id) };
   }
@@ -521,17 +545,32 @@ export class RoomsService {
     dto: UpdateRoomStatusDto,
     user: GatewayUser,
   ) {
-    await this.requireRoomManager(roomId, user);
-    const room = await this.db.getRepository(Room).findOneBy({ id: roomId });
-    if (!room) throw new NotFoundException('Room not found');
-    room.status = dto.status as RoomStatus;
-    return this.db.getRepository(Room).save(room);
+    const actor = authenticated(user);
+    if (user.role !== 'admin') throw new ForbiddenException('Admin role required');
+    return this.db.transaction(async m => {
+      const room = await m.findOne(Room, { where: { id: roomId }, lock: { mode: 'pessimistic_write' } });
+      if (!room) throw new NotFoundException('Room not found');
+      if (room.metadataVersion !== dto.expectedVersion) throw new ConflictException('Content changed; reload before editing');
+      const pending = await m.query("SELECT id FROM room_lifecycle_schedules WHERE room_id=$1 AND status='pending'", [roomId]);
+      if (pending.length) throw new ConflictException('Cancel the pending schedule before changing status');
+      const allowed: Record<string, string[]> = { draft: ['active'], active: ['read_only'], read_only: ['active', 'archived'], archived: ['active'] };
+      if (!allowed[room.status]?.includes(dto.status)) throw new BadRequestException('Invalid room status transition');
+      const before = { ...room };
+      room.status = dto.status as RoomStatus;
+      room.metadataVersion += 1;
+      if (room.status === RoomStatus.ACTIVE) room.closureAt = null;
+      await m.save(Room, room);
+      await m.query('INSERT INTO catalog_audits(entity_id,actor_id,action,before,after) VALUES($1,$2,$3,$4,$5)', [roomId, actor, 'room.status.changed', JSON.stringify(before), JSON.stringify({ ...room, reason: dto.reason })]);
+      await enqueueRoomNotification(m, room, { id: room.id, version: room.metadataVersion, close_at: room.closureAt }, room.status === RoomStatus.ACTIVE ? 'room.reopened' : room.status === RoomStatus.READ_ONLY ? 'room.closed' : 'room.status.changed', actor);
+      return room;
+    });
   }
 
   postPermission(
     room: Room,
     membership?: RoomMembership | null,
   ): 'direct' | 'approval' | 'blocked' {
+    if (room.status !== RoomStatus.ACTIVE || (room.closureAt && room.closureAt <= new Date())) return 'blocked';
     if (
       membership &&
       (['banned', 'muted'].includes(membership.status) ||

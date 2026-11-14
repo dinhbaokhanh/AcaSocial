@@ -20,8 +20,26 @@ $envFiles = @(
     # .env của Gateway — chứa JWT_SECRET, REDIS_URL, IDENTITY_SERVICE_URL, v.v.
     @{ src = "$root\gateway\.env.example";                              dst = "$root\gateway\.env" },
 
-    # .env của Identity Service — chứa DB credentials, JWT, Redis, Mail, Cloudinary
-    @{ src = "$root\services\identity-service\.env.example";            dst = "$root\services\identity-service\.env" }
+    # .env của Identity Service — chứa DB credentials, JWT, Redis, Mail
+    @{ src = "$root\services\identity-service\.env.example";            dst = "$root\services\identity-service\.env" },
+
+    # .env của Academic Service
+    @{ src = "$root\services\academic-service\.env.example";            dst = "$root\services\academic-service\.env" },
+
+    # .env của Discussion Service
+    @{ src = "$root\services\discussion-service\.env.example";          dst = "$root\services\discussion-service\.env" },
+
+    # .env của Media Service
+    @{ src = "$root\services\media-service\.env.example";               dst = "$root\services\media-service\.env" },
+
+    # .env của Notification Service
+    @{ src = "$root\services\notification-service\.env.example";        dst = "$root\services\notification-service\.env" },
+
+    # .env của AI Service
+    @{ src = "$root\services\ai-service\.env.example";                  dst = "$root\services\ai-service\.env" },
+
+    # .env.local của Frontend
+    @{ src = "$root\frontend\.env.example";                             dst = "$root\frontend\.env.local" }
 )
 
 Write-Host ""

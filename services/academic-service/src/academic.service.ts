@@ -14,6 +14,7 @@ import {
   Topic,
 } from './entities';
 import {
+  UpdateCourseDto,
   CatalogDto,
   CourseTopicItemDto,
   ListDto,
@@ -73,6 +74,34 @@ export class AcademicService {
         throw new ConflictException(`${kind} code already exists`);
       throw error;
     }
+  }
+
+  async createCourse(dto: CatalogDto, actor: string) {
+    if (dto.status && dto.status !== CatalogStatus.ACTIVE) throw new BadRequestException('New courses must be active');
+    try {
+      return await this.db.transaction(async m => {
+        const course = await m.save(Course, m.create(Course, { code: dto.code, name: dto.name, description: dto.description ?? '', status: CatalogStatus.ACTIVE }));
+        await m.query('INSERT INTO catalog_audits(entity_id,actor_id,action,after) VALUES($1,$2,$3,$4)', [course.id, actor, 'course.created', JSON.stringify(course)]);
+        return course;
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('Course code already exists');
+      throw error;
+    }
+  }
+
+  async updateCourse(id: string, dto: UpdateCourseDto, actor: string) {
+    if (dto.name === undefined && dto.description === undefined) throw new BadRequestException('No changes supplied');
+    return this.db.transaction(async m => {
+      const before = await m.findOne(Course, { where: { id }, lock: { mode: 'pessimistic_write' } });
+      if (!before) throw new NotFoundException('Course not found');
+      const changes = { ...(dto.name !== undefined ? { name: dto.name } : {}), ...(dto.description !== undefined ? { description: dto.description } : {}) };
+      const result = await m.createQueryBuilder().update(Course).set({ ...changes, metadataVersion: () => 'metadata_version + 1' }).where('id = :id AND metadata_version = :version', { id, version: dto.expectedVersion }).execute();
+      if (!result.affected) throw new ConflictException('Content changed; reload before editing');
+      const after = await m.findOneByOrFail(Course, { id });
+      await m.query('INSERT INTO catalog_audits(entity_id,actor_id,action,before,after) VALUES($1,$2,$3,$4,$5)', [id, actor, 'course.updated', JSON.stringify(before), JSON.stringify(after)]);
+      return after;
+    });
   }
 
   async updateCatalog(kind: 'major' | 'course', id: string, dto: UpdateCatalogDto) {

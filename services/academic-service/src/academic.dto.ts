@@ -70,3 +70,9 @@ export class UpdateTopicDto extends UpdateCatalogDto {
   @ValidateIf((_, value) => value !== undefined && value !== null) @IsUUID()
   parentTopicId?: string | null;
 }
+
+export class UpdateCourseDto {
+  @IsInt() @Min(1) expectedVersion: number;
+  @ValidateIf((_, v) => v !== undefined) @Transform(trim) @IsString() @Length(2, 200) name?: string;
+  @ValidateIf((_, v) => v !== undefined) @Transform(trim) @IsString() @Length(0, 10000) description?: string;
+}

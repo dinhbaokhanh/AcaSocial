@@ -123,7 +123,7 @@ function mapApiNotification(n: ApiNotification): AppNotification {
     actorName: typeof n.data?.actorName === 'string' ? n.data.actorName : undefined,
     href: typeof n.data?.discussionId === 'string'
       ? `/posts/${encodeURIComponent(n.data.discussionId)}`
-      : undefined,
+      : typeof n.data?.roomId === 'string' ? `/rooms/${encodeURIComponent(n.data.roomId)}` : undefined,
   };
 }
 

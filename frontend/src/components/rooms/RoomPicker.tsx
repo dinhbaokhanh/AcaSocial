@@ -27,6 +27,8 @@ export function RoomPicker({
   onChange: (room: Room) => void;
   error?: string;
 }) {
+  const [now, setNow] = useState(0);
+  useEffect(() => { const tick = () => setNow(Date.now()); const timer = setInterval(tick, 1000); tick(); return () => clearInterval(timer); }, []);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
@@ -35,7 +37,7 @@ export function RoomPicker({
 
   const q = normalize(query.trim());
   const matches = rooms
-    .filter((r) => r.status === "active" && (!q || normalize(r.name).includes(q)))
+    .filter((r) => r.status === "active" && (!r.closureAt || new Date(r.closureAt).getTime() > now) && (!q || normalize(r.name).includes(q)))
     .sort((a, b) => (b.postCount ?? 0) - (a.postCount ?? 0) || a.name.localeCompare(b.name, "vi"));
   const visible = matches.slice(0, MAX_ROWS);
 

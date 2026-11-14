@@ -59,11 +59,26 @@ copy_env "$ROOT/.env.example" "$ROOT/.env"
 # .env của Gateway — chứa JWT_SECRET, REDIS_URL, IDENTITY_SERVICE_URL, v.v.
 copy_env "$ROOT/gateway/.env.example" "$ROOT/gateway/.env"
 
-# .env của Identity Service — chứa DB credentials, JWT, Redis, Mail, Cloudinary
+# .env của Identity Service — chứa DB credentials, JWT, Redis, Mail
 copy_env "$ROOT/services/identity-service/.env.example" "$ROOT/services/identity-service/.env"
 
-# Thêm service mới ở đây:
-# copy_env "$ROOT/services/community-service/.env.example" "$ROOT/services/community-service/.env"
+# .env của Academic Service
+copy_env "$ROOT/services/academic-service/.env.example" "$ROOT/services/academic-service/.env"
+
+# .env của Discussion Service
+copy_env "$ROOT/services/discussion-service/.env.example" "$ROOT/services/discussion-service/.env"
+
+# .env của Media Service
+copy_env "$ROOT/services/media-service/.env.example" "$ROOT/services/media-service/.env"
+
+# .env của Notification Service
+copy_env "$ROOT/services/notification-service/.env.example" "$ROOT/services/notification-service/.env"
+
+# .env của AI Service
+copy_env "$ROOT/services/ai-service/.env.example" "$ROOT/services/ai-service/.env"
+
+# .env.local của Frontend
+copy_env "$ROOT/frontend/.env.example" "$ROOT/frontend/.env.local"
 
 echo ""
 

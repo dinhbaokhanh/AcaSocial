@@ -57,6 +57,8 @@ export default function PostDetailPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
 
+  const [now, setNow] = useState(0);
+  useEffect(() => { const tick = () => setNow(Date.now()); tick(); const timer = setInterval(tick, 1000); return () => clearInterval(timer); }, []);
   const [post, setPost] = useState<Discussion | null>(null);
   const [error, setError] = useState("");
   const toast = useToast();
@@ -108,9 +110,10 @@ export default function PostDetailPage() {
   if (!post)
     return <p role={error ? "alert" : "status"}>{error || "Đang tải bài viết…"}</p>;
 
+  const roomWritable = post.canInteract !== false && (!post.roomClosesAt || new Date(post.roomClosesAt).getTime() > now);
   const isQuestion = post.postType === "question";
   const statusInfo = STATUS_META[post.status] ?? STATUS_META.open;
-  const canReply = isAuthenticated && post.status !== "closed" && ['pending', 'approved'].includes(post.moderationStatus ?? '') && post.visibility === 'visible';
+  const canReply = isAuthenticated && roomWritable && post.status !== "closed" && ['pending', 'approved'].includes(post.moderationStatus ?? '') && post.visibility === 'visible';
 
   return (
     <>
@@ -170,7 +173,7 @@ export default function PostDetailPage() {
             upvoteCount={post.upvoteCount}
             downvoteCount={post.downvoteCount}
             myVote={post.myVote}
-            disabled={!post.canVote || post.status === "closed"}
+            disabled={!roomWritable || !post.canVote || post.status === "closed"}
           />
 
           <div className={styles.bodyContent}>
@@ -209,7 +212,7 @@ export default function PostDetailPage() {
         </div>
 
         {/* ── Owner actions ── */}
-        {post.canManage && (
+        {roomWritable && post.canManage && (
           <div className={styles.formActions}>
             <Button
               variant="ghost"
@@ -286,11 +289,11 @@ export default function PostDetailPage() {
             ({isQuestion ? (post.answerCount ?? 0) : post.commentCount})
           </h2>
           {isQuestion ? (
-            <AnswerList post={post} onChange={refresh} version={version} />
+            <AnswerList post={{ ...post, canInteract: roomWritable }} onChange={refresh} version={version} />
           ) : (
             <CommentThread
               key={`${post.id}:${user?.id ?? "guest"}`}
-              post={post}
+              post={{ ...post, canInteract: roomWritable }}
               onChange={refresh}
               version={version}
             />
@@ -300,7 +303,7 @@ export default function PostDetailPage() {
         {/* Closed / not-logged-in prompt */}
         {!canReply && (
           <p className={styles.signInPrompt}>
-            {post.status === "closed"
+            {!roomWritable ? "Room đã ngừng nhận nội dung mới. Các bài đăng cũ vẫn được giữ lại." : post.status === "closed"
               ? "Bài viết đã đóng."
               : !isAuthenticated ? <a href="/login">Đăng nhập để tham gia trao đổi</a> : "Bạn có thể trao đổi sau khi post được duyệt."}
           </p>

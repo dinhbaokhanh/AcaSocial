@@ -35,6 +35,8 @@ export enum RoomStatus {
 
 @Entity('rooms')
 export class Room {
+  @Column({ name: 'closure_at', type: 'timestamptz', nullable: true }) closureAt: Date | null;
+  @Column({ name: 'metadata_version', default: 1 }) metadataVersion: number;
   @Column({
     name: 'review_policy',
     type: 'varchar',

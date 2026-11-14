@@ -1,3 +1,4 @@
+import { CourseAdministration1791600000000 } from './course-administration.migration';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -40,7 +41,7 @@ const entities = [
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_NAME', 'academic_db'),
         entities,
-        migrations: [AcademicFoundation1790200000000, RemoveStaffAssignments1790800000000, PtitCatalog1790900000000, PtitProgramCodeNullable1791000000000, MajorCourses1791100000000],
+        migrations: [CourseAdministration1791600000000, AcademicFoundation1790200000000, RemoveStaffAssignments1790800000000, PtitCatalog1790900000000, PtitProgramCodeNullable1791000000000, MajorCourses1791100000000],
         migrationsRun: true,
         synchronize: false,
       }),

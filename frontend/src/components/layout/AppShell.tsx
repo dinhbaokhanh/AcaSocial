@@ -1,3 +1,4 @@
+import { RoomAnnouncements } from '@/components/rooms/RoomAnnouncements';
 import { LinkSafety } from '@/components/shared/LinkSafety';
 import type { ReactNode } from 'react';
 import { AppHeader } from './AppHeader';
@@ -33,6 +34,7 @@ export function AppShell({ children, rightRail }: AppShellProps) {
 
           {/* Main content area */}
           <main className={styles.main} id="main-content">
+            <RoomAnnouncements />
             {children}
           </main>
 

@@ -5,6 +5,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class MajorCourseContext1791300000000 implements MigrationInterface {
   async up(q: QueryRunner): Promise<void> {
     for (const table of ['discussions', 'room_academic_bindings']) {
+      if (!(await q.hasTable(table))) continue;
       if (await q.hasColumn(table, 'curriculum_course_id'))
         await q.query(
           `ALTER TABLE ${table} RENAME COLUMN curriculum_course_id TO major_course_id`,

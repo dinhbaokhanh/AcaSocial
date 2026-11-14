@@ -66,6 +66,8 @@ export interface RoomAcademicBinding {
 }
 
 export interface Room {
+  metadataVersion: number;
+  closureAt: string | null;
   reviewPolicy: 'direct' | 'approval';
   policyLocked: boolean;
   effectivePostPermission?: 'direct' | 'approval' | 'blocked';
@@ -91,6 +93,8 @@ export interface Room {
 // --------------------------------------------------------------------------
 
 export interface Discussion {
+  canInteract?: boolean;
+  roomClosesAt?: string | null;
   pendingRevision?: { title: string; content: string; isAnonymous: boolean; tagIds: string[]; mediaIds: string[] } | null;
   moderationNote?: string;
   isMine?: boolean;

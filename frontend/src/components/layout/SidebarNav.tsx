@@ -94,6 +94,7 @@ export function SidebarNav() {
           <p className={styles.sectionLabel}>Quản trị</p>
           <ul role="list" className={styles.list}>
             <li><Link className={[styles.link, pathname.startsWith('/moderation') ? styles.active : ''].filter(Boolean).join(' ')} href="/moderation"><span className={styles.label}>Duyệt bài đăng</span></Link></li>
+            {user.role === 'admin' && <><li><Link className={styles.link} href="/admin/rooms"><span className={styles.label}>Quản lý room</span></Link></li><li><Link className={styles.link} href="/admin/courses"><span className={styles.label}>Quản lý môn học</span></Link></li></>}
             {user?.role === 'admin' && <li><Link className={[styles.link, pathname.startsWith('/admin/users') ? styles.active : ''].filter(Boolean).join(' ')} href="/admin/users"><span className={styles.label}>Phân quyền</span></Link></li>}
           </ul>
         </div>
@@ -103,6 +104,7 @@ export function SidebarNav() {
 
       <div className={styles.section}>
         <p className={styles.sectionLabel}>Phòng thảo luận</p>
+        <Link className={styles.link} href="/rooms">Tra cứu và room lưu trữ</Link>
         <ul role="list" className={styles.list}>
           {rooms.filter((room) => room.status === 'active').slice(0, 8).map((room) => (
             <li key={room.id}>

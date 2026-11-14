@@ -129,10 +129,16 @@ services:
     networks:
       - internal
     depends_on:
-      - identity-service
-      - media-service
-      - discussion-service
-      - academic-service
+      redis:
+        condition: service_healthy
+      identity-service:
+        condition: service_started
+      media-service:
+        condition: service_started
+      discussion-service:
+        condition: service_started
+      academic-service:
+        condition: service_started
 
   clamav:
     image: clamav/clamav:stable
@@ -155,6 +161,7 @@ services:
       DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: media_db
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
       CLAMAV_HOST: clamav
@@ -223,6 +230,8 @@ services:
     environment:
       PORT: 8087
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+    ports:
+      - '8087:8087'
     networks:
       - internal
     healthcheck:
