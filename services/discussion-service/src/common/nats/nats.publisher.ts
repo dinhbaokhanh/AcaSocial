@@ -28,7 +28,7 @@ export class NatsPublisher implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly config: ConfigService) {}
 
   async onModuleInit() {
-    const url = this.config.get<string>('NATS_URL', 'nats://localhost:4222');
+    const url = this.config.getOrThrow<string>('NATS_URL');
     try {
       this.connection = await connect({ servers: url });
       const manager = await this.connection.jetstreamManager();
@@ -90,6 +90,9 @@ export class NatsPublisher implements OnModuleInit, OnModuleDestroy {
       await this.js.publish(
         subject,
         this.codec.encode(JSON.stringify(payload)),
+        // JetStream bỏ qua message trùng msgID trong duplicate window: outbox gửi lại
+        // sau khi ACK bị mất sẽ không tạo bản ghi thứ hai trong stream.
+        { msgID: eventId },
       );
       this.logger.debug(`Published ${eventType} → ${subject}`);
     } catch (error) {

@@ -17,9 +17,9 @@ export class MentionService {
     if (!usernames.length) return;
     let response: Response;
     try {
-      response = await fetch(`${this.config.get('IDENTITY_SERVICE_URL', 'http://localhost:8081')}/internal/users/resolve-usernames`, {
+      response = await fetch(`${this.config.getOrThrow<string>('IDENTITY_SERVICE_URL')}/internal/users/resolve-usernames`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json', 'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', '') },
+        headers: { 'content-type': 'application/json', 'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN') },
         body: JSON.stringify({ usernames }), signal: AbortSignal.timeout(3000),
       });
     } catch { return; }

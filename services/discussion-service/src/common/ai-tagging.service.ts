@@ -31,12 +31,12 @@ export class AiTaggingService {
   } | null> {
     try {
       const response = await fetch(
-        `${this.config.get('AI_SERVICE_URL', 'http://localhost:8087')}/internal/ai/tag`,
+        `${this.config.getOrThrow<string>('AI_SERVICE_URL')}/internal/ai/tag`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+            'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
           },
           body: JSON.stringify({ title, content }),
           signal: AbortSignal.timeout(5000),

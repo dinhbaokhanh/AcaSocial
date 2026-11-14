@@ -52,12 +52,12 @@ export class ContentPresenter {
     if (ids.length) {
       try {
         const response = await fetch(
-          `${this.config.get('IDENTITY_SERVICE_URL', 'http://localhost:8081')}/internal/users/display`,
+          `${this.config.getOrThrow<string>('IDENTITY_SERVICE_URL')}/internal/users/display`,
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+              'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
             },
             body: JSON.stringify({ ids }),
             signal: AbortSignal.timeout(2000),
@@ -73,7 +73,7 @@ export class ContentPresenter {
     }
     const aliasSecret =
       this.config.get<string>('ANONYMOUS_ALIAS_SECRET') ||
-      this.config.get<string>('INTERNAL_SERVICE_TOKEN', '');
+      this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN');
     // Khoá ổn định theo (người dùng, bài) để frontend đặt cùng một nickname ẩn danh
     // trong một bài mà không lộ authorId; HMAC ngăn dò ngược từ danh sách user id.
     const threadOf = (item: T) =>

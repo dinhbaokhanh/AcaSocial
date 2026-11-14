@@ -137,7 +137,6 @@
       "endpoint": "/api/users/me",
       "method": "GET",
       "auth_required": true,
-      "cache_ttl_seconds": 30,
       "backend": [
         {
           "host": [

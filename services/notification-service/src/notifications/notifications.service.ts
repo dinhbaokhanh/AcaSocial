@@ -48,7 +48,7 @@ export class NotificationsService {
         delete data.senderId
       } else if (data.isAnonymous === false && typeof data.actorId === 'string') {
         // Resolve on the consumer so identity latency never delays posting a comment.
-        const base = this.config.get<string>('IDENTITY_SERVICE_URL', 'http://localhost:8081')
+        const base = this.config.getOrThrow<string>('IDENTITY_SERVICE_URL')
         const response = await fetch(`${base}/internal/users/${encodeURIComponent(data.actorId)}/display`, {
           headers: { 'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN') },
           signal: AbortSignal.timeout(3000),

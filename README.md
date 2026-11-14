@@ -52,7 +52,7 @@ API Gateway :8080          ← Điểm duy nhất frontend được gọi
     notification realtime qua SSE.
 ```
 
-> Các service **không** expose port ra ngoài trong flow production; notification-service expose `8085` cho local debugging. Chỉ Gateway mới được gọi từ frontend.
+> Các service **không** expose port ra ngoài; mọi service đều từ chối request thiếu `X-Internal-Token` (chỉ Gateway và service nội bộ có). Frontend chỉ gọi Gateway.
 > Gateway xác thực JWT một lần, sau đó forward `X-User-ID` và `X-User-Role` vào header cho các service phía sau dùng.
 
 ---

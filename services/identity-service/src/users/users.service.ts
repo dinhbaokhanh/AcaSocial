@@ -16,6 +16,7 @@ import { RefreshToken } from './refresh-token.entity';
 import { User } from './user.entity';
 import { Role } from './user.entity';
 import { UserRoleAudit } from './role-audit.entity';
+import { TokenRevocationService } from '../common/token-revocation.service';
 import { AdminUserListDto, ChangeUserRoleDto } from './dto/admin-users.dto';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ChangePasswordDto } from './dto/change-password.dto';
@@ -44,6 +45,7 @@ export class UsersService {
     @Inject(REDIS_CLIENT) private redis: Redis,
     private mailService: MailService,
     private otpService: OtpService,
+    private tokenRevocation: TokenRevocationService,
   ) {}
 
   /**
@@ -79,6 +81,13 @@ export class UsersService {
   }
 
   async changeRole(id: string, dto: ChangeUserRoleDto, actor: User) {
+    const profile = await this.changeRoleInTransaction(id, dto, actor);
+    // Role nằm trong JWT: thu hồi access token cũ để Gateway không tiếp tục áp role cũ.
+    await this.tokenRevocation.revokeAccessTokens(id);
+    return profile;
+  }
+
+  private changeRoleInTransaction(id: string, dto: ChangeUserRoleDto, actor: User) {
     return this.userRepo.manager.transaction(async (manager) => {
       const user = await manager.findOne(User, { where: { id }, lock: { mode: 'pessimistic_write' } });
       if (!user) throw new NotFoundException('User not found');
@@ -151,6 +160,7 @@ export class UsersService {
     await this.userRepo.save(user);
 
     await this.refreshTokenRepo.update({ userId: user.id }, { revoked: true });
+    await this.tokenRevocation.revokeAccessTokens(user.id);
 
     // TTL = thời gian còn lại thực tế của token, tối thiểu 1 giây
     const ttl = Math.max(1, exp - Math.floor(Date.now() / 1000));
@@ -234,6 +244,7 @@ export class UsersService {
     if (!match) throw new UnauthorizedException('Incorrect password');
 
     await this.refreshTokenRepo.update({ userId: user.id }, { revoked: true });
+    await this.tokenRevocation.revokeAccessTokens(user.id);
 
     // TTL = thời gian còn lại thực tế của token, tối thiểu 1 giây
     const ttl = Math.max(1, exp - Math.floor(Date.now() / 1000));

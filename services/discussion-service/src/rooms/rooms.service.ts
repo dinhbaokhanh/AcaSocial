@@ -596,13 +596,13 @@ export class RoomsService {
     try {
       for (let offset = 0; offset < members.length; offset += 100) {
         const response = await fetch(
-          this.config.get('IDENTITY_SERVICE_URL', 'http://localhost:8081') +
+          this.config.getOrThrow<string>('IDENTITY_SERVICE_URL') +
             '/internal/users/display',
           {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Internal-Token': this.config.get('INTERNAL_SERVICE_TOKEN', ''),
+              'X-Internal-Token': this.config.getOrThrow<string>('INTERNAL_SERVICE_TOKEN'),
             },
             body: JSON.stringify({
               ids: members.slice(offset, offset + 100).map((m) => m.userId),

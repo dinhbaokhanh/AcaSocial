@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -50,19 +51,27 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 			checks["redis"] = "not_configured"
 		}
 
-		// 2. Kiểm tra từng downstream service bằng cách gọi /health của chúng
-		// Dùng HTTP client với timeout ngắn để không block lâu
+		// 2. Kiểm tra khả năng kết nối tới từng downstream service.
+		// Các service chưa có endpoint /health riêng nên mọi phản hồi < 500 (kể cả 403/404)
+		// được coi là "service đang chạy và trả lời được".
+		// Dùng HTTP client với timeout ngắn để không block lâu.
 		httpClient := &http.Client{Timeout: 2 * time.Second}
 		for name, host := range backendHosts {
-			url := host + "/health"
-			resp, err := httpClient.Get(url)
-			if err != nil || resp.StatusCode >= 500 {
+			resp, err := httpClient.Get(host + "/health")
+			if err != nil {
+				checks[name] = "unreachable"
+				overallStatus = "degraded"
+				httpStatus = http.StatusServiceUnavailable
+				continue
+			}
+			// Luôn đóng body, kể cả khi backend trả 5xx, để không rò kết nối.
+			resp.Body.Close()
+			if resp.StatusCode >= 500 {
 				checks[name] = "unreachable"
 				overallStatus = "degraded"
 				httpStatus = http.StatusServiceUnavailable
 			} else {
 				checks[name] = "ok"
-				resp.Body.Close()
 			}
 		}
 
@@ -107,7 +116,7 @@ func NewRouter(cfg *config.GatewayConfig) (http.Handler, error) {
 		for _, t := range targets {
 			targetHosts = append(targetHosts, t.Host)
 		}
-		fmt.Printf("[Router] %-35s -> %s\n", pattern, strings.Join(targetHosts, ", "))
+		log.Printf("[Router] %-35s -> %s", pattern, strings.Join(targetHosts, ", "))
 
 		// Middleware chain per-route (ngoài vào trong):
 		// RateLimit → Auth → Cache → sanitize → proxy
