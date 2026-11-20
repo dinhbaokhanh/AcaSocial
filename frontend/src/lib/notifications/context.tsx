@@ -121,7 +121,7 @@ function mapApiNotification(n: ApiNotification): AppNotification {
     createdAt: n.createdAt,
     read: n.readAt !== null,
     actorName: typeof n.data?.actorName === 'string' ? n.data.actorName : undefined,
-    href: typeof n.data?.discussionId === 'string'
+    href: n.type === 'reputation.changed' || n.type === 'badge.awarded' || n.type === 'badge.revoked' ? '/reputation' : typeof n.data?.discussionId === 'string'
       ? `/posts/${encodeURIComponent(n.data.discussionId)}`
       : typeof n.data?.roomId === 'string' ? `/rooms/${encodeURIComponent(n.data.roomId)}` : undefined,
   };

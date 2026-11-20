@@ -1,4 +1,5 @@
 "use client";
+import { ReportPost } from '@/components/academic/ReportPost';
 import { useLinkSafety } from '@/components/shared/LinkSafety';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -120,6 +121,7 @@ export default function PostDetailPage() {
 
       {post.moderationStatus === 'hidden' && <p role="status">Bài viết đã bị ẩn sau khi kiểm duyệt. Bạn có thể sửa và gửi lại.</p>}
       <article className={styles.wrap}>
+        {isAuthenticated && <ReportPost id={post.id} version={post.contentVersion ?? 1} />}
         {/* ── Header ── */}
         <header className={styles.header}>
           <div className={styles.headerMeta}>

@@ -30,6 +30,48 @@
   },
   "endpoints": [
     {
+      "endpoint": "/api/moderation/cases/{id}/claim",
+      "method": "POST",
+      "auth_required": true,
+      "max_requests_per_minute": 30,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/moderation/cases/{id}/claim"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/moderation/cases",
+      "method": "GET",
+      "auth_required": true,
+      "max_requests_per_minute": 30,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/moderation/cases"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/content-reports",
+      "method": "POST",
+      "auth_required": true,
+      "max_requests_per_minute": 30,
+      "backend": [
+        {
+          "host": [
+            "${DISCUSSION_SERVICE_URL}"
+          ],
+          "url_pattern": "/content-reports"
+        }
+      ]
+    },
+    {
       "endpoint": "/api/auth/register",
       "method": "POST",
       "max_requests_per_minute": 60,
@@ -1298,6 +1340,367 @@
             "${DISCUSSION_SERVICE_URL}"
           ],
           "url_pattern": "/room-announcements"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/gamification/me",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/gamification/me"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/gamification/me/courses",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/gamification/me/courses"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/gamification/me/ledger",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/gamification/me/ledger"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/gamification/me/badges",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/gamification/me/badges"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/gamification/badges",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/gamification/badges"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/rules",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/rules"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/rules",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/rules"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/audits",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/audits"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/reconciliation-jobs",
+      "method": "GET",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/reconciliation-jobs"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/reconciliation-jobs",
+      "method": "POST",
+      "auth_required": true,
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/reconciliation-jobs"
+        }
+      ],
+      "required_roles": [
+        "admin"
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/gaps",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/gaps"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/references",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/references"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/failures",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/failures"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/inbox",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": ["admin"],
+      "backend": [
+        {
+          "host": ["${GAMIFICATION_SERVICE_URL}"],
+          "url_pattern": "/admin/gamification/inbox"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/inbox/{id}/retry",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": ["admin"],
+      "backend": [
+        {
+          "host": ["${GAMIFICATION_SERVICE_URL}"],
+          "url_pattern": "/admin/gamification/inbox/{id}/retry"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/gaps/{id}/retry",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/gaps/{id}/retry"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/references/{id}/retry",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/references/{id}/retry"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/failures/{id}/retry",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/failures/{id}/retry"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/rebuild-jobs",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/rebuild-jobs"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/reconciliation-jobs/{id}/findings",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/reconciliation-jobs/{id}/findings"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/metrics",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/metrics"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/replay-jobs",
+      "method": "GET",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/replay-jobs"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/replay-jobs",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/replay-jobs"
+        }
+      ]
+    },
+    {
+      "endpoint": "/api/admin/gamification/replay-jobs/{id}/execute",
+      "method": "POST",
+      "auth_required": true,
+      "required_roles": [
+        "admin"
+      ],
+      "backend": [
+        {
+          "host": [
+            "${GAMIFICATION_SERVICE_URL}"
+          ],
+          "url_pattern": "/admin/gamification/replay-jobs/{id}/execute"
         }
       ]
     }

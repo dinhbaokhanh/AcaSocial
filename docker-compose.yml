@@ -122,6 +122,7 @@ services:
       MEDIA_SERVICE_URL: http://media-service:8082
       DISCUSSION_SERVICE_URL: http://discussion-service:8084
       NOTIFICATION_SERVICE_URL: http://notification-service:8085
+      GAMIFICATION_SERVICE_URL: http://gamification-service:8088
       ACADEMIC_SERVICE_URL: http://academic-service:8086
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     ports:
@@ -182,6 +183,7 @@ services:
     env_file:
       - ./services/discussion-service/.env
     environment:
+      REPUTATION_JOURNAL_RETENTION_DAYS: ${REPUTATION_JOURNAL_RETENTION_DAYS:-90}
       DB_HOST: postgres
       NATS_URL: nats://nats:4222
       MEDIA_SERVICE_URL: http://media-service:8082
@@ -229,6 +231,9 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8087
+      LLM_CHAT_URL: ${LLM_CHAT_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
     ports:
       - '8087:8087'
@@ -264,6 +269,39 @@ services:
         condition: service_healthy
       nats:
         condition: service_healthy
+
+  gamification-service:
+    build:
+      context: ./services/gamification-service
+      dockerfile: Dockerfile
+    container_name: acasocial-gamification
+    restart: unless-stopped
+    environment:
+      PORT: 8088
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: gamification_db
+      NATS_URL: nats://nats:4222
+      NATS_STREAM: ACASOCIAL_EVENTS
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN:?Set INTERNAL_SERVICE_TOKEN in .env}
+      DISCUSSION_SERVICE_URL: http://discussion-service:8084
+      GAMIFICATION_MAX_SNAPSHOT_BYTES: ${GAMIFICATION_MAX_SNAPSHOT_BYTES:-16777216}
+      GAMIFICATION_ENABLED: ${GAMIFICATION_ENABLED:-true}
+      GAMIFICATION_NOTIFICATIONS_ENABLED: ${GAMIFICATION_NOTIFICATIONS_ENABLED:-true}
+    networks:
+      - internal
+    depends_on:
+      academic-db-init:
+        condition: service_completed_successfully
+      nats:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:8088/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
 
 # ===== Volumes =====
 volumes:

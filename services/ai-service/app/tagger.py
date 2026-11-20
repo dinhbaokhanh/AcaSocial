@@ -88,7 +88,13 @@ class PrototypeTagger:
         sim_of = {slug: float(s) for slug, s in zip(self.slugs, sims)}
 
         raw = f"{title}. {content}" if title else content
+        course_hits = self.keywords.course_scores(raw)
+        for slug, tag in self.tags.items():
+            if tag.get("parent") in course_hits and sim_of[slug] >= max(self.min_similarity, sim_of[NONE]):
+                if sim_of[slug] > sim_of[tag["parent"]]:
+                    course_hits[slug] = 1
         keyword_hits = {} if accent_ratio(raw) >= ACCENTED_MIN_RATIO else self.keywords.scores(raw, accented=False)
+        keyword_hits = {**course_hits, **keyword_hits}
         make = lambda s: TagSuggestion(s, round(sim_of[s], 4), "keyword" if s in keyword_hits else "embedding")
 
         if keyword_hits:

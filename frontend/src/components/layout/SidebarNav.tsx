@@ -88,6 +88,8 @@ export function SidebarNav() {
       </ul>
 
       <div className={styles.divider} />
+      {user && <Link className={styles.link} href="/reputation">Điểm uy tín và huy hiệu</Link>}
+      {user?.role === 'admin' && <Link className={styles.link} href="/admin/gamification">Cấu hình Gamification</Link>}
 
       {user && (['admin', 'moderator'].includes(user.role) || rooms.some(room => room.canManage)) && (
         <div className={styles.section}>

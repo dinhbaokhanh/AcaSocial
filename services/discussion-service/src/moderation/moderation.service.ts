@@ -238,6 +238,8 @@ export class ModerationService {
       }
       post.moderationNote = dto.note?.trim() ?? '';
       await manager.save(post);
+      const [aiRun] = await manager.query(`SELECT r.id FROM ai_inference_runs r JOIN ai_moderation_jobs j ON j.id=r.id
+        WHERE r.entity_id=$1 AND r.content_version=$2 AND j.state='succeeded' ORDER BY r.created_at DESC LIMIT 1`, [id, post.contentVersion]);
       await manager.save(
         ModerationReview,
         manager.create(ModerationReview, {
@@ -248,9 +250,13 @@ export class ModerationService {
           reasonCodes: [],
           note: post.moderationNote,
           reviewerId: actor,
-          relatedAiRunId: null,
+          relatedAiRunId: aiRun?.id ?? null,
         }),
       );
+      await manager.query(`UPDATE moderation_cases SET status='resolved',resolved_at=now(),resolution_action=$3,resolution_note=$4
+        WHERE entity_type='discussion' AND entity_id=$1 AND content_version=$2 AND status IN ('open','claimed')`, [id, post.contentVersion, dto.decision, post.moderationNote]);
+      await manager.query(`UPDATE content_reports SET status='resolved' WHERE case_id IN
+        (SELECT id FROM moderation_cases WHERE entity_id=$1 AND content_version=$2 AND status='resolved')`, [id, post.contentVersion]);
       return { id, moderationStatus: post.moderationStatus };
     });
   }

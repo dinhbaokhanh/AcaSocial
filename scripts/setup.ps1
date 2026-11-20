@@ -39,6 +39,8 @@ $envFiles = @(
     @{ src = "$root\services\ai-service\.env.example";                  dst = "$root\services\ai-service\.env" },
 
     # .env.local của Frontend
+    @{ src = "$root\services\gamification-service\.env.example"; dst = "$root\services\gamification-service\.env" },
+
     @{ src = "$root\frontend\.env.example";                             dst = "$root\frontend\.env.local" }
 )
 

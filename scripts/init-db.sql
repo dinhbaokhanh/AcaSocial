@@ -11,3 +11,6 @@ WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notification_db')\gex
 
 SELECT 'CREATE DATABASE academic_db'
 WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'academic_db')\gexec
+
+SELECT 'CREATE DATABASE gamification_db'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'gamification_db')\gexec

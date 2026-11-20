@@ -78,6 +78,8 @@ copy_env "$ROOT/services/notification-service/.env.example" "$ROOT/services/noti
 copy_env "$ROOT/services/ai-service/.env.example" "$ROOT/services/ai-service/.env"
 
 # .env.local của Frontend
+copy_env "$ROOT/services/gamification-service/.env.example" "$ROOT/services/gamification-service/.env"
+
 copy_env "$ROOT/frontend/.env.example" "$ROOT/frontend/.env.local"
 
 echo ""

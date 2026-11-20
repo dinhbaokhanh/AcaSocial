@@ -1,4 +1,8 @@
+import { ReputationJournal1792100000000 } from './events/reputation-journal.migration';
+import { ReputationSnapshotsController } from './events/reputation-snapshots.controller';
+import { ReputationEvents1792000000000 } from './events/reputation-events.migration';
 import { RoomLifecycle1791700000000 } from './room-lifecycle.migration';
+import { AiCases1791800000000 } from './moderation/ai-cases.migration';
 import { RoomAdministration1791600000000 } from './room-administration.migration';
 import { RoomPostPolicy1791200000000 } from './events/room-post-policy.migration';
 import { MajorCourseContext1791300000000 } from './events/major-course-context.migration';
@@ -19,6 +23,7 @@ import { Vote } from './votes/entities/vote.entity';
 import { TagsModule } from './tags/tags.module';
 import { EventsModule } from './events/events.module';
 import { DiscussionOutbox1789090000000 } from './events/outbox.migration';
+import { DiscussionBaseline1790200000000 } from './events/discussion-baseline.migration';
 import { ContentModule } from './common/content.module';
 import { CommunityFoundation1790201000000 } from './events/community-foundation.migration';
 import { Room, RoomAcademicBinding, RoomMembership, RoomRule } from './rooms/room.entity';
@@ -40,6 +45,7 @@ import { SeedProvenance1790910000000 } from './events/seed-provenance.migration'
 import { PostPublication1791000000000 } from './events/post-publication.migration';
 
 @Module({
+  controllers: [ReputationSnapshotsController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
@@ -67,7 +73,24 @@ import { PostPublication1791000000000 } from './events/post-publication.migratio
         synchronize:
           config.get<string>('NODE_ENV') !== 'production' &&
           config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
-        migrations: [RoomLifecycle1791700000000, RoomAdministration1791600000000, DiscussionOutbox1789090000000, CommunityFoundation1790201000000, TrustGovernance1790300000000, RemoveAcademicVerification1790800000000, SeedProvenance1790910000000, PostPublication1791000000000, RoomPostPolicy1791200000000, MajorCourseContext1791300000000, TagCourse1791400000000, AnonymousAlias1791500000000],
+        migrations: [
+          DiscussionOutbox1789090000000,
+          DiscussionBaseline1790200000000,
+          CommunityFoundation1790201000000,
+          TrustGovernance1790300000000,
+          RemoveAcademicVerification1790800000000,
+          SeedProvenance1790910000000,
+          PostPublication1791000000000,
+          RoomPostPolicy1791200000000,
+          MajorCourseContext1791300000000,
+          TagCourse1791400000000,
+          AnonymousAlias1791500000000,
+          RoomAdministration1791600000000,
+          RoomLifecycle1791700000000,
+          AiCases1791800000000,
+          ReputationEvents1792000000000,
+          ReputationJournal1792100000000,
+        ],
         migrationsRun: true,
         logging: false,
       }),

@@ -13,6 +13,7 @@ import { EmptyState } from '@/components/shared/EmptyState'
 import { ErrorState } from '@/components/shared/ErrorState'
 import type { Discussion, PostType, SortBy } from '@/types'
 import styles from './profile.module.css'
+import { ReputationSummary } from '@/components/academic/ReputationSummary'
 
 export default function ProfilePage() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth()
@@ -172,7 +173,7 @@ export default function ProfilePage() {
           {/* Numeric stats */}
           <div className={styles.numericStats}>
             <div className={styles.numericStat}>
-              <span className={styles.statValue}>150</span>
+              <span className={styles.statValue}><ReputationSummary userId={user.id} /></span>
               <span className={styles.statLabel}>Điểm uy tín</span>
             </div>
             <div className={styles.numericStat}>

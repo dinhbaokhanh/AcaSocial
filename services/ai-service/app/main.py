@@ -12,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 
 from app.config import INTERNAL_SERVICE_TOKEN, MODEL_NAME
 from app.tagger import PrototypeTagger
+from app.moderation import ModerationRequest, ModerationResult, moderate
 
 state: dict = {}
 
@@ -29,6 +30,14 @@ app = FastAPI(title="AcaSocial AI Service", lifespan=lifespan)
 def require_internal_token(x_internal_token: str = Header(default="")):
     if not INTERNAL_SERVICE_TOKEN or not hmac.compare_digest(x_internal_token, INTERNAL_SERVICE_TOKEN):
         raise HTTPException(status_code=403, detail="Invalid internal service token")
+
+
+@app.post("/internal/ai/moderate", response_model=ModerationResult, dependencies=[Depends(require_internal_token)])
+def moderate_post(req: ModerationRequest):
+    try:
+        return moderate(req)
+    except Exception:
+        raise HTTPException(status_code=503, detail="AI analysis unavailable; use manual review")
 
 
 class TagRequest(BaseModel):

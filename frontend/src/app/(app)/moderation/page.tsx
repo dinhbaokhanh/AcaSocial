@@ -135,6 +135,7 @@ export default function ModerationPage() {
           </p>
         </div>
         <div className={styles.actions}>
+          <Link href="/moderation/cases">Hồ sơ báo cáo và phân tích AI</Link>
           <Link href="/moderation/rooms">
             <Button variant="outline">Cấu hình room</Button>
           </Link>

@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import {
   Injectable,
   Logger,
@@ -6,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { NatsPublisher } from '../common/nats/nats.publisher';
+import { reputationJournalRetentionDays } from './reputation-journal-retention';
 
 const POLL_INTERVAL_MS = 500;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
@@ -23,6 +25,7 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly db: DataSource,
     private readonly nats: NatsPublisher,
+    private readonly config: ConfigService,
   ) {}
   onModuleInit() {
     this.timer = setInterval(() => {
@@ -73,6 +76,12 @@ export class OutboxWorker implements OnModuleInit, OnModuleDestroy {
     });
   }
   private async cleanup() {
+    await this.db.query("DELETE FROM reputation_exports WHERE created_at<now()-interval '1 day'");
+    const retention = reputationJournalRetentionDays(
+      this.config.get('REPUTATION_JOURNAL_RETENTION_DAYS', '90'),
+    );
+    await this.db.query("DELETE FROM reputation_journal j WHERE j.created_at < now() - $1 * interval '1 day' AND NOT EXISTS(SELECT 1 FROM discussion_outbox o WHERE o.id=j.event_id AND o.delivered_at IS NULL)", [retention]);
+    await this.db.query("DELETE FROM reputation_emissions WHERE created_at < now() - interval '7 days'");
     await this.db.query(
       `DELETE FROM discussion_outbox WHERE delivered_at < now() - interval '${DELIVERED_RETENTION}'`,
     );

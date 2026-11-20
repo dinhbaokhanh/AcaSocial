@@ -3,6 +3,12 @@ function text(value: unknown): string {
 }
 
 export function contextualBody(type: string, data: Record<string, unknown>): string | null {
+  if (type === 'reputation.changed') {
+    const delta = typeof data.delta === 'number' && Number.isInteger(data.delta) ? data.delta : 0;
+    return delta > 0 ? `Bạn được ghi nhận thêm ${delta} điểm đóng góp. Xem lịch sử điểm để biết chi tiết.` : `Đã điều chỉnh ${delta} điểm do đóng góp không còn đủ điều kiện. Lịch sử điểm vẫn được giữ lại.`;
+  }
+  if (type === 'badge.awarded') return `Bạn vừa đạt huy hiệu ${text(data.badgeName) || 'đóng góp'}. Xem hồ sơ uy tín để biết phạm vi áp dụng.`;
+  if (type === 'badge.revoked') return 'Một huy hiệu đóng góp không còn đủ ngưỡng điểm. Lịch sử đã đạt vẫn được giữ lại.';
   if (type.startsWith('room.')) {
     const messages: Record<string, string> = {
       'room.closure.scheduled': 'Một phòng bạn tham gia đã có lịch ngừng nhận nội dung mới. Mở phòng để xem chi tiết.',
